@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.1] — 2026-10-27
+### Changed
+- Prefer Google Sheets connector for SoW_* create/push; Apps Script demoted to optional fallback (`docs/SYNC_SETUP.md`)
+
 ## [0.5.0] — 2026-10-27
 ### Added
 - JB-6: Sheet sync — gviz roster pull, SoW_* merge by updatedAt, offline dirty/queue, Apps Script bridge (`apps-script/SoWSync.gs`), Settings Test/Sync + syncUrl

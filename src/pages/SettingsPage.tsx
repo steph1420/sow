@@ -155,7 +155,7 @@ export default function SettingsPage() {
         <div>
           <p className="field-label">Sync Web App URL</p>
           <p className="hint">
-            Optional. Deploy <code>apps-script/SoWSync.gs</code> for push + creating SoW_* tabs. Pull-only works without it.
+            Optional fallback. Prefer Google Sheets connected in chat (bot creates/pushes SoW_*). Apps Script only if you need device-side push.
           </p>
           <input
             type="url"
@@ -212,7 +212,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="foot-note">
-        App writes its own tabs only. Local-first; sheet is the shared backup. Setup notes in docs/SYNC_SETUP.md.
+        App writes its own tabs only via bot connector or optional Apps Script. Teaching tabs stay read-only. See docs/SYNC_SETUP.md.
       </p>
 
       <Link to="/history" className="btn-secondary" style={{ display: 'block' }}>
