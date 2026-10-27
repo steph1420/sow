@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.2] — 2026-10-27
+### Fixed
+- Mark A–Z strip overlapped student rows; now an absolute right-edge overlay with list padding
+
 ## [0.6.1] — 2026-10-27
 ### Changed
 - GitHub Pages base `/sow/`: Vite base, PWA start_url/scope/navigateFallback, Router basename

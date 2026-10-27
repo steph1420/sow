@@ -78,7 +78,7 @@
 .mark .all.set { border-style: solid; border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
 .mark .all.sub { border-style: solid; border-color: var(--submit); background: var(--submit-bg); color: var(--submit-fg); }
 
-.mark .list { display: flex; flex-direction: column; gap: 5px; flex: 1; padding-bottom: 8px; }
+.mark .list { display: flex; flex-direction: column; gap: 5px; flex: 1; padding-bottom: 8px; padding-right: 20px; }
 .mark .row {
   min-height: 48px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
   display: grid; grid-template-columns: 28px 1fr 48px 48px; gap: 4px; align-items: center; padding: 0 4px 0 8px;
@@ -101,10 +101,12 @@
 .mark .row.left .check { border-style: dashed; opacity: .4; }
 
 .mark .az {
-  position: sticky; float: right; margin-top: -40vh; margin-right: -6px; width: 14px;
+  position: absolute; right: 0; top: 45%; transform: translateY(-50%); width: 16px;
+  max-height: 55vh; height: 55vh; z-index: 2;
   display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-  font-size: 8px; color: var(--accent); font-weight: 600; height: 40vh; pointer-events: none;
+  font-size: 9px; line-height: 1; color: var(--accent); font-weight: 600; pointer-events: none;
 }
+.mark .az > * { pointer-events: auto; }
 .mark .empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 13px; }
 .mark .class-pick { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .mark .class-pick select {

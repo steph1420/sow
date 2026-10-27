@@ -11,3 +11,5 @@
 - Day theme submit purple now uses `--submit-fg` (readable on light surfaces).
 - Offline: banner + Sync blocked with clear message; local marks still write to IndexedDB.
 - Empty Mark → link to Session for that class.
+
+- Alphabet strip overlap on long roster — fixed (v0.6.2)
