@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] — 2026-10-27
+### Added
+- JB-7: Day theme token polish, PWA install prompt (Android) + iOS Add-to-Home hint, offline banner, Sync-offline guard, Mark→Session empty link, BUGS.md
+### Changed
+- Manifest maskable icon; theme-color follows Day/Night
+
 ## [0.5.1] — 2026-10-27
 ### Changed
 - Prefer Google Sheets connector for SoW_* create/push; Apps Script demoted to optional fallback (`docs/SYNC_SETUP.md`)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   CLASS_KEYS,
   CLASS_LABELS,
@@ -209,7 +209,7 @@ export default function MarkPage() {
             ))}
           </select>
         </div>
-        <div className="empty">No session for this class yet — create one in Session (JB-4).</div>
+        <div className="empty">No session for this class yet. <Link to={`/session?class=${classKey}`} style={{ color: 'var(--accent)', fontWeight: 600 }}>Open Session →</Link></div>
       </div>
     )
   }
@@ -276,7 +276,7 @@ export default function MarkPage() {
             </button>
           </div>
           <div className="mode-hint">
-            Taps write <b style={{ color: mode === 'set' ? 'var(--ok)' : '#e0b0ff' }}>{mode === 'set' ? 'Set' : 'Submitted'}</b>
+            Taps write <b style={{ color: mode === 'set' ? 'var(--ok)' : 'var(--submit-fg)' }}>{mode === 'set' ? 'Set' : 'Submitted'}</b>
           </div>
           <div className="filters">
             <button type="button" className={`chip${setFilter === 'finished' ? ' on' : ''}`} onClick={() => toggleChipSet('finished')}>

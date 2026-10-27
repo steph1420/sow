@@ -12,3 +12,18 @@
 .nav a.active { color: var(--accent); background: rgba(90, 200, 250, 0.12); }
 .nav .ico { display: block; font-size: 18px; margin-bottom: 2px; }
 .theme-toggle { font-size: 12px; font-weight: 600; color: var(--accent); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); }
+.offline-banner {
+  background: var(--warn); color: #fff; text-align: center;
+  font-size: 12px; font-weight: 700; padding: 6px 10px;
+}
+.install-bar {
+  margin: 0 16px 8px; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+}
+.install-bar p { margin: 0; font-size: 13px; color: var(--muted); flex: 1; }
+.install-bar button.install {
+  background: var(--accent); color: var(--on-accent); font-weight: 700;
+  border-radius: 10px; padding: 8px 12px; font-size: 13px; white-space: nowrap;
+}
+.install-bar button.dismiss { color: var(--muted); font-size: 12px; font-weight: 600; }

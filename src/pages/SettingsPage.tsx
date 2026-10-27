@@ -87,6 +87,10 @@ export default function SettingsPage() {
     setBusy(true)
     setSyncMsg(null)
     try {
+      if (!navigator.onLine) {
+        setSyncMsg({ ok: false, text: 'You are offline — sync when you have a connection.' })
+        return
+      }
       const r = await runSync()
       setSyncMsg({ ok: r.ok, text: r.message })
       if (r.ok) {

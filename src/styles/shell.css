@@ -41,7 +41,7 @@
   text-align: center;
 }
 .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
-.btn-primary { background: var(--accent); color: #041018; border: none; }
+.btn-primary { background: var(--accent); color: var(--on-accent); border: none; }
 .btn-primary:disabled { opacity: 0.4; }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -49,7 +49,7 @@
   border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600;
   background: var(--surface2); border: 1px solid var(--border); color: var(--text);
 }
-.chip-row .chip.on { border-color: var(--accent); color: var(--accent); background: rgba(90, 200, 250, 0.1); }
+.chip-row .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 
 .list { display: flex; flex-direction: column; gap: 8px; }
 .list-row {
@@ -94,7 +94,7 @@
 .settings-card .btn-pair button {
   border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px;
 }
-.settings-card .btn-pair .paste { background: var(--accent); color: #041018; }
+.settings-card .btn-pair .paste { background: var(--accent); color: var(--on-accent); }
 .settings-card .btn-pair .test { background: var(--surface2); border: 1px solid var(--border); }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .toggle-row .t-label { font-size: 15px; font-weight: 600; }
