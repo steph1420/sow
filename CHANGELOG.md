@@ -1,5 +1,9 @@
 # Changelog
 
+## [JB-5] — 2026-10-27
+### Docs
+- Locked sheet mapping: `docs/SHEET_MAPPING.md` (roster tabs + SoW_Sessions / SoW_Marks / SoW_RosterMeta)
+
 ## [0.4.0] — 2026-10-27
 ### Added
 - JB-4: Home class cards (pending), Session (≤2 dates), Roster (Left toggle), History (% set), Settings (Sheet URL UI-only, Hide left, Day theme)
