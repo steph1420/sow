@@ -23,7 +23,7 @@ export default function AppShell() {
       <header className="top">
         <div>
           <h1>{titles[pathname] ?? 'SoW'}</h1>
-          <div className="muted">Setting of Work · v0.2.0</div>
+          <div className="muted">Setting of Work · v0.3.0</div>
         </div>
         <button
           type="button"

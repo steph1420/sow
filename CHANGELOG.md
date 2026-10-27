@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] — 2026-10-27
+### Added
+- JB-3: Mark screen — Tools panel (Set|Submitted), filters, date→single column, header check-all (skips Left), search + letter jump
+
+# Changelog
+
 ## [0.2.0] — 2026-10-27
 ### Added
 - JB-2: IndexedDB store (students, rosterMeta, sessions, marks, settings)
