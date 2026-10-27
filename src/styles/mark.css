@@ -78,7 +78,7 @@
 .mark .all.set { border-style: solid; border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
 .mark .all.sub { border-style: solid; border-color: var(--submit); background: var(--submit-bg); color: var(--submit-fg); }
 
-.mark .list { display: flex; flex-direction: column; gap: 5px; flex: 1; padding-bottom: 8px; padding-right: 20px; }
+.mark .list { display: flex; flex-direction: column; gap: 5px; flex: 1; padding-bottom: 8px; padding-right: 28px; }
 .mark .row {
   min-height: 48px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
   display: grid; grid-template-columns: 28px 1fr 48px 48px; gap: 4px; align-items: center; padding: 0 4px 0 8px;
@@ -100,16 +100,91 @@
 .mark .check.sub-on { background: var(--submit-bg); border-color: var(--submit); color: var(--submit-fg); }
 .mark .row.left .check { border-style: dashed; opacity: .4; }
 
-.mark .az {
-  position: absolute; right: 0; top: 45%; transform: translateY(-50%); width: 16px;
-  max-height: 55vh; height: 55vh; z-index: 2;
-  display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-  font-size: 9px; line-height: 1; color: var(--accent); font-weight: 600; pointer-events: none;
-}
-.mark .az > * { pointer-events: auto; }
+/* A–Z scrubber is position:fixed (see .az-scrub below) — not inside .mark flow */
 .mark .empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 13px; }
 .mark .class-pick { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .mark .class-pick select {
   background: var(--surface2); color: var(--text); border: 1px solid var(--border);
   border-radius: 8px; padding: 4px 8px; font-size: 12px; margin-left: 6px;
+}
+
+/* Fixed viewport A–Z section index (does not scroll with list) */
+.az-scrub {
+  position: fixed;
+  z-index: 30;
+  right: max(0px, calc((100vw - 480px) / 2));
+  top: calc(52px + var(--safe-top));
+  bottom: calc(60px + var(--safe-bottom));
+  width: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.az-scrub-slot {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none; /* strip handles all pointers */
+  transition: transform 0.08s ease-out, color 0.08s;
+}
+.az-scrub-slot.all { font-size: 12px; color: var(--muted); }
+.az-scrub-slot.dim { color: var(--muted); opacity: 0.35; font-weight: 600; }
+.az-scrub-slot.on { color: var(--accent); opacity: 1; }
+.az-scrub-slot.mag {
+  transform: scale(1.85);
+  color: var(--accent);
+  opacity: 1;
+  z-index: 1;
+}
+.az-scrub-hud {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  width: 76px;
+  height: 76px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.az-filter-chip {
+  position: fixed;
+  z-index: 31;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(68px + var(--safe-bottom));
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px 6px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--accent);
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  max-width: calc(100vw - 32px);
+}
+.az-filter-chip button {
+  font-size: 11px; font-weight: 700; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 10px;
 }

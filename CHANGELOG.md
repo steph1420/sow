@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.1] — 2026-10-27
+### Fixed
+- Mark A–Z strip: pinned to viewport (full height, no list scroll), exit letter filter (tap same letter, ∗ All, or Clear chip)
+### Added
+- iOS Contacts–style A–Z scrubber: press-drag fisheye + center HUD; full A–Z with unused letters dimmed
+
 ## [0.7.0] — 2026-10-27
 ### Added
 - Sync A: pull Eng Current (F3/G3 + F4/G4) + tick columns → sessions/marks (`set` only)

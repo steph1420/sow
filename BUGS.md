@@ -15,3 +15,4 @@
 - Empty Mark → link to Session for that class.
 
 - Alphabet strip overlap on long roster — fixed (v0.6.2)
+- A–Z strip too small / scrolled away; stuck in letter mode — fixed (v0.7.1 fixed scrubber + clear)

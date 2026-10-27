@@ -14,6 +14,8 @@ import {
   type Session,
 } from '../db'
 import { parseClassParam } from '../lib/classMeta'
+import { presentLettersFromNames } from '../lib/azScrubber'
+import AzScrubber from '../components/AzScrubber'
 import '../styles/mark.css'
 
 type Mode = 'set' | 'submitted'
@@ -153,10 +155,10 @@ export default function MarkPage() {
     return list.sort((a, b) => a.name.localeCompare(b.name))
   }, [roster, hideLeft, q, letter, setFilter, subFilter, dateFilter, dates, markMap])
 
-  const letters = useMemo(() => {
-    const set = new Set(rows.filter((s) => !s.left).map((s) => s.name[0]?.toUpperCase()).filter(Boolean))
-    return [...set].sort()
-  }, [rows])
+  const presentLetters = useMemo(() => {
+    const list = hideLeft ? roster.filter((s) => !s.left) : roster
+    return presentLettersFromNames(list.map((s) => s.name))
+  }, [roster, hideLeft])
 
   async function onTap(roll: number, name: string, date: string, topic: string, left: boolean) {
     if (left) return
@@ -375,17 +377,13 @@ export default function MarkPage() {
         ))}
       </div>
 
-      {letters.length > 0 && (
-        <div className="az" aria-hidden>
-          {letters.map((L) => (
-            <span
-              key={L}
-              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-              onClick={() => setLetter((cur) => (cur === L ? null : L))}
-            >
-              {L}
-            </span>
-          ))}
+      {roster.length > 0 && (
+        <AzScrubber active={letter} present={presentLetters} onSelect={setLetter} />
+      )}
+      {letter && (
+        <div className="az-filter-chip" role="status">
+          <span>Letter {letter}</span>
+          <button type="button" onClick={() => setLetter(null)}>Clear</button>
         </div>
       )}
     </div>
