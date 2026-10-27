@@ -1,0 +1,116 @@
+.shell-page { display: flex; flex-direction: column; gap: 14px; }
+.shell-page .eyebrow { font-size: 12px; color: var(--muted); margin: 0; }
+.shell-page .page-title { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+.shell-page .sub { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.35; }
+.shell-page .back { color: var(--accent); font-size: 14px; font-weight: 600; align-self: flex-start; }
+.shell-page .row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.class-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 14px 12px; text-align: left; display: flex; flex-direction: column; gap: 4px;
+  min-height: 96px;
+}
+.class-card:active { opacity: 0.85; }
+.class-card .grade { font-size: 18px; font-weight: 700; }
+.class-card .kind { font-size: 12px; color: var(--muted); }
+.class-card .stat { margin-top: auto; padding-top: 8px; font-size: 13px; font-weight: 600; color: var(--accent); }
+
+.date-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.date-card {
+  background: var(--surface); border: 1.5px solid var(--accent); border-radius: 14px;
+  padding: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.date-card .lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); }
+.date-card input, .date-card .big {
+  font-size: 22px; font-weight: 700; background: transparent; border: none; color: var(--text);
+  width: 100%; outline: none; padding: 0;
+}
+.date-card .topic-pill {
+  align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 3px 10px; background: transparent;
+  max-width: 100%;
+}
+.date-card .topic-pill input {
+  font-size: 12px; font-weight: 600; color: var(--accent); background: transparent; border: none;
+  width: 88px; outline: none; padding: 0;
+}
+
+.btn-secondary, .btn-primary {
+  width: 100%; border-radius: 14px; padding: 14px 16px; font-size: 16px; font-weight: 700;
+  text-align: center;
+}
+.btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+.btn-primary { background: var(--accent); color: #041018; border: none; }
+.btn-primary:disabled { opacity: 0.4; }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-row .chip {
+  border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+}
+.chip-row .chip.on { border-color: var(--accent); color: var(--accent); background: rgba(90, 200, 250, 0.1); }
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+.list-row {
+  display: flex; align-items: center; gap: 10px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 12px;
+}
+.list-row.dim { opacity: 0.55; }
+.list-row .roll { width: 28px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list-row .name { flex: 1; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.list-row .badge {
+  font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2);
+  border-radius: 999px; padding: 2px 8px;
+}
+.list-row .status {
+  font-size: 12px; font-weight: 600; color: var(--muted); border-radius: 999px;
+  padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border);
+}
+.list-row .status.left { color: var(--text); }
+.list-row .status.tog { cursor: pointer; }
+.list-row .status.tog:active { opacity: 0.7; }
+
+.hist-card {
+  display: flex; align-items: center; gap: 10px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+}
+.hist-card .body { flex: 1; min-width: 0; }
+.hist-card .dates { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.hist-card .meta { font-size: 13px; color: var(--muted); margin: 0; }
+.hist-card .pct { font-size: 16px; font-weight: 700; color: var(--accent); }
+
+.settings-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px; display: flex; flex-direction: column; gap: 16px;
+}
+.settings-card .field-label { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+.settings-card .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.35; }
+.settings-card input[type="url"], .settings-card input[type="text"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px; color: var(--accent); font-size: 13px; outline: none;
+}
+.settings-card .btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.settings-card .btn-pair button {
+  border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px;
+}
+.settings-card .btn-pair .paste { background: var(--accent); color: #041018; }
+.settings-card .btn-pair .test { background: var(--surface2); border: 1px solid var(--border); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toggle-row .t-label { font-size: 15px; font-weight: 600; }
+.toggle-row .t-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle {
+  width: 48px; height: 28px; border-radius: 999px; background: var(--surface2);
+  border: 1px solid var(--border); position: relative; flex-shrink: 0; padding: 0;
+}
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: #fff; transition: transform 0.15s ease;
+}
+.toggle.on::after { transform: translateX(20px); }
+.foot-note { font-size: 12px; color: var(--muted); line-height: 1.4; margin: 0; }
+.test-msg { font-size: 12px; margin: 0; }
+.test-msg.ok { color: var(--ok); }
+.test-msg.bad { color: var(--warn); }
+.empty-soft { color: var(--muted); font-size: 14px; padding: 20px; text-align: center; }

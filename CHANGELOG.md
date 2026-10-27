@@ -1,10 +1,12 @@
 # Changelog
 
+## [0.4.0] — 2026-10-27
+### Added
+- JB-4: Home class cards (pending), Session (≤2 dates), Roster (Left toggle), History (% set), Settings (Sheet URL UI-only, Hide left, Day theme)
+
 ## [0.3.0] — 2026-10-27
 ### Added
 - JB-3: Mark screen — Tools panel (Set|Submitted), filters, date→single column, header check-all (skips Left), search + letter jump
-
-# Changelog
 
 ## [0.2.0] — 2026-10-27
 ### Added

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   CLASS_KEYS,
   CLASS_LABELS,
@@ -12,6 +13,7 @@ import {
   type Mark,
   type Session,
 } from '../db'
+import { parseClassParam } from '../lib/classMeta'
 import '../styles/mark.css'
 
 type Mode = 'set' | 'submitted'
@@ -19,7 +21,12 @@ type SetFilter = 'all' | 'finished' | 'pending'
 type SubFilter = 'all' | 'submitted' | 'not'
 
 export default function MarkPage() {
-  const [classKey, setClassKey] = useState<ClassKey>('KGA_Eng_CW')
+  const [params, setParams] = useSearchParams()
+  const [classKey, setClassKey] = useState<ClassKey>(() => parseClassParam(params.get('class')) ?? 'KGA_Eng_CW')
+  useEffect(() => {
+    const fromUrl = parseClassParam(params.get('class'))
+    if (fromUrl && fromUrl !== classKey) setClassKey(fromUrl)
+  }, [params, classKey])
   const [session, setSession] = useState<Session | null>(null)
   const [roster, setRoster] = useState<(Awaited<ReturnType<typeof rosterWithLeft>>)>([])
   const [marks, setMarks] = useState<Mark[]>([])
@@ -194,7 +201,7 @@ export default function MarkPage() {
       <div className="mark">
         <div className="class-pick">
           Class
-          <select value={classKey} onChange={(e) => setClassKey(e.target.value as ClassKey)}>
+          <select value={classKey} onChange={(e) => { const k = e.target.value as ClassKey; setClassKey(k); setParams({ class: k }) }}>
             {CLASS_KEYS.map((k) => (
               <option key={k} value={k}>
                 {CLASS_LABELS[k]}
@@ -211,7 +218,7 @@ export default function MarkPage() {
     <div className="mark">
       <div className="class-pick">
         Class
-        <select value={classKey} onChange={(e) => setClassKey(e.target.value as ClassKey)}>
+        <select value={classKey} onChange={(e) => { const k = e.target.value as ClassKey; setClassKey(k); setParams({ class: k }) }}>
           {CLASS_KEYS.map((k) => (
             <option key={k} value={k}>
               {CLASS_LABELS[k]}
