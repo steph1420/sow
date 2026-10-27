@@ -1,6 +1,6 @@
 # Setting of Work (SoW)
 
-PWA for KGA/KGB Eng CW/HW marking. Local-first; Local-first with sheet sync (JB-6+) and Day/Night PWA (JB-7).
+PWA for KGA/KGB Eng CW/HW marking. Local-first with sheet sync (JB-6+) and Day/Night PWA (JB-7).
 
 ```bash
 cd /workspace/sow-pwa && npm install && npm run dev
