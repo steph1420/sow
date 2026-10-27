@@ -1,4 +1,5 @@
 :root, [data-theme="night"] {
+  color-scheme: dark;
   --bg: #0b0c10; --surface: #16181f; --surface2: #1e222b; --border: #2a2e38;
   --text: #f2f3f5; --muted: #8b919c; --accent: #5ac8fa; --ok: #30d158;
   --warn: #ff9f0a; --left: #5c6370; --submit: #bf5af2; --tap: 52px;
@@ -9,6 +10,7 @@
   --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 [data-theme="day"] {
+  color-scheme: light;
   --bg: #f2f3f5; --surface: #ffffff; --surface2: #e8eaed; --border: #d1d5db;
   --text: #0b0c10; --muted: #6b7280; --accent: #007aff; --ok: #248a3d;
   --warn: #c93400; --left: #8e8e93; --submit: #8944ab; --tap: 52px;
@@ -22,11 +24,12 @@ html, body, #root { height: 100%; margin: 0; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+  overflow: hidden;
 }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
 
-/* JB-R6 appearance variants */
+/* JB-R6 / JB-R9 appearance variants */
 html[data-night-bold="on"],
 html[data-day-bold="on"] {
   --font-weight-body: 550;
@@ -36,14 +39,40 @@ html[data-night-bold="on"] body,
 html[data-day-bold="on"] body {
   font-weight: 550;
 }
+
+/* Strong titles / key chrome across Checklist · Overview · Roster · History · Settings · sheets */
 html[data-night-bold="on"] .page-title,
 html[data-day-bold="on"] .page-title,
+html[data-night-bold="on"] .top h1,
+html[data-day-bold="on"] .top h1,
 html[data-night-bold="on"] .ov-card-title,
 html[data-day-bold="on"] .ov-card-title,
 html[data-night-bold="on"] .cl-value,
-html[data-day-bold="on"] .cl-value {
+html[data-day-bold="on"] .cl-value,
+html[data-night-bold="on"] .cl-topic-text,
+html[data-day-bold="on"] .cl-topic-text,
+html[data-night-bold="on"] .cl-sheet-head h3,
+html[data-day-bold="on"] .cl-sheet-head h3,
+html[data-night-bold="on"] .ros-name,
+html[data-day-bold="on"] .ros-name,
+html[data-night-bold="on"] .hist-card-title,
+html[data-day-bold="on"] .hist-card-title,
+html[data-night-bold="on"] .hist-card-pct,
+html[data-day-bold="on"] .hist-card-pct,
+html[data-night-bold="on"] .t-label,
+html[data-day-bold="on"] .t-label,
+html[data-night-bold="on"] .field-label,
+html[data-day-bold="on"] .field-label,
+html[data-night-bold="on"] .mark .name,
+html[data-day-bold="on"] .mark .name,
+html[data-night-bold="on"] .btn-primary,
+html[data-day-bold="on"] .btn-primary,
+html[data-night-bold="on"] .cl-fab-btn,
+html[data-day-bold="on"] .cl-fab-btn {
   font-weight: 800;
 }
+
+/* Day high-contrast — full token set so every screen/sheet/FAB picks it up */
 html[data-day-hc="on"][data-theme="day"] {
   --bg: #ffffff;
   --surface: #ffffff;
@@ -54,4 +83,12 @@ html[data-day-hc="on"][data-theme="day"] {
   --accent: #0050c8;
   --ok: #0b6b28;
   --warn: #9a1f00;
+  --left: #555555;
+  --submit: #6b2a90;
+  --on-accent: #ffffff;
+  --submit-fg: #6b2a90;
+  --ok-bg: rgba(11, 107, 40, 0.16);
+  --submit-bg: rgba(107, 42, 144, 0.14);
+  --accent-bg: rgba(0, 80, 200, 0.12);
+  --theme-meta: #ffffff;
 }

@@ -71,3 +71,63 @@
 .stg-card .btn-pair .test { background: var(--surface2); border: 1px solid var(--border); }
 .stg-card .field-label { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
 .stg-card .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.35; }
+
+/* JB-R8 WhatsApp share */
+.wa-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px;
+}
+.wa-chip {
+  border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700;
+  color: var(--accent); background: var(--accent-bg);
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.wa-chip:active { opacity: 0.85; }
+.wa-template {
+  display: block; width: 100%; min-height: 110px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px; color: var(--text); font-size: 13px; line-height: 1.45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical; outline: none;
+}
+.wa-preview {
+  margin: 0; padding: 14px; border-radius: 12px;
+  background: color-mix(in srgb, #25d366 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, #25d366 35%, var(--border));
+  color: var(--text); font-size: 13px; line-height: 1.45; white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.wa-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;
+}
+.wa-btn {
+  border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 700;
+  text-align: center;
+}
+.wa-btn.copy { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+.wa-btn.wa { background: #25d366; color: #041018; border: none; }
+.wa-btn:active { opacity: 0.9; }
+
+/* Drill-in nav bar (iOS/Android style) */
+.stg-nav {
+  display: grid; grid-template-columns: minmax(72px, 1fr) auto minmax(72px, 1fr);
+  align-items: center; gap: 4px;
+  min-height: 44px; margin: 0 0 4px;
+}
+.stg-back {
+  justify-self: start; display: inline-flex; align-items: center; gap: 2px;
+  padding: 8px 4px 8px 0; margin: 0; min-height: 44px;
+  color: var(--accent); font-size: 16px; font-weight: 600; background: transparent; border: none;
+}
+.stg-back-chev {
+  font-size: 28px; line-height: 1; font-weight: 400; margin-top: -2px;
+}
+.stg-back-label { font-size: 16px; font-weight: 600; }
+.stg-nav-title {
+  margin: 0; text-align: center; font-size: 17px; font-weight: 700;
+  letter-spacing: -0.01em; color: var(--text); justify-self: center;
+}
+.stg-nav-spacer { justify-self: end; }
+.stg-version {
+  margin: 20px 0 8px; text-align: center; font-size: 12px; color: var(--muted);
+}

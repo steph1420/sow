@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   CLASS_KEYS,
@@ -90,12 +90,39 @@ export default function MarkPage() {
       }),
     [],
   )
+  useEffect(() => {
+    document.documentElement.style.setProperty('--az-idle-width', `${prefs['az.idleWidth']}px`)
+    document.documentElement.style.setProperty('--az-inset-right', `${prefs['az.insetRight']}px`)
+  }, [prefs])
   const [stackTick, setStackTick] = useState(0)
 
   const [topicToast, setTopicToast] = useState(false)
   const [topicEditing, setTopicEditing] = useState(false)
   const [topicDraft, setTopicDraft] = useState('')
   const topicInputRef = useRef<HTMLInputElement>(null)
+  const headRef = useRef<HTMLDivElement>(null)
+
+  // Pin A–Z strip top to just below the Name column header (never over chrome above)
+  useLayoutEffect(() => {
+    const head = headRef.current
+    if (!head) return
+    const apply = () => {
+      const bottom = head.getBoundingClientRect().bottom
+      document.documentElement.style.setProperty('--az-top', `${Math.round(bottom)}px`)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(head)
+    window.addEventListener('resize', apply)
+    // main scroll moves chrome relative to viewport
+    const main = head.closest('.main')
+    main?.addEventListener('scroll', apply, { passive: true })
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', apply)
+      main?.removeEventListener('scroll', apply)
+    }
+  }, [roster.length, searchOpen, topicToast, topicEditing, sheet, mode, setFilter, prefs])
 
   const reload = useCallback(async () => {
     const [sessions, ros, settings] = await Promise.all([
@@ -439,15 +466,6 @@ export default function MarkPage() {
           <button type="button" className="cl-value" onClick={() => setSheet('cal')}>
             {dateLbl} <span className="caret">▾</span>
           </button>
-          <button
-            type="button"
-            className="cl-cal"
-            aria-label="Calendar"
-            title="Calendar"
-            onClick={() => setSheet('cal')}
-          >
-            <span aria-hidden>📅</span>
-          </button>
         </div>
       </div>
 
@@ -543,18 +561,6 @@ export default function MarkPage() {
             Pending
           </button>
         ) : null}
-        {prefs['filter.showLetter'] ? (
-          <button
-            type="button"
-            className={`chip${letter ? ' on' : ''}`}
-            onClick={() => {
-              if (letter) setLetter(null)
-              else setSheet('filters')
-            }}
-          >
-            Letter
-          </button>
-        ) : null}
         {prefs['filter.showSearch'] ? (
           <button
             type="button"
@@ -586,7 +592,7 @@ export default function MarkPage() {
       ) : null}
 
       {/* List header + rows */}
-      <div className="head one-col">
+      <div className="head one-col" ref={headRef}>
         <span />
         <span className="n">Name</span>
         {activeSlot ? (
@@ -746,16 +752,6 @@ export default function MarkPage() {
             }}
           >
             Submitted only
-          </button>
-          <button
-            type="button"
-            className={`sheet-row${letter ? ' on' : ''}`}
-            onClick={() => {
-              setSheet(null)
-              /* Letter via A–Z scrubber — chip reflects active letter */
-            }}
-          >
-            Letter… {letter ? `(${letter})` : 'use A–Z'}
           </button>
           <button type="button" className={`sheet-row${hideLeft ? ' on' : ''}`} onClick={() => void toggleHideLeft()}>
             Hide Left

@@ -1,25 +1,13 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { getSettings, putSettings } from '../db'
+import { getSettings } from '../db'
 import OfflineBanner from '../components/OfflineBanner'
 import InstallPrompt from '../components/InstallPrompt'
 import { applyAppearanceAttrs, subscribePrefs } from '../lib/sowPrefs'
 
-const titles: Record<string, string> = {
-  '/checklist': 'Checklist',
-  '/overview': 'Overview',
-  '/roster': 'Roster',
-  '/history': 'History',
-  '/settings': 'Settings',
-  '/mark': 'Checklist',
-}
-
 const MORE_PATHS = new Set(['/roster', '/history', '/settings'])
 
 function applyThemeMeta(theme: 'night' | 'day') {
-  document.documentElement.setAttribute('data-theme', theme)
-  const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute('content', theme === 'day' ? '#f2f3f5' : '#0b0c10')
   applyAppearanceAttrs(undefined, theme)
 }
 
@@ -63,12 +51,6 @@ export default function AppShell() {
     return () => window.removeEventListener('keydown', onKey)
   }, [moreOpen])
 
-  async function toggleTheme() {
-    const next = theme === 'night' ? 'day' : 'night'
-    setTheme(next)
-    await putSettings({ theme: next })
-  }
-
   function goMore(path: string) {
     setMoreOpen(false)
     nav(path)
@@ -79,15 +61,6 @@ export default function AppShell() {
   return (
     <div className="app">
       <OfflineBanner />
-      <header className="top">
-        <div>
-          <h1>{titles[pathname] ?? 'SoW'}</h1>
-          <div className="muted">Setting of Work · v0.12.0</div>
-        </div>
-        <button type="button" className="theme-toggle" onClick={() => void toggleTheme()}>
-          {theme === 'night' ? 'Day' : 'Night'}
-        </button>
-      </header>
       <InstallPrompt />
       <main className="main">
         <Outlet />

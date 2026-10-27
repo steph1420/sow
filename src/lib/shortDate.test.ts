@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSheetDate, shortDateLabel, sheetDateSortKey } from './shortDate'
+import { parseSheetDate, shortDateLabel, sheetDateSortKey, historyDateLabel } from './shortDate'
 
 describe('shortDate', () => {
   const now = new Date(2026, 9, 28) // Wed 28 Oct 2026
@@ -17,6 +17,11 @@ describe('shortDate', () => {
 
   it('sorts chronologically', () => {
     expect(sheetDateSortKey('14/10', now)).toBeLessThan(sheetDateSortKey('28/10', now))
+  })
+
+  it('formats history dates with month', () => {
+    expect(historyDateLabel('28/10', now)).toBe('Wed 28 Oct')
+    expect(historyDateLabel('30/9', now)).toBe('Wed 30 Sep')
   })
 })
 

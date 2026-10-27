@@ -1,13 +1,36 @@
 @import './tokens.css';
-.app { min-height: 100%; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; background: var(--bg); }
-.top { padding: calc(12px + var(--safe-top)) 16px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); }
+.app {
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+}
+.top {
+  flex-shrink: 0;
+  padding: calc(12px + var(--safe-top)) 16px 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
 .top h1 { font-size: 17px; font-weight: 600; margin: 0; }
 .top .muted { color: var(--muted); font-size: 12px; }
-.main { flex: 1; padding: 16px; overflow: auto; }
+.main {
+  flex: 1;
+  min-height: 0;
+  padding: calc(8px + var(--safe-top)) 10px 12px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Header removed (v0.16) — keep .top rules inert for any leftover refs */
+.top { display: none; }
 .stub { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 .stub h2 { margin: 0 0 8px; font-size: 20px; }
 .stub p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
-.nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 8px 6px calc(8px + var(--safe-bottom)); border-top: 1px solid var(--border); background: var(--surface); position: relative; z-index: 20; }
+.nav { flex-shrink: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 8px 6px calc(8px + var(--safe-bottom)); border-top: 1px solid var(--border); background: var(--surface); position: relative; z-index: 20; }
 .nav a, .nav > button { text-align: center; padding: 8px 2px; border-radius: 10px; font-size: 10px; font-weight: 600; color: var(--muted); width: 100%; }
 .nav a.active, .nav > button.active { color: var(--accent); background: var(--accent-bg); }
 .nav .ico { display: block; font-size: 18px; margin-bottom: 2px; }

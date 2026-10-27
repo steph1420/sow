@@ -8,7 +8,9 @@ import './styles/app.css'
 
 async function boot() {
   await seedIfEmpty()
-  applyAppearanceAttrs()
+  const settings = await getSettings()
+  const theme = settings.theme === 'day' ? 'day' : 'night'
+  applyAppearanceAttrs(undefined, theme)
   window.addEventListener('online', () => {
     void (async () => {
       const s = await getSettings()

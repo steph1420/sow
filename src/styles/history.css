@@ -1,0 +1,61 @@
+/* JB-R7 History */
+
+.hist-page { display: flex; flex-direction: column; gap: 12px; }
+
+.hist-top {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 8px;
+}
+.hist-top .back { justify-self: start; }
+.hist-title { font-size: 22px !important; text-align: center; margin: 0; }
+.hist-top-spacer { justify-self: end; width: 1px; height: 1px; }
+
+.hist-chips {
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding: 2px 0; scrollbar-width: none;
+  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+}
+.hist-chips::-webkit-scrollbar { display: none; }
+
+.hist-chip {
+  flex-shrink: 0; border-radius: 999px; padding: 8px 14px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+}
+.hist-chip.on {
+  border-color: var(--accent); color: var(--text); background: transparent;
+}
+.hist-chip:active { opacity: 0.85; }
+
+.hist-list { display: flex; flex-direction: column; gap: 10px; }
+
+.hist-card-v2 {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 14px 12px; width: 100%;
+}
+.hist-card-v2:active { opacity: 0.9; background: var(--surface2); }
+
+.hist-card-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.hist-card-title {
+  font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--text);
+}
+.hist-card-pct {
+  flex-shrink: 0; font-size: 16px; font-weight: 700; color: var(--accent);
+}
+
+.hist-card-meta {
+  margin: 0; font-size: 13px; color: var(--muted); line-height: 1.35;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+}
+.hist-card-date { font-weight: 700; color: color-mix(in srgb, var(--muted) 70%, var(--text)); }
+.hist-card-dot { opacity: 0.7; }
+
+.hist-card-topic {
+  margin: 2px 0 0; font-size: 13px; color: var(--muted);
+  font-style: italic; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

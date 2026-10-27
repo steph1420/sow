@@ -1,9 +1,10 @@
+import { DEFAULT_WA_TEMPLATE, escapePrefsTemplate, unescapePrefsTemplate } from './waShare'
 /** Central SoW prefs (`sow.prefs.v1`) — localStorage + export/import. */
 
 export type OverviewFilterStyle = 'underline' | 'shade' | 'boldColor'
 export type UndoChrome = 'icons' | 'iconsLabel'
 export type AzMode = 'single' | 'fisheye'
-export type FilterDefault = 'none' | 'pending' | 'letter'
+export type FilterDefault = 'none' | 'pending'
 export type FilterUi = 'myntra' | 'popover' | 'chips'
 export type DateUi = 'quiet' | 'tinyChips' | 'filtersOnly' | 'slimBar' | 'dualCards'
 export type StatusMode = 'hidden' | 'withDate' | 'inDate'
@@ -12,6 +13,7 @@ export type SowPrefs = {
   'az.mode': AzMode
   'az.hideEmpty': boolean
   'az.widenOnPress': boolean
+  'az.idleWidth': number
   'az.pressWidth': number
   'az.pressFont': number
   'az.focusFont': number
@@ -20,9 +22,9 @@ export type SowPrefs = {
   'az.fe.relative': number
   'az.fe.count': number
   'az.showHud': boolean
+  'az.insetRight': number
   'filter.default': FilterDefault
   'filter.showPending': boolean
-  'filter.showLetter': boolean
   'filter.showSort': boolean
   'filter.showSearch': boolean
   'filter.ui': FilterUi
@@ -33,12 +35,15 @@ export type SowPrefs = {
   'appearance.nightBold': boolean
   'appearance.dayBold': boolean
   'appearance.dayHC': boolean
+  'share.template': string
+  'share.includeClassPrefix': boolean
 }
 
 export const PREFS_DEFAULTS: SowPrefs = {
   'az.mode': 'fisheye',
   'az.hideEmpty': false,
   'az.widenOnPress': true,
+  'az.idleWidth': 22,
   'az.pressWidth': 48,
   'az.pressFont': 12,
   'az.focusFont': 22,
@@ -47,9 +52,9 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'az.fe.relative': 55,
   'az.fe.count': 2,
   'az.showHud': true,
+  'az.insetRight': 0,
   'filter.default': 'none',
   'filter.showPending': true,
-  'filter.showLetter': true,
   'filter.showSort': true,
   'filter.showSearch': true,
   'filter.ui': 'myntra',
@@ -60,6 +65,8 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'appearance.nightBold': false,
   'appearance.dayBold': false,
   'appearance.dayHC': false,
+  'share.template': DEFAULT_WA_TEMPLATE,
+  'share.includeClassPrefix': false,
 }
 
 const STORE_KEY = 'sow.prefs.v1'
@@ -100,6 +107,7 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'az.mode': mode === 'single' ? 'single' : 'fisheye',
     'az.hideEmpty': Boolean(g('az.hideEmpty')),
     'az.widenOnPress': Boolean(g('az.widenOnPress')),
+    'az.idleWidth': clamp(Number(g('az.idleWidth')) || d['az.idleWidth'], 12, 40),
     'az.pressWidth': clamp(Number(g('az.pressWidth')) || d['az.pressWidth'], 16, 72),
     'az.pressFont': clamp(Number(g('az.pressFont')) || d['az.pressFont'], 8, 20),
     'az.focusFont': clamp(Number(g('az.focusFont')) || d['az.focusFont'], 12, 36),
@@ -108,10 +116,9 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'az.fe.relative': clamp(Number(g('az.fe.relative')) || 0, 0, 100),
     'az.fe.count': clamp(Math.round(Number(g('az.fe.count')) || 0), 1, 5),
     'az.showHud': Boolean(g('az.showHud')),
-    'filter.default':
-      filterDefault === 'pending' || filterDefault === 'letter' ? filterDefault : 'none',
+    'az.insetRight': clamp(Number(g('az.insetRight')) || 0, 0, 48),
+    'filter.default': filterDefault === 'pending' ? 'pending' : 'none',
     'filter.showPending': Boolean(g('filter.showPending')),
-    'filter.showLetter': Boolean(g('filter.showLetter')),
     'filter.showSort': Boolean(g('filter.showSort')),
     'filter.showSearch': Boolean(g('filter.showSearch')),
     'filter.ui':
@@ -131,6 +138,12 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'appearance.nightBold': Boolean(g('appearance.nightBold')),
     'appearance.dayBold': Boolean(g('appearance.dayBold')),
     'appearance.dayHC': Boolean(g('appearance.dayHC')),
+    'share.template': (() => {
+      const raw = g('share.template')
+      const s = typeof raw === 'string' ? raw : d['share.template']
+      return s.trim() ? s : d['share.template']
+    })(),
+    'share.includeClassPrefix': Boolean(g('share.includeClassPrefix')),
   }
 }
 
@@ -185,6 +198,20 @@ export function subscribePrefs(cb: (p: SowPrefs) => void): () => void {
   return () => window.removeEventListener(EVENT, handler)
 }
 
+/** Sync <meta name="theme-color"> from --theme-meta (respects Day HC). */
+export function syncThemeColorMeta(): void {
+  if (typeof document === 'undefined') return
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) return
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--theme-meta').trim()
+  if (raw) meta.setAttribute('content', raw)
+  const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+  if (bar) {
+    const theme = document.documentElement.getAttribute('data-theme')
+    bar.setAttribute('content', theme === 'day' ? 'default' : 'black-translucent')
+  }
+}
+
 export function applyAppearanceAttrs(
   prefs?: SowPrefs,
   theme?: 'night' | 'day',
@@ -195,15 +222,22 @@ export function applyAppearanceAttrs(
   const t =
     theme ??
     ((root.getAttribute('data-theme') === 'day' ? 'day' : 'night') as 'night' | 'day')
+  root.setAttribute('data-theme', t)
   root.setAttribute('data-night-bold', t === 'night' && p['appearance.nightBold'] ? 'on' : 'off')
   root.setAttribute('data-day-bold', t === 'day' && p['appearance.dayBold'] ? 'on' : 'off')
   root.setAttribute('data-day-hc', t === 'day' && p['appearance.dayHC'] ? 'on' : 'off')
+  // theme-color after attrs so Day HC --theme-meta is live
+  syncThemeColorMeta()
 }
 
 export function exportPrefsText(prefs: SowPrefs = loadPrefs()): string {
   const lines = ['sow.prefs.v1']
   for (const key of Object.keys(PREFS_DEFAULTS) as (keyof SowPrefs)[]) {
     const v = prefs[key]
+    if (key === 'share.template') {
+      lines.push(`${key}=${escapePrefsTemplate(String(v))}`)
+      continue
+    }
     lines.push(`${key}=${typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v)}`)
   }
   return lines.join('\n')
@@ -229,6 +263,7 @@ export function parsePrefsExport(text: string): Partial<SowPrefs> | null {
   if (raw['az.hideEmpty'] !== undefined) patch['az.hideEmpty'] = parseBool(raw['az.hideEmpty'], d['az.hideEmpty'])
   if (raw['az.widenOnPress'] !== undefined)
     patch['az.widenOnPress'] = parseBool(raw['az.widenOnPress'], d['az.widenOnPress'])
+  if (raw['az.idleWidth'] !== undefined) patch['az.idleWidth'] = parseNum(raw['az.idleWidth'], d['az.idleWidth'])
   if (raw['az.pressWidth'] !== undefined) patch['az.pressWidth'] = parseNum(raw['az.pressWidth'], d['az.pressWidth'])
   if (raw['az.pressFont'] !== undefined) patch['az.pressFont'] = parseNum(raw['az.pressFont'], d['az.pressFont'])
   if (raw['az.focusFont'] !== undefined) patch['az.focusFont'] = parseNum(raw['az.focusFont'], d['az.focusFont'])
@@ -239,14 +274,13 @@ export function parsePrefsExport(text: string): Partial<SowPrefs> | null {
     patch['az.fe.relative'] = parseNum(raw['az.fe.relative'], d['az.fe.relative'])
   if (raw['az.fe.count'] !== undefined) patch['az.fe.count'] = parseNum(raw['az.fe.count'], d['az.fe.count'])
   if (raw['az.showHud'] !== undefined) patch['az.showHud'] = parseBool(raw['az.showHud'], d['az.showHud'])
+  if (raw['az.insetRight'] !== undefined) patch['az.insetRight'] = parseNum(raw['az.insetRight'], d['az.insetRight'])
   if (raw['filter.default']) {
     const v = raw['filter.default']
-    patch['filter.default'] = v === 'pending' || v === 'letter' ? v : 'none'
+    patch['filter.default'] = v === 'pending' ? 'pending' : 'none'
   }
   if (raw['filter.showPending'] !== undefined)
     patch['filter.showPending'] = parseBool(raw['filter.showPending'], true)
-  if (raw['filter.showLetter'] !== undefined)
-    patch['filter.showLetter'] = parseBool(raw['filter.showLetter'], true)
   if (raw['filter.showSort'] !== undefined)
     patch['filter.showSort'] = parseBool(raw['filter.showSort'], true)
   if (raw['filter.showSearch'] !== undefined)
@@ -276,6 +310,12 @@ export function parsePrefsExport(text: string): Partial<SowPrefs> | null {
     patch['appearance.dayBold'] = parseBool(raw['appearance.dayBold'], false)
   if (raw['appearance.dayHC'] !== undefined)
     patch['appearance.dayHC'] = parseBool(raw['appearance.dayHC'], false)
+  if (raw['share.template'] !== undefined) {
+    const s = unescapePrefsTemplate(raw['share.template'])
+    patch['share.template'] = s.trim() ? s : d['share.template']
+  }
+  if (raw['share.includeClassPrefix'] !== undefined)
+    patch['share.includeClassPrefix'] = parseBool(raw['share.includeClassPrefix'], false)
   return patch
 }
 

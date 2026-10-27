@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.16.0] — 2026-10-28
+### Fixed
+- Dev NumRow: local string draft; commit/clamp on blur & Enter (no more stepper-only glitch)
+- A–Z strip top pinned below Checklist `.head` (no overlap of class/date/topic chrome)
+- Checklist feels less squeezed: wider name rows, thinner idle A–Z gutter, reduced main/list side padding; press-widen overlays + dims list
+### Added
+- Dev `az.insetRight` (Shift left) — px inset of A–Z strip from right
+- WA share detailed placeholders: `{names.set|notSet|submitted|notSubmitted|active|left}` + `{count.*}`; `{set}`/`{notSet}` aliases; `{names}`/`{count}` stay not-set
+### Changed
+- Removed AppShell top bar + Day/Night header toggle (theme only in Settings → Appearance); version in Settings footer
+- Settings IA: root nav rows → Sheet & sync · Checklist · Share · Appearance · Developer; iOS/Android back bar on drill-ins
+- Removed explicit Letter filter chip / sheet row / `filter.showLetter` / `filter.default=letter` (letter via A–Z only)
+- Removed calendar icon under date — open calendar from date ▾ only
+## [0.15.0] — 2026-10-28
+### Added
+- JB-R9 Themes: Day/Night + Night bold / Day bold / Day HC wired across Checklist · Overview · Roster · History · Settings · sheets/FAB; `theme-color` + apple status bar follow `--theme-meta` (incl. Day HC); `color-scheme` on html
+### Changed
+- Pinned bottom tab bar (app height/overflow + body `overflow: hidden`) so nav never scrolls away
+- Dev `az.idleWidth` (default 22) for thin A–Z idle thickness
+### Notes
+- Bundles R7 Roster+History · R8 WA share · R9 themes completed locally (v0.13–0.15)
+
+## [0.14.0] — 2026-10-28
+### Added
+- JB-R8 WA share: locked template `{class} • {date} • not set/found ({count}):` + `{names}`; Overview Share builds not-set pending list; Settings → Share template editor (variable chips, preview, Copy / WhatsApp); prefs `share.template` + `share.includeClassPrefix`
+
+## [0.13.0] — 2026-10-28
+### Added
+- JB-R7 Roster + History: grade chips + search on Roster; Left badges + Active/Left toggle; History All|KGA|KGB|CW|HW filters with class·date cards (% / set·submitted / topic) opening Checklist
+### Changed
+- Roster/History back → More (no Home/Session wording); quiet chrome matching `full-roster` / `full-history`
+
 ## [0.12.0] — 2026-10-28
 ### Added
 - JB-R6 Settings + Dev: Appearance Night/Day bold + Day HC (`data-*` tokens); Developer options for Overview filter A/B/C, undo icons|iconsLabel, A–Z physics; central `sow.prefs.v1` load/save/export/import

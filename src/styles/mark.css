@@ -19,13 +19,7 @@
 .cl-count b { color: var(--text); font-weight: 700; }
 .cl-date { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
 .cl-date .cl-value { text-align: right; }
-.cl-cal {
-  margin-top: 4px; width: 32px; height: 28px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--surface2);
-  display: flex; align-items: center; justify-content: center; font-size: 14px;
-  color: var(--accent);
-}
-.cl-cal:active { opacity: .85; }
+.cl-cal { display: none !important; } /* removed — date ▾ opens calendar */
 
 .cl-topic-row {
   display: flex; align-items: flex-end; gap: 8px;
@@ -119,10 +113,11 @@
 }
 
 .mark .head {
-  display: grid; grid-template-columns: 28px 1fr 48px 48px; gap: 4px; padding: 0 4px 0 8px;
+  display: grid; grid-template-columns: 26px 1fr 52px; gap: 2px;
+  padding: 0 calc(var(--az-idle-width, 22px) + 2px) 0 2px;
   font-size: 10px; color: var(--muted); font-weight: 600; text-align: center; align-items: end;
 }
-.mark .head.one-col { grid-template-columns: 28px 1fr 64px; }
+.mark .head.one-col { grid-template-columns: 26px 1fr 52px; }
 .mark .head .n { text-align: left; padding-bottom: 6px; }
 .mark .col-h { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .mark .col-h .dh { font-size: 10px; }
@@ -137,13 +132,16 @@
 /* Extra bottom pad so last rows clear FAB + letter chip */
 .mark .list {
   display: flex; flex-direction: column; gap: 5px; flex: 1;
-  padding-bottom: calc(88px + var(--safe-bottom)); padding-right: 28px;
+  padding-bottom: calc(88px + var(--safe-bottom));
+  /* Idle A–Z gutter only — press width overlays; no fat permanent column */
+  padding-right: calc(var(--az-idle-width, 22px) + 2px);
+  padding-left: 0;
 }
 .mark .row {
   min-height: 48px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
-  display: grid; grid-template-columns: 28px 1fr 48px 48px; gap: 4px; align-items: center; padding: 0 4px 0 8px;
+  display: grid; grid-template-columns: 26px 1fr 52px; gap: 2px; align-items: center; padding: 0 2px 0 4px;
 }
-.mark .row.one-col { grid-template-columns: 28px 1fr 64px; }
+.mark .row.one-col { grid-template-columns: 26px 1fr 52px; }
 .mark .row.left { opacity: .48; }
 .mark .row .badge {
   margin-left: 5px; font-size: 9px; color: var(--left); border: 1px solid var(--left);
@@ -228,12 +226,12 @@
 }
 .sheet-row.sheet-cancel { color: var(--muted); justify-content: center; margin-top: 4px; }
 
-/* Fixed viewport A–Z (thin idle) */
+/* Fixed viewport A–Z (thin idle). Top from --az-top (below .mark .head). */
 .az-scrub {
   position: fixed;
   z-index: 30;
-  right: max(0px, calc((100vw - 480px) / 2));
-  top: calc(52px + var(--safe-top));
+  right: calc(max(0px, (100vw - 480px) / 2) + var(--az-inset-right, 0px));
+  top: var(--az-top, calc(12px + var(--safe-top)));
   bottom: calc(60px + var(--safe-bottom));
   width: 22px;
   display: flex;
@@ -245,6 +243,27 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  background: transparent;
+  transition: width 0.08s ease-out;
+}
+.az-scrub.wide {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  border-left: 1px solid var(--border);
+}
+/* Dim checklist under widened strip */
+.az-scrub-dim {
+  position: fixed;
+  z-index: 29;
+  left: max(0px, calc((100vw - 480px) / 2));
+  right: max(0px, calc((100vw - 480px) / 2));
+  top: var(--az-top, calc(12px + var(--safe-top)));
+  bottom: calc(60px + var(--safe-bottom));
+  background: rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+}
+html[data-theme="day"] .az-scrub-dim {
+  background: rgba(0, 0, 0, 0.22);
 }
 .az-scrub-slot {
   flex: 1 1 0;

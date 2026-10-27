@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getSettings, putSettings } from '../db'
 import {
+  applyAppearanceAttrs,
   exportPrefsText,
   importPrefsText,
   loadPrefs,
@@ -15,6 +16,13 @@ import {
   type StatusMode,
   type UndoChrome,
 } from '../lib/sowPrefs'
+import {
+  DEFAULT_WA_TEMPLATE,
+  WA_PREVIEW_SAMPLE,
+  WA_VARS,
+  buildWaMessage,
+  waMeUrl,
+} from '../lib/waShare'
 import { runSync, testConnection } from '../sync'
 import '../styles/shell.css'
 import '../styles/settings.css'
@@ -28,7 +36,30 @@ function looksLikeSheet(url: string): boolean {
   }
 }
 
-type Panel = 'root' | 'dev'
+type Panel = 'root' | 'sheet' | 'checklist' | 'share' | 'shareTemplate' | 'appearance' | 'dev'
+
+function BackBar({
+  onBack,
+  backLabel,
+  title,
+}: {
+  onBack: () => void
+  backLabel: string
+  title: string
+}) {
+  return (
+    <div className="stg-nav">
+      <button type="button" className="stg-back" onClick={onBack} aria-label={`Back to ${backLabel}`}>
+        <span className="stg-back-chev" aria-hidden>
+          ‹
+        </span>
+        <span className="stg-back-label">{backLabel}</span>
+      </button>
+      <h2 className="stg-nav-title">{title}</h2>
+      <span className="stg-nav-spacer" aria-hidden />
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const [panel, setPanel] = useState<Panel>('root')
@@ -45,6 +76,7 @@ export default function SettingsPage() {
   const [exportFlash, setExportFlash] = useState(false)
   const [importText, setImportText] = useState('')
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [shareCopyFlash, setShareCopyFlash] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -63,8 +95,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!ready) return
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme, ready])
+    applyAppearanceAttrs(prefs, theme)
+  }, [theme, ready, prefs])
 
   const exportBlock = useMemo(() => exportPrefsText(prefs), [prefs])
 
@@ -166,17 +198,284 @@ export default function SettingsPage() {
     setImportMsg({ ok: true, text: 'Imported.' })
   }
 
+  const sharePreview = useMemo(() => {
+    return buildWaMessage({
+      ...WA_PREVIEW_SAMPLE,
+      template: prefs['share.template'] || DEFAULT_WA_TEMPLATE,
+      includeClassPrefix: prefs['share.includeClassPrefix'],
+    })
+  }, [prefs])
+
+  function insertShareVar(token: string) {
+    const cur = prefs['share.template'] || DEFAULT_WA_TEMPLATE
+    patchPrefs({ 'share.template': cur + token })
+  }
+
+  async function copySharePreview() {
+    try {
+      await navigator.clipboard.writeText(sharePreview)
+      setShareCopyFlash(true)
+      window.setTimeout(() => setShareCopyFlash(false), 1400)
+    } catch {
+      window.prompt('Copy share text:', sharePreview)
+    }
+  }
+
+  function openWhatsAppPreview() {
+    window.open(waMeUrl(sharePreview), '_blank', 'noopener,noreferrer')
+  }
+
+  /* —— Share template (nested under Share) —— */
+  if (panel === 'shareTemplate') {
+    const tmpl = prefs['share.template'] || DEFAULT_WA_TEMPLATE
+    return (
+      <div className="shell-page stg">
+        <BackBar onBack={() => setPanel('share')} backLabel="Share" title="Template" />
+        <p className="sub" style={{ marginTop: -4 }}>
+          Tap a variable to insert. Preview uses sample class / date / not-set list.
+        </p>
+        <div className="wa-chips">
+          {WA_VARS.map((v) => (
+            <button key={v} type="button" className="wa-chip" onClick={() => insertShareVar(v)}>
+              {v}
+            </button>
+          ))}
+          <button type="button" className="wa-chip" onClick={() => insertShareVar(' • ')}>
+            •
+          </button>
+        </div>
+        <p className="stg-section">Template</p>
+        <textarea
+          className="wa-template"
+          value={tmpl}
+          rows={5}
+          spellCheck={false}
+          onChange={(e) => patchPrefs({ 'share.template': e.target.value })}
+        />
+        <button
+          type="button"
+          className="stg-link-row"
+          style={{ border: '1px solid var(--border)', borderRadius: 12, marginTop: 4 }}
+          onClick={() => patchPrefs({ 'share.template': DEFAULT_WA_TEMPLATE })}
+        >
+          Reset to locked default
+        </button>
+        <p className="stg-section">Preview</p>
+        <pre className="wa-preview">{sharePreview}</pre>
+        <div className="wa-actions">
+          <button type="button" className="wa-btn copy" onClick={() => void copySharePreview()}>
+            {shareCopyFlash ? 'Copied' : 'Copy'}
+          </button>
+          <button type="button" className="wa-btn wa" onClick={openWhatsAppPreview}>
+            WhatsApp
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  /* —— Share —— */
+  if (panel === 'share') {
+    const tmpl = prefs['share.template'] || DEFAULT_WA_TEMPLATE
+    const first = tmpl.split('\n')[0]
+    const tmplHint = first.slice(0, 36) + (first.length > 36 ? '…' : '')
+    return (
+      <div className="shell-page stg">
+        <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Share" />
+        <p className="stg-section">WhatsApp</p>
+        <div className="stg-card">
+          <button type="button" className="stg-nav-row" onClick={() => setPanel('shareTemplate')}>
+            <div>
+              <div className="t-label">Edit template</div>
+              <div className="t-hint">{tmplHint}</div>
+            </div>
+            <span className="stg-chev">›</span>
+          </button>
+          <ToggleRow
+            label="Include class prefix"
+            hint="Off = Eng CW · On = KGA Eng CW"
+            on={prefs['share.includeClassPrefix']}
+            onToggle={() =>
+              patchPrefs({ 'share.includeClassPrefix': !prefs['share.includeClassPrefix'] })
+            }
+          />
+          <div className="stg-nav-row" style={{ cursor: 'default' }}>
+            <div>
+              <div className="t-label">Share from</div>
+              <div className="t-hint">Overview expand · uses not-set list</div>
+            </div>
+          </div>
+        </div>
+        <p className="stg-section">Preview</p>
+        <pre className="wa-preview">{sharePreview}</pre>
+        <div className="wa-actions">
+          <button type="button" className="wa-btn copy" onClick={() => void copySharePreview()}>
+            {shareCopyFlash ? 'Copied' : 'Copy'}
+          </button>
+          <button type="button" className="wa-btn wa" onClick={openWhatsAppPreview}>
+            WhatsApp
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  /* —— Sheet & sync —— */
+  if (panel === 'sheet') {
+    return (
+      <div className="shell-page stg">
+        <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Sheet & sync" />
+        <p className="stg-section">Google Sheet</p>
+        <div className="stg-card">
+          <div className="stg-block">
+            <p className="field-label">Sheet URL</p>
+            <p className="hint">Eng teaching tabs — Sync A pulls Current + ticks</p>
+            <input
+              type="url"
+              value={sheetUrl}
+              onChange={(e) => void saveSheet(e.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/…/edit"
+            />
+            <div className="btn-pair">
+              <button type="button" className="paste" disabled={busy} onClick={() => void pasteSheet()}>
+                Paste
+              </button>
+              <button type="button" className="test" disabled={busy} onClick={() => void onTest()}>
+                Test
+              </button>
+            </div>
+            {testMsg ? (
+              <p className={`test-msg ${testMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
+                {testMsg.text}
+              </p>
+            ) : null}
+          </div>
+          <div className="stg-block">
+            <p className="field-label">Sync Web App URL</p>
+            <p className="hint">
+              Optional Apps Script …/exec. Do <strong>not</strong> paste the Sheet URL here.
+            </p>
+            <input
+              type="url"
+              value={syncUrl}
+              onChange={(e) => void saveSyncUrl(e.target.value)}
+              placeholder="https://script.google.com/macros/s/…/exec"
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              style={{ marginTop: 10 }}
+              disabled={busy}
+              onClick={() => void onSync()}
+            >
+              {busy ? 'Working…' : 'Sync now'}
+            </button>
+            {syncMsg ? (
+              <p className={`test-msg ${syncMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
+                {syncMsg.text}
+              </p>
+            ) : null}
+            {lastSyncAt ? (
+              <p className="foot-note" style={{ marginTop: 8 }}>
+                Last sync: {new Date(lastSyncAt).toLocaleString()}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /* —— Checklist (product) —— */
+  if (panel === 'checklist') {
+    return (
+      <div className="shell-page stg">
+        <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Checklist" />
+        <p className="stg-section">Filters</p>
+        <div className="stg-card">
+          <SegRow
+            label="Default filter"
+            hint="Letter filter is A–Z strip only"
+            value={prefs['filter.default']}
+            options={[
+              { id: 'none', label: 'None' },
+              { id: 'pending', label: 'Pending' },
+            ]}
+            onChange={(v) => patchPrefs({ 'filter.default': v as FilterDefault })}
+          />
+          <ToggleRow
+            label="Show Pending chip"
+            on={prefs['filter.showPending']}
+            onToggle={() => patchPrefs({ 'filter.showPending': !prefs['filter.showPending'] })}
+          />
+          <ToggleRow
+            label="Show Sort in FAB"
+            on={prefs['filter.showSort']}
+            onToggle={() => patchPrefs({ 'filter.showSort': !prefs['filter.showSort'] })}
+          />
+          <ToggleRow
+            label="Show Search icon"
+            on={prefs['filter.showSearch']}
+            onToggle={() => patchPrefs({ 'filter.showSearch': !prefs['filter.showSearch'] })}
+          />
+        </div>
+        <p className="sub" style={{ marginTop: 8 }}>
+          A–Z physics, undo chrome, and UI variants live under Developer options.
+        </p>
+      </div>
+    )
+  }
+
+  /* —— Appearance —— */
+  if (panel === 'appearance') {
+    return (
+      <div className="shell-page stg">
+        <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Appearance" />
+        <p className="stg-section">Theme</p>
+        <div className="stg-card">
+          <SegRow
+            label="Day / Night"
+            value={theme}
+            options={[
+              { id: 'day', label: 'Day' },
+              { id: 'night', label: 'Night' },
+            ]}
+            onChange={(v) => void setThemeValue(v as 'night' | 'day')}
+          />
+          <ToggleRow
+            label="Night bold"
+            hint="Heavier weights (night)"
+            on={prefs['appearance.nightBold']}
+            onToggle={() => patchPrefs({ 'appearance.nightBold': !prefs['appearance.nightBold'] })}
+          />
+          <ToggleRow
+            label="Day bold"
+            hint="Heavier weights (day)"
+            on={prefs['appearance.dayBold']}
+            onToggle={() => patchPrefs({ 'appearance.dayBold': !prefs['appearance.dayBold'] })}
+          />
+          <ToggleRow
+            label="Day high-contrast"
+            hint="Day only"
+            on={prefs['appearance.dayHC']}
+            onToggle={() => patchPrefs({ 'appearance.dayHC': !prefs['appearance.dayHC'] })}
+          />
+          <ToggleRow
+            label="Hide left students"
+            hint="Off = show muted, not tappable"
+            on={hideLeft}
+            onToggle={() => void toggleHide()}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  /* —— Developer —— */
   if (panel === 'dev') {
     return (
       <div className="shell-page stg">
-        <div className="row-top">
-          <button type="button" className="back" onClick={() => setPanel('root')}>
-            ← Settings
-          </button>
-          <h2 className="page-title" style={{ fontSize: 22 }}>
-            Developer
-          </h2>
-        </div>
+        <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Developer" />
         <p className="sub">Feel-lab knobs. Export prefs to paste to Kiwi.</p>
 
         <p className="stg-section">A–Z physics</p>
@@ -193,7 +492,7 @@ export default function SettingsPage() {
           />
           <ToggleRow
             label="Widen on hold"
-            hint="Strip enlarges while scrubbing"
+            hint="Strip enlarges over checklist while scrubbing"
             on={prefs['az.widenOnPress']}
             onToggle={() => patchPrefs({ 'az.widenOnPress': !prefs['az.widenOnPress'] })}
           />
@@ -210,12 +509,28 @@ export default function SettingsPage() {
             onToggle={() => patchPrefs({ 'az.showHud': !prefs['az.showHud'] })}
           />
           <NumRow
+            label="Idle width"
+            hint="px thin bar when not held"
+            value={prefs['az.idleWidth']}
+            min={12}
+            max={40}
+            onChange={(n) => patchPrefs({ 'az.idleWidth': n })}
+          />
+          <NumRow
             label="Press width"
-            hint="px while held"
+            hint="px while held (overlays list)"
             value={prefs['az.pressWidth']}
             min={16}
             max={72}
             onChange={(n) => patchPrefs({ 'az.pressWidth': n })}
+          />
+          <NumRow
+            label="Shift left"
+            hint="px inset from right edge"
+            value={prefs['az.insetRight']}
+            min={0}
+            max={48}
+            onChange={(n) => patchPrefs({ 'az.insetRight': n })}
           />
           <NumRow
             label="Press font"
@@ -267,38 +582,37 @@ export default function SettingsPage() {
           />
         </div>
 
-        <p className="stg-section">Checklist chrome</p>
+        <p className="stg-section">Overview filter style</p>
         <div className="stg-card">
           <SegRow
-            label="Default filter"
-            value={prefs['filter.default']}
+            label="Selected style"
+            hint="Soft shade is default"
+            value={prefs['overview.filterStyle']}
             options={[
-              { id: 'none', label: 'None' },
-              { id: 'pending', label: 'Pending' },
-              { id: 'letter', label: 'Letter' },
+              { id: 'underline', label: 'Underline' },
+              { id: 'shade', label: 'Shade' },
+              { id: 'boldColor', label: 'Bold+color' },
             ]}
-            onChange={(v) => patchPrefs({ 'filter.default': v as FilterDefault })}
+            onChange={(v) => patchPrefs({ 'overview.filterStyle': v as OverviewFilterStyle })}
           />
-          <ToggleRow
-            label="Show Pending chip"
-            on={prefs['filter.showPending']}
-            onToggle={() => patchPrefs({ 'filter.showPending': !prefs['filter.showPending'] })}
+        </div>
+
+        <p className="stg-section">Undo chrome</p>
+        <div className="stg-card">
+          <SegRow
+            label="Control style"
+            hint="Per-class stacks"
+            value={prefs['undo.chrome']}
+            options={[
+              { id: 'icons', label: 'Icons' },
+              { id: 'iconsLabel', label: 'Icons+label' },
+            ]}
+            onChange={(v) => patchPrefs({ 'undo.chrome': v as UndoChrome })}
           />
-          <ToggleRow
-            label="Show Letter chip"
-            on={prefs['filter.showLetter']}
-            onToggle={() => patchPrefs({ 'filter.showLetter': !prefs['filter.showLetter'] })}
-          />
-          <ToggleRow
-            label="Show Sort in FAB"
-            on={prefs['filter.showSort']}
-            onToggle={() => patchPrefs({ 'filter.showSort': !prefs['filter.showSort'] })}
-          />
-          <ToggleRow
-            label="Show Search icon"
-            on={prefs['filter.showSearch']}
-            onToggle={() => patchPrefs({ 'filter.showSearch': !prefs['filter.showSearch'] })}
-          />
+        </div>
+
+        <p className="stg-section">Filter / date / status variants</p>
+        <div className="stg-card">
           <SegRow
             label="Filter UI"
             hint="Stored · Myntra is live"
@@ -335,35 +649,6 @@ export default function SettingsPage() {
           />
         </div>
 
-        <p className="stg-section">Overview filters</p>
-        <div className="stg-card">
-          <SegRow
-            label="Filter selected style"
-            hint="Soft shade is default"
-            value={prefs['overview.filterStyle']}
-            options={[
-              { id: 'underline', label: 'Underline' },
-              { id: 'shade', label: 'Shade' },
-              { id: 'boldColor', label: 'Bold+color' },
-            ]}
-            onChange={(v) => patchPrefs({ 'overview.filterStyle': v as OverviewFilterStyle })}
-          />
-        </div>
-
-        <p className="stg-section">Undo / Redo</p>
-        <div className="stg-card">
-          <SegRow
-            label="Control style"
-            hint="Per-class stacks"
-            value={prefs['undo.chrome']}
-            options={[
-              { id: 'icons', label: 'Icons' },
-              { id: 'iconsLabel', label: 'Icons+label' },
-            ]}
-            onChange={(v) => patchPrefs({ 'undo.chrome': v as UndoChrome })}
-          />
-        </div>
-
         <p className="stg-section">Preferences export</p>
         <div className="stg-card">
           <pre className="stg-export">{exportBlock}</pre>
@@ -393,6 +678,7 @@ export default function SettingsPage() {
     )
   }
 
+  /* —— Root: nav rows only —— */
   return (
     <div className="shell-page stg">
       <div className="row-top">
@@ -403,155 +689,46 @@ export default function SettingsPage() {
           Settings
         </h2>
       </div>
-      <p className="sub">Sheet, appearance, Checklist prefs</p>
 
-      <p className="stg-section">Sheet & sync</p>
-      <div className="stg-card">
-        <div className="stg-block">
-          <p className="field-label">Google Sheet URL</p>
-          <p className="hint">Eng teaching tabs — Sync A pulls Current + ticks</p>
-          <input
-            type="url"
-            value={sheetUrl}
-            onChange={(e) => void saveSheet(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/…/edit"
-          />
-          <div className="btn-pair">
-            <button type="button" className="paste" disabled={busy} onClick={() => void pasteSheet()}>
-              Paste
-            </button>
-            <button type="button" className="test" disabled={busy} onClick={() => void onTest()}>
-              Test
-            </button>
-          </div>
-          {testMsg ? (
-            <p className={`test-msg ${testMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
-              {testMsg.text}
-            </p>
-          ) : null}
-        </div>
-        <div className="stg-block">
-          <p className="field-label">Sync Web App URL</p>
-          <p className="hint">
-            Optional Apps Script …/exec. Do <strong>not</strong> paste the Sheet URL here.
-          </p>
-          <input
-            type="url"
-            value={syncUrl}
-            onChange={(e) => void saveSyncUrl(e.target.value)}
-            placeholder="https://script.google.com/macros/s/…/exec"
-          />
-          <button
-            type="button"
-            className="btn-primary"
-            style={{ marginTop: 10 }}
-            disabled={busy}
-            onClick={() => void onSync()}
-          >
-            {busy ? 'Working…' : 'Sync now'}
-          </button>
-          {syncMsg ? (
-            <p className={`test-msg ${syncMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
-              {syncMsg.text}
-            </p>
-          ) : null}
-          {lastSyncAt ? (
-            <p className="foot-note" style={{ marginTop: 8 }}>
-              Last sync: {new Date(lastSyncAt).toLocaleString()}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <p className="stg-section">Appearance</p>
-      <div className="stg-card">
-        <SegRow
-          label="Theme"
-          value={theme}
-          options={[
-            { id: 'day', label: 'Day' },
-            { id: 'night', label: 'Night' },
-          ]}
-          onChange={(v) => void setThemeValue(v as 'night' | 'day')}
-        />
-        <ToggleRow
-          label="Night bold"
-          hint="Heavier weights (night)"
-          on={prefs['appearance.nightBold']}
-          onToggle={() => patchPrefs({ 'appearance.nightBold': !prefs['appearance.nightBold'] })}
-        />
-        <ToggleRow
-          label="Day bold"
-          hint="Heavier weights (day)"
-          on={prefs['appearance.dayBold']}
-          onToggle={() => patchPrefs({ 'appearance.dayBold': !prefs['appearance.dayBold'] })}
-        />
-        <ToggleRow
-          label="Day high-contrast"
-          hint="Day only"
-          on={prefs['appearance.dayHC']}
-          onToggle={() => patchPrefs({ 'appearance.dayHC': !prefs['appearance.dayHC'] })}
-        />
-        <ToggleRow
-          label="Hide left students"
-          hint="Off = show muted, not tappable"
-          on={hideLeft}
-          onToggle={() => void toggleHide()}
-        />
-      </div>
-
-      <p className="stg-section">Checklist</p>
-      <div className="stg-card">
-        <SegRow
-          label="Default filter"
-          value={prefs['filter.default']}
-          options={[
-            { id: 'none', label: 'None' },
-            { id: 'pending', label: 'Pending' },
-            { id: 'letter', label: 'Letter' },
-          ]}
-          onChange={(v) => patchPrefs({ 'filter.default': v as FilterDefault })}
-        />
-        <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
+      <div className="stg-card" style={{ marginTop: 8 }}>
+        <button type="button" className="stg-nav-row" onClick={() => setPanel('sheet')}>
           <div>
-            <div className="t-label">Overview filter style</div>
-            <div className="t-hint">Underline / Shade / Bold+color</div>
+            <div className="t-label">Sheet & sync</div>
+            <div className="t-hint">Google Sheet URL · Sync Web App</div>
           </div>
-          <span className="stg-chev">Dev ›</span>
+          <span className="stg-chev">›</span>
         </button>
-        <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
+        <button type="button" className="stg-nav-row" onClick={() => setPanel('checklist')}>
           <div>
-            <div className="t-label">Undo / Redo</div>
-            <div className="t-hint">Icons · per-class stacks</div>
+            <div className="t-label">Checklist</div>
+            <div className="t-hint">Default filter · chips · search</div>
           </div>
-          <span className="stg-chev">Dev ›</span>
+          <span className="stg-chev">›</span>
         </button>
-      </div>
-
-      <p className="stg-section">A–Z scrubber</p>
-      <div className="stg-card">
-        <p className="stg-hint" style={{ padding: '10px 14px' }}>
-          Physics prefs live in Developer options (export for Kiwi). Checklist shows thin idle strip.
-        </p>
-        <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
+        <button type="button" className="stg-nav-row" onClick={() => setPanel('share')}>
           <div>
-            <div className="t-label">Widen / Fisheye / Hide empty</div>
-            <div className="t-hint">STG / Dev</div>
+            <div className="t-label">Share</div>
+            <div className="t-hint">WhatsApp template</div>
           </div>
-          <span className="stg-chev">Dev ›</span>
+          <span className="stg-chev">›</span>
         </button>
-      </div>
-
-      <p className="stg-section">Developer</p>
-      <div className="stg-card">
+        <button type="button" className="stg-nav-row" onClick={() => setPanel('appearance')}>
+          <div>
+            <div className="t-label">Appearance</div>
+            <div className="t-hint">Day/Night · bold · HC · Hide Left</div>
+          </div>
+          <span className="stg-chev">›</span>
+        </button>
         <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
           <div>
             <div className="t-label">Developer options</div>
-            <div className="t-hint">A–Z physics, filter style, undo, export</div>
+            <div className="t-hint">A–Z physics · variants · export</div>
           </div>
           <span className="stg-chev">›</span>
         </button>
       </div>
+
+      <p className="stg-version">Setting of Work · v0.16.0</p>
     </div>
   )
 }
@@ -615,6 +792,7 @@ function SegRow<T extends string>({
   )
 }
 
+/** Local string draft — commit/clamp on blur & Enter so typing isn't stepper-only. */
 function NumRow({
   label,
   hint,
@@ -630,6 +808,29 @@ function NumRow({
   max: number
   onChange: (n: number) => void
 }) {
+  const [draft, setDraft] = useState(String(value))
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(String(value))
+  }, [value, focused])
+
+  function commit(raw: string) {
+    const trimmed = raw.trim()
+    if (trimmed === '' || trimmed === '-' || trimmed === '.') {
+      setDraft(String(value))
+      return
+    }
+    const n = Number(trimmed)
+    if (!Number.isFinite(n)) {
+      setDraft(String(value))
+      return
+    }
+    const clamped = Math.min(max, Math.max(min, n))
+    onChange(clamped)
+    setDraft(String(clamped))
+  }
+
   return (
     <div className="stg-row stg-num">
       <div>
@@ -637,11 +838,23 @@ function NumRow({
         {hint ? <div className="t-hint">{hint}</div> : null}
       </div>
       <input
-        type="number"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
         min={min}
         max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        value={draft}
+        onFocus={() => setFocused(true)}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setFocused(false)
+          commit(draft)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur()
+          }
+        }}
       />
     </div>
   )

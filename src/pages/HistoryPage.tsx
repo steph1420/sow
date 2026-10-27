@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CLASS_KEYS,
@@ -6,115 +6,199 @@ import {
   listMarks,
   listSessions,
   rosterWithLeft,
-  type Session,
+  type ClassKey,
 } from '../db'
-import { parseClassParam, splitClass } from '../lib/classMeta'
+import { parseClassParam } from '../lib/classMeta'
+import { historyDateLabel, sheetDateSortKey } from '../lib/shortDate'
 import '../styles/shell.css'
+import '../styles/history.css'
 
-type Row = {
-  session: Session
-  label: string
-  detail: string
+type GradeFilter = 'all' | 'KGA' | 'KGB'
+type KindFilter = 'all' | 'CW' | 'HW'
+
+type HistCard = {
+  id: string
+  classKey: ClassKey
+  grade: 'KGA' | 'KGB'
+  kind: 'CW' | 'HW'
+  title: string
+  date: string
+  topic: string
+  setCount: number
+  subCount: number
+  active: number
   pct: number
 }
 
-export default function HistoryPage() {
-  const [params, setParams] = useSearchParams()
-  const nav = useNavigate()
-  const classKey = parseClassParam(params.get('class')) ?? 'KGA_Eng_CW'
-  const [rows, setRows] = useState<Row[]>([])
+function classTitle(key: ClassKey): string {
+  const label = CLASS_LABELS[key]
+  const [grade, ...rest] = label.split(' ')
+  return `${grade} · ${rest.join(' ')}`
+}
 
-  useEffect(() => {
-    ;(async () => {
+function gradeOf(key: ClassKey): 'KGA' | 'KGB' {
+  return key.startsWith('KGB') ? 'KGB' : 'KGA'
+}
+
+function kindOf(key: ClassKey): 'CW' | 'HW' {
+  return key.endsWith('_HW') ? 'HW' : 'CW'
+}
+
+export default function HistoryPage() {
+  const [params] = useSearchParams()
+  const nav = useNavigate()
+  const seedKey = parseClassParam(params.get('class'))
+  const [grade, setGrade] = useState<GradeFilter>(() =>
+    seedKey ? gradeOf(seedKey) : 'all',
+  )
+  const [kind, setKind] = useState<KindFilter>(() =>
+    seedKey ? kindOf(seedKey) : 'all',
+  )
+  const [cards, setCards] = useState<HistCard[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    const out: HistCard[] = []
+    const seen = new Set<string>()
+    for (const key of CLASS_KEYS) {
       const [sessions, roster, marks] = await Promise.all([
-        listSessions(classKey),
-        rosterWithLeft(classKey),
-        listMarks(classKey),
+        listSessions(key),
+        rosterWithLeft(key),
+        listMarks(key),
       ])
       const active = roster.filter((s) => !s.left)
       const markMap = new Map(marks.map((m) => [`${m.roll}|${m.date}`, m]))
-      const out: Row[] = sessions
-        .slice()
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-        .map((sess) => {
-          const dates = [sess.date1, sess.date2].filter(Boolean)
-          const topics = [sess.topic1, sess.topic2].filter(Boolean)
+      for (const sess of sessions) {
+        const slots: { date: string; topic: string }[] = []
+        if (sess.date1) slots.push({ date: sess.date1, topic: sess.topic1 || '' })
+        if (sess.date2) slots.push({ date: sess.date2, topic: sess.topic2 || '' })
+        for (const slot of slots) {
+          const id = `${key}|${slot.date}`
+          if (seen.has(id)) continue
+          seen.add(id)
           let setCount = 0
-          const slots = active.length * dates.length
+          let subCount = 0
           for (const s of active) {
-            for (const d of dates) {
-              if (markMap.get(`${s.roll}|${d}`)?.set) setCount++
-            }
+            const m = markMap.get(`${s.roll}|${slot.date}`)
+            if (m?.set) setCount++
+            if (m?.submitted) subCount++
           }
-          const pct = slots === 0 ? 0 : Math.round((setCount / slots) * 100)
-          const label = dates.join(' + ')
-          const topicBit = topics[0] || '—'
-          const detail =
-            pct === 100
-              ? `${topicBit} · all set`
-              : `${topicBit} · ${setCount} of ${active.length} active set`
-          return { session: sess, label, detail, pct }
-        })
-      setRows(out)
-    })()
-  }, [classKey])
+          const total = active.length
+          const pct = total === 0 ? 0 : Math.round((setCount / total) * 100)
+          out.push({
+            id,
+            classKey: key,
+            grade: gradeOf(key),
+            kind: kindOf(key),
+            title: classTitle(key),
+            date: slot.date,
+            topic: slot.topic,
+            setCount,
+            subCount,
+            active: total,
+            pct,
+          })
+        }
+      }
+    }
+    out.sort((a, b) => {
+      const dk = sheetDateSortKey(b.date) - sheetDateSortKey(a.date)
+      if (dk !== 0) return dk
+      return CLASS_KEYS.indexOf(a.classKey) - CLASS_KEYS.indexOf(b.classKey)
+    })
+    setCards(out)
+    setLoading(false)
+  }, [])
 
-  const meta = splitClass(classKey)
+  useEffect(() => {
+    void reload()
+  }, [reload])
+
+  const visible = useMemo(() => {
+    return cards.filter((c) => {
+      if (grade !== 'all' && c.grade !== grade) return false
+      if (kind !== 'all' && c.kind !== kind) return false
+      return true
+    })
+  }, [cards, grade, kind])
+
+  function chipClass(on: boolean) {
+    return `hist-chip${on ? ' on' : ''}`
+  }
 
   return (
-    <div className="shell-page">
-      <div className="row-top">
-        <Link className="back" to="/">
-          ← Home
+    <div className="shell-page hist-page">
+      <div className="hist-top">
+        <Link className="back" to="/overview">
+          ← More
         </Link>
-        <h2 className="page-title" style={{ fontSize: 22 }}>
-          History
-        </h2>
+        <h2 className="page-title hist-title">History</h2>
+        <span className="hist-top-spacer" aria-hidden />
       </div>
-      <p className="sub">
-        {meta.grade} · {meta.kind}
-      </p>
 
-      <label className="eyebrow" style={{ display: 'block' }}>
-        Class
-        <select
-          value={classKey}
-          onChange={(e) => setParams({ class: e.target.value })}
-          style={{
-            display: 'block',
-            width: '100%',
-            marginTop: 6,
-            padding: '10px 12px',
-            borderRadius: 10,
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
+      <div className="hist-chips" role="toolbar" aria-label="Filter history">
+        <button
+          type="button"
+          className={chipClass(grade === 'all' && kind === 'all')}
+          onClick={() => {
+            setGrade('all')
+            setKind('all')
           }}
         >
-          {CLASS_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {CLASS_LABELS[k]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="list">
-        {rows.map((r) => (
+          All
+        </button>
+        {(['KGA', 'KGB'] as const).map((g) => (
           <button
-            key={r.session.sessionId}
+            key={g}
             type="button"
-            className="hist-card"
-            onClick={() => nav(`/checklist?class=${classKey}`)}
+            className={chipClass(grade === g)}
+            onClick={() => setGrade((cur) => (cur === g ? 'all' : g))}
           >
-            <div className="body">
-              <p className="dates">{r.label}</p>
-              <p className="meta">{r.detail}</p>
-            </div>
-            <span className="pct">{r.pct}%</span>
+            {g}
           </button>
         ))}
-        {rows.length === 0 ? <div className="empty-soft">No sessions yet for this class.</div> : null}
+        {(['CW', 'HW'] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className={chipClass(kind === k)}
+            onClick={() => setKind((cur) => (cur === k ? 'all' : k))}
+          >
+            {k}
+          </button>
+        ))}
+      </div>
+
+      <div className="hist-list">
+        {loading ? <div className="empty-soft">Loading…</div> : null}
+        {!loading &&
+          visible.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className="hist-card-v2"
+              onClick={() => nav(`/checklist?class=${c.classKey}`)}
+            >
+              <div className="hist-card-top">
+                <span className="hist-card-title">{c.title}</span>
+                <span className="hist-card-pct">{c.pct}%</span>
+              </div>
+              <p className="hist-card-meta">
+                <span className="hist-card-date">{historyDateLabel(c.date)}</span>
+                <span className="hist-card-dot" aria-hidden>
+                  ·
+                </span>
+                <span>
+                  {c.setCount}/{c.active} set · {c.subCount} submitted
+                </span>
+              </p>
+              {c.topic ? <p className="hist-card-topic">{c.topic}</p> : null}
+            </button>
+          ))}
+        {!loading && visible.length === 0 ? (
+          <div className="empty-soft">No sessions yet for this filter.</div>
+        ) : null}
       </div>
     </div>
   )

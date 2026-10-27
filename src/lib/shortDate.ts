@@ -79,3 +79,12 @@ export const MONTH_NAMES = [
   'November',
   'December',
 ] as const
+
+const MON_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
+
+/** History card date: `Mon 28 Oct`. */
+export function historyDateLabel(raw: string, now = new Date()): string {
+  const d = parseSheetDate(raw, now)
+  if (!d) return shortDateLabel(raw, now)
+  return `${WD[d.getDay()]} ${d.getDate()} ${MON_SHORT[d.getMonth()]}`
+}

@@ -11,6 +11,7 @@ type Props = {
 /**
  * Fixed viewport A–Z section index with press-drag fisheye + All (*) clear.
  * Physics knobs come from sow.prefs (`az.*`).
+ * Idle gutter only; press width overlays checklist with dim scrim.
  */
 export default function AzScrubber({ active, present, onSelect }: Props) {
   const stripRef = useRef<HTMLDivElement>(null)
@@ -22,6 +23,16 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
   const startY = useRef(0)
 
   useEffect(() => subscribePrefs(setPrefs), [])
+
+  // Publish idle gutter for list padding (name cards stop just before idle strip)
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--az-idle-width', `${prefs['az.idleWidth']}px`)
+    root.style.setProperty('--az-inset-right', `${prefs['az.insetRight']}px`)
+    return () => {
+      /* leave last values — MarkPage may remount scrubber */
+    }
+  }, [prefs])
 
   const letters = useMemo(() => {
     if (!prefs['az.hideEmpty']) return [...AZ_LETTERS]
@@ -35,7 +46,6 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
       const el = stripRef.current
       if (!el) return null as string | null
       const rect = el.getBoundingClientRect()
-      // Remap slot index onto visible letters (+ All at 0)
       const idx = Math.max(0, Math.min(slotCount - 1, Math.floor((clientY - rect.top) / (rect.height / slotCount))))
       const next = idx === 0 ? null : letters[idx - 1] ?? null
       setHud(next ?? '∗')
@@ -91,9 +101,11 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
   const fePush = prefs['az.fe.push'] / 100
   const feStr = prefs['az.fe.strength'] / 100
   const fisheye = prefs['az.mode'] === 'fisheye'
+  const inset = prefs['az.insetRight']
 
   const stripStyle: CSSProperties = {
-    width: widen ? prefs['az.pressWidth'] : 22,
+    width: widen ? prefs['az.pressWidth'] : prefs['az.idleWidth'],
+    right: `calc(max(0px, (100vw - 480px) / 2) + ${inset}px)`,
     ['--az-press-font' as string]: `${prefs['az.pressFont']}px`,
     ['--az-focus-font' as string]: `${prefs['az.focusFont']}px`,
   }
@@ -127,6 +139,7 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
 
   return (
     <>
+      {widen ? <div className="az-scrub-dim" aria-hidden /> : null}
       <div
         ref={stripRef}
         className={`az-scrub${widen ? ' wide' : ''}`}

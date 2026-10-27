@@ -36,7 +36,7 @@ Settings root → grouped rows → drill-in screens. Heavy knobs live under **De
 | Item | Spec |
 |------|------|
 | Set count | Under class selector |
-| Calendar icon | Under date selector |
+| Calendar | Date ▾ only (no under-date icon) |
 | Topic | Same quiet label+accent aesthetics; truncate **only when long**; tap → toast (full topic) + **pencil** → edit input (current value) + **X** clear |
 | Undo / Redo | **Icons only** (default), under date / right of Topic; **per-class stacks**; Dev: Icons \| Icons+label |
 | Set \| Submitted | Always visible |
@@ -57,6 +57,18 @@ Settings root → grouped rows → drill-in screens. Heavy knobs live under **De
 
 ## LOCKED Share
 - WA template maker approved; format with • separators / variables as previously locked.
+- Default template:
+  ```
+  {class} • {date} • not set/found ({count}):
+  {names}
+  ```
+- Variables: `{class}` `{date}` `{topic}` plus lists:
+  - `{names}` / `{count}` — aliases for **not set** (locked default)
+  - `{names.notSet}` `{names.set}` `{names.submitted}` `{names.notSubmitted}` `{names.active}` `{names.left}`
+  - `{count.notSet}` `{count.set}` `{count.submitted}` `{count.notSubmitted}` `{count.active}` `{count.left}`
+  - short aliases `{notSet}` `{set}`
+- Overview Share fills all buckets from roster×marks; template decides what appears.
+- Prefs: `share.template`, `share.includeClassPrefix` (default off → `Eng CW` not `KGA Eng CW`).
 
 ---
 
@@ -66,7 +78,9 @@ Settings root → grouped rows → drill-in screens. Heavy knobs live under **De
 | az.mode | Single · Fisheye | |
 | az.hideEmpty | on/off | Hide empty letters |
 | az.widenOnPress | on/off | |
-| az.pressWidth | px (e.g. 26→48) | Idle stays thin, all letters+∗ |
+| az.idleWidth | px (e.g. 12–40, default 22) | Thin bar thickness when idle |
+| az.insetRight | px (0–48, default 0) | Shift strip left from right edge |
+| az.pressWidth | px (e.g. 26→48) | While held; overlays checklist + dim |
 | az.pressFont | px | All letters bump while held (may clip — OK) |
 | az.focusFont | px | Focused letter size |
 | az.fe.strength | 0–100 | Curve steepness |
@@ -79,8 +93,8 @@ Thumb maps to rail length / viewport; off-screen letters fine.
 ## Dev · Checklist chrome
 | Key | Control |
 |-----|---------|
-| filter.default | None · Pending · Letter |
-| filter.showPending / Letter / Sort / Search | on/off |
+| filter.default | None · Pending *(Letter removed — A–Z strip only)* |
+| filter.showPending / Sort / Search | on/off |
 | filter.ui | Bar+sheets (Myntra) · Popover · Chips |
 | date.ui | Quiet line · Tiny chips · Filters-only · Slim bar · Dual cards |
 | status.mode | Hidden · w/ date · In date control *(product default: Hidden — counts under class)* |
@@ -103,6 +117,7 @@ Developer options → **Export preferences** → plain text block Steve pastes t
 sow.prefs.v1
 az.mode=fisheye
 az.widenOnPress=true
+az.idleWidth=22
 az.pressWidth=48
 az.pressFont=12
 az.focusFont=22

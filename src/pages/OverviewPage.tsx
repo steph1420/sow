@@ -10,6 +10,7 @@ import {
 } from '../db'
 import { loadPrefs, subscribePrefs, type OverviewFilterStyle } from '../lib/sowPrefs'
 import { sheetDateSortKey, shortDateLabel } from '../lib/shortDate'
+import { buildWaMessage, buildWaNameLists } from '../lib/waShare'
 import '../styles/shell.css'
 import '../styles/overview.css'
 
@@ -159,12 +160,21 @@ export default function OverviewPage() {
   }
 
   async function onShare(card: SessionCard) {
-    const lines = [
-      `${CLASS_LABELS[card.classKey]} · ${shortDateLabel(card.date)}`,
-      card.topic || undefined,
-      `Set ${card.setCount}/${card.active} · Submitted ${card.subCount}`,
-    ].filter(Boolean) as string[]
-    const text = lines.join('\n')
+    const prefs = loadPrefs()
+    const [roster, marks] = await Promise.all([
+      rosterWithLeft(card.classKey),
+      listMarks(card.classKey, card.date),
+    ])
+    const lists = buildWaNameLists(roster, marks, card.date)
+    const text = buildWaMessage({
+      template: prefs['share.template'],
+      classLabel: CLASS_LABELS[card.classKey],
+      date: card.date,
+      topic: card.topic,
+      names: lists.notSet,
+      lists,
+      includeClassPrefix: prefs['share.includeClassPrefix'],
+    })
     try {
       if (typeof navigator.share === 'function') {
         await navigator.share({ text })
