@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.1] — 2026-10-27
+### Changed
+- GitHub Pages base `/sow/`: Vite base, PWA start_url/scope/navigateFallback, Router basename
+
 ## [0.6.0] — 2026-10-27
 ### Added
 - JB-7: Day theme token polish, PWA install prompt (Android) + iOS Add-to-Home hint, offline banner, Sync-offline guard, Mark→Session empty link, BUGS.md
