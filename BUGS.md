@@ -5,9 +5,11 @@
 - **Theme-color vs OS:** status bar follows `theme-color` meta; switching Day/Night updates it, but installed PWAs may need relaunch for chrome tint.
 - **gviz pull:** needs link-view (or broader) sharing on the workbook; editor-only private sheets fail Test until shared or pushed via bot connector.
 - **Connector push:** device Sync without Apps Script URL is pull-first; create/push SoW_* is bot-side (`user-Google-sheets`) unless Sync Web App URL is set.
-- **Left seed names:** matched by substring (Ishita / Riyaarth / Rudransh); a future same-first-name student could false-positive until joined by roll from sheet.
+- **Hide SoW_* tabs:** Sheets MCP has no `hidden` sheet-properties tool. Tabs exist (SoW_Sessions 1728577063, SoW_RosterMeta 1479427997, SoW_Marks 1921268674) — School Bot / Apps Script `hideSheet()` needed.
 
 ## Fixed / mitigated
+- Sync A Eng Current + ticks pull (v0.7.0); demo Left cleared except locked rolls
+- Left seeds keyed by classKey+roll (not name-only substring on wrong rolls)
 - Day theme submit purple now uses `--submit-fg` (readable on light surfaces).
 - Offline: banner + Sync blocked with clear message; local marks still write to IndexedDB.
 - Empty Mark → link to Session for that class.

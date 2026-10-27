@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0] — 2026-10-27
+### Added
+- Sync A: pull Eng Current (F3/G3 + F4/G4) + tick columns → sessions/marks (`set` only)
+- Eng block hash + `sheetSeenAt` / `lastSyncAt` per classKey in settings
+- Merge: Eng `set` wins unless local `updatedAt` > last sync; `submitted` stays app-local
+- Clear demo Left; locked Left only Ishita 19 / Riyaarth 31 (KGA) + Rudransh 33 (KGB)
+### Changed
+- Empty first-launch seed (no demo roster/session) — Sync pulls live Eng tabs
+- Settings: warn when Sheet URL pasted into Sync Web App field (405)
+- Sync without Apps Script runs full Eng pull path
+
 ## [0.6.2] — 2026-10-27
 ### Fixed
 - Mark A–Z strip overlapped student rows; now an absolute right-edge overlay with list padding

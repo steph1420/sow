@@ -133,7 +133,7 @@ export default function SettingsPage() {
         <div>
           <p className="field-label">Google Sheet URL</p>
           <p className="hint">
-            Paste the workbook the app owns (SoW_Sessions / SoW_Marks / SoW_RosterMeta)
+            Workbook with Eng teaching tabs (Sync A pulls Current dates + ticks from here)
           </p>
           <input
             type="url"
@@ -159,7 +159,7 @@ export default function SettingsPage() {
         <div>
           <p className="field-label">Sync Web App URL</p>
           <p className="hint">
-            Optional fallback. Prefer Google Sheets connected in chat (bot creates/pushes SoW_*). Apps Script only if you need device-side push.
+            Optional Apps Script …/exec only. Do <strong>not</strong> paste the Sheet URL here (that causes 405). Leave blank for Sync A pull.
           </p>
           <input
             type="url"
@@ -216,7 +216,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="foot-note">
-        App writes its own tabs only via bot connector or optional Apps Script. Teaching tabs stay read-only. See docs/SYNC_SETUP.md.
+        Sync A pulls Eng Current + ticks with Sheet URL alone. Teaching tabs stay read-only for writes. See docs/SHEET_MAPPING.md.
       </p>
 
       <Link to="/history" className="btn-secondary" style={{ display: 'block' }}>

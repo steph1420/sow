@@ -97,9 +97,9 @@ App records `{what, when}` for tick / copy / push / pull. Optional while-open po
 ---
 
 ## 5. Acceptance (Sync A)
-- [ ] Eng Current → session dates/topics on Sync  
-- [ ] Eng TRUE/FALSE columns → `set` marks  
-- [ ] Merge uses `sheetSeenAt` / last-sync vs local `updatedAt`  
-- [ ] `SoW_*` hidden; still round-trip as backup  
-- [ ] Demo Left cleared; only seed Left names remain  
-- [ ] Teaching PENDING / formulas untouched  
+- [x] Eng Current → session dates/topics on Sync  
+- [x] Eng TRUE/FALSE columns → `set` marks  
+- [x] Merge uses `sheetSeenAt` / last-sync vs local `updatedAt`  
+- [ ] `SoW_*` hidden; still round-trip as backup (hide blocked — MCP has no sheet hide; backup pull OK)  
+- [x] Demo Left cleared; only seed Left names remain  
+- [x] Teaching PENDING / formulas untouched  

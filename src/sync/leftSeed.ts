@@ -1,50 +1,65 @@
 import type { ClassKey, RosterMeta, Student } from '../db'
 import { studentId } from '../db'
 
-/** Apply locked Left seeds if that student exists and has no meta yet / left false never forced off. */
-export const LEFT_SEEDS: { nameIncludes: string; grades: ('KGA' | 'KGB')[] }[] = [
-  { nameIncludes: 'Ishita', grades: ['KGA'] },
-  { nameIncludes: 'Riyaarth', grades: ['KGA'] },
-  { nameIncludes: 'Rudransh', grades: ['KGB'] },
+/** Locked Left seeds (Sync A / SHEET_MAPPING) — exact classKey + roll. */
+export const LEFT_SEED_KEYS: { classKey: ClassKey; roll: number; nameIncludes: string }[] = [
+  { classKey: 'KGA_Eng_CW', roll: 19, nameIncludes: 'Ishita' },
+  { classKey: 'KGA_Eng_HW', roll: 19, nameIncludes: 'Ishita' },
+  { classKey: 'KGA_Eng_CW', roll: 31, nameIncludes: 'Riyaarth' },
+  { classKey: 'KGA_Eng_HW', roll: 31, nameIncludes: 'Riyaarth' },
+  { classKey: 'KGB_Eng_CW', roll: 33, nameIncludes: 'Rudransh' },
+  { classKey: 'KGB_Eng_HW', roll: 33, nameIncludes: 'Rudransh' },
 ]
 
+function isLockedLeft(classKey: ClassKey, roll: number): boolean {
+  return LEFT_SEED_KEYS.some((s) => s.classKey === classKey && s.roll === roll)
+}
+
+/**
+ * Clear demo/wrong Left; ensure locked seed rolls are Left when that student exists.
+ * Does not invent Left for name-only matches on wrong rolls.
+ */
 export function applyLeftSeeds(
   students: Student[],
   existingMeta: RosterMeta[],
   now = new Date().toISOString(),
 ): RosterMeta[] {
-  const metaById = new Map(existingMeta.map((m) => [m.id, m]))
-  const out = [...existingMeta]
+  const byId = new Map(existingMeta.map((m) => [m.id, { ...m }]))
+  const studentById = new Map(students.map((s) => [s.id, s]))
 
-  for (const s of students) {
-    const grade = s.classKey.startsWith('KGA') ? 'KGA' : s.classKey.startsWith('KGB') ? 'KGB' : null
-    if (!grade) continue
-    const hit = LEFT_SEEDS.find(
-      (seed) => seed.grades.includes(grade) && s.name.toLowerCase().includes(seed.nameIncludes.toLowerCase()),
-    )
-    if (!hit) continue
-    const id = studentId(s.classKey, s.roll)
-    const cur = metaById.get(id)
-    if (cur?.left) continue // already left
-    if (cur && !cur.left) {
-      // first sync seed: only set left if never marked — treat missing as seedable; existing active stays
-      // Spec: "apply on first sync if missing" — if meta exists with left=false, don't force
-      continue
-    }
-    if (!cur) {
-      const row: RosterMeta = {
-        id,
-        classKey: s.classKey,
-        roll: s.roll,
-        name: s.name,
-        left: true,
-        updatedAt: now,
-      }
-      out.push(row)
-      metaById.set(id, row)
+  // Clear Left that is not in the locked seed list
+  for (const m of byId.values()) {
+    if (m.left && !isLockedLeft(m.classKey, m.roll)) {
+      m.left = false
+      m.updatedAt = now
     }
   }
-  return out
+
+  // Apply locked seeds when the roll exists on roster
+  for (const seed of LEFT_SEED_KEYS) {
+    const id = studentId(seed.classKey, seed.roll)
+    const student = studentById.get(id)
+    if (!student) continue
+    const cur = byId.get(id)
+    if (cur) {
+      if (!cur.left) {
+        cur.left = true
+        cur.name = student.name || cur.name
+        cur.updatedAt = now
+      }
+    } else {
+      byId.set(id, {
+        id,
+        classKey: seed.classKey,
+        roll: seed.roll,
+        name: student.name,
+        left: true,
+        updatedAt: now,
+      })
+    }
+  }
+
+  return [...byId.values()]
 }
 
 export function classKeysForGrade(grade: 'KGA' | 'KGB'): ClassKey[] {

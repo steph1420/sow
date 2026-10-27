@@ -78,12 +78,20 @@ export async function setLeft(classKey: ClassKey, roll: number, left: boolean, n
   })
 }
 
-export async function putSession(s: Session): Promise<Session> {
+export async function putSession(
+  s: Session,
+  opts?: { keepUpdatedAt?: boolean },
+): Promise<Session> {
   const db = await getDb()
-  const row = { ...s, updatedAt: now() }
+  const row = { ...s, updatedAt: opts?.keepUpdatedAt ? s.updatedAt : now() }
   await db.put('sessions', row)
   await markDirty()
   return row
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const db = await getDb()
+  await db.delete('sessions', sessionId)
 }
 
 export async function listSessions(classKey?: ClassKey): Promise<Session[]> {

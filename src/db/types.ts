@@ -1,4 +1,4 @@
-/** Field names aligned with /workspace/sow-pwa-docs/SHEET_MAPPING.md */
+/** Field names aligned with docs/SHEET_MAPPING.md */
 
 export type ClassKey = 'KGA_Eng_CW' | 'KGB_Eng_CW' | 'KGA_Eng_HW' | 'KGB_Eng_HW'
 
@@ -57,6 +57,13 @@ export interface Mark {
   updatedAt: string
 }
 
+/** Per-class Eng sync snapshot (Sync A). */
+export type EngSyncState = {
+  hash: string
+  sheetSeenAt: string
+  lastSyncAt: string
+}
+
 export interface Settings {
   id: 'app'
   hideLeft: boolean
@@ -68,6 +75,8 @@ export interface Settings {
   lastSyncAt?: string
   lastSyncError?: string
   syncDirty?: boolean
+  /** Sync A: Eng tick+Current hash + seen/sync times per classKey */
+  engSyncState?: Partial<Record<ClassKey, EngSyncState>>
 }
 
 export function studentId(classKey: ClassKey, roll: number): string {
