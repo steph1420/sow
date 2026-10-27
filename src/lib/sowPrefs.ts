@@ -116,7 +116,7 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'az.fe.relative': clamp(Number(g('az.fe.relative')) || 0, 0, 100),
     'az.fe.count': clamp(Math.round(Number(g('az.fe.count')) || 0), 1, 5),
     'az.showHud': Boolean(g('az.showHud')),
-    'az.insetRight': clamp(Number(g('az.insetRight')) || 0, 0, 48),
+    'az.insetRight': clamp(Number(g('az.insetRight')) || 0, 0, 64),
     'filter.default': filterDefault === 'pending' ? 'pending' : 'none',
     'filter.showPending': Boolean(g('filter.showPending')),
     'filter.showSort': Boolean(g('filter.showSort')),

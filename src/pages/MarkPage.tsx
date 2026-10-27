@@ -102,20 +102,28 @@ export default function MarkPage() {
   const topicInputRef = useRef<HTMLInputElement>(null)
   const headRef = useRef<HTMLDivElement>(null)
 
-  // Pin A–Z strip top to just below the Name column header (never over chrome above)
+  // Pin A–Z strip top below Name column header — scroll-invariant.
+  // Using raw getBoundingClientRect().bottom on scroll made the strip taller as
+  // the head left the viewport, and flex slots stretched letter gaps (Steve bug).
+  // Compensate with main.scrollTop so --az-top stays fixed while the list scrolls.
   useLayoutEffect(() => {
     const head = headRef.current
     if (!head) return
+    const main = head.closest('.main') as HTMLElement | null
     const apply = () => {
-      const bottom = head.getBoundingClientRect().bottom
-      document.documentElement.style.setProperty('--az-top', `${Math.round(bottom)}px`)
+      const headBottom = head.getBoundingClientRect().bottom
+      const scrollY = main?.scrollTop ?? 0
+      // Viewport Y of head bottom when scrollTop === 0
+      const top = Math.max(0, Math.round(headBottom + scrollY))
+      document.documentElement.style.setProperty('--az-top', `${top}px`)
     }
     apply()
     const ro = new ResizeObserver(apply)
     ro.observe(head)
+    if (main) ro.observe(main)
     window.addEventListener('resize', apply)
-    // main scroll moves chrome relative to viewport
-    const main = head.closest('.main')
+    // Re-apply on scroll is a no-op for spacing (formula cancels scroll) but
+    // keeps value correct if OfflineBanner / install bar toggles mid-scroll.
     main?.addEventListener('scroll', apply, { passive: true })
     return () => {
       ro.disconnect()

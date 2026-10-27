@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.1] — 2026-10-28
+### Fixed
+- A–Z strip no longer spaces letters apart while scrolling Checklist (`--az-top` is scroll-compensated)
+- Shift left (`az.insetRight`) easier to find: clearer Dev label + Checklist → Developer link
+### Notes
+- Future Settings redesigns: pull full Android/iOS Settings menu references first (see BUGS.md)
+
+
 ## [0.16.0] — 2026-10-28
 ### Fixed
 - Dev NumRow: local string draft; commit/clamp on blur & Enter (no more stepper-only glitch)

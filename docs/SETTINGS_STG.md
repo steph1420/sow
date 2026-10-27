@@ -79,7 +79,7 @@ Settings root → grouped rows → drill-in screens. Heavy knobs live under **De
 | az.hideEmpty | on/off | Hide empty letters |
 | az.widenOnPress | on/off | |
 | az.idleWidth | px (e.g. 12–40, default 22) | Thin bar thickness when idle |
-| az.insetRight | px (0–48, default 0) | Shift strip left from right edge |
+| az.insetRight | px (0–64, default 0) | Shift strip left from right edge (Dev: Shift left) |
 | az.pressWidth | px (e.g. 26→48) | While held; overlays checklist + dim |
 | az.pressFont | px | All letters bump while held (may clip — OK) |
 | az.focusFont | px | Focused letter size |

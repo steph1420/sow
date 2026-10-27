@@ -16,3 +16,10 @@
 
 - Alphabet strip overlap on long roster — fixed (v0.6.2)
 - A–Z strip too small / scrolled away; stuck in letter mode — fixed (v0.7.1 fixed scrubber + clear)
+
+## Notes for future work
+- **Settings IA:** Before redesigning Settings screens, pull complete Android / iOS Settings menu references (hierarchy, nav bars, grouped lists, drill-ins) and match that pattern — Steve 2026-10-28.
+
+## Fixed in 0.16.1
+- A–Z strip letter gaps stretched on Checklist scroll: `--az-top` was tracking scrolled header bottom (strip grew; flex slots spaced out). Now scroll-compensated (`headBottom + main.scrollTop`) so vertical letter layout stays stable.
+- Shift left (`az.insetRight`) was easy to miss: clarified under Settings → Developer → A–Z physics (also linked from Checklist settings).

@@ -419,9 +419,16 @@ export default function SettingsPage() {
             onToggle={() => patchPrefs({ 'filter.showSearch': !prefs['filter.showSearch'] })}
           />
         </div>
-        <p className="sub" style={{ marginTop: 8 }}>
-          A–Z physics, undo chrome, and UI variants live under Developer options.
-        </p>
+        <p className="stg-section">A–Z strip</p>
+        <div className="stg-card">
+          <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
+            <div>
+              <div className="t-label">Shift left · Idle width · Fisheye</div>
+              <div className="t-hint">Developer → A–Z physics</div>
+            </div>
+            <span className="stg-chev">Dev ›</span>
+          </button>
+        </div>
       </div>
     )
   }
@@ -517,20 +524,20 @@ export default function SettingsPage() {
             onChange={(n) => patchPrefs({ 'az.idleWidth': n })}
           />
           <NumRow
+            label="Shift left"
+            hint="Moves A–Z strip left from the right edge (px). Try 8–24 on phone."
+            value={prefs['az.insetRight']}
+            min={0}
+            max={64}
+            onChange={(n) => patchPrefs({ 'az.insetRight': n })}
+          />
+          <NumRow
             label="Press width"
             hint="px while held (overlays list)"
             value={prefs['az.pressWidth']}
             min={16}
             max={72}
             onChange={(n) => patchPrefs({ 'az.pressWidth': n })}
-          />
-          <NumRow
-            label="Shift left"
-            hint="px inset from right edge"
-            value={prefs['az.insetRight']}
-            min={0}
-            max={48}
-            onChange={(n) => patchPrefs({ 'az.insetRight': n })}
           />
           <NumRow
             label="Press font"
@@ -728,7 +735,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <p className="stg-version">Setting of Work · v0.16.0</p>
+      <p className="stg-version">Setting of Work · v0.16.1</p>
     </div>
   )
 }
