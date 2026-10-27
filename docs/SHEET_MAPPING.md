@@ -1,102 +1,105 @@
-# Setting of Work — Sheet mapping (JB-5 · locked)
+# Setting of Work — Sheet mapping (Sync A · locked 2026-10-27)
 
-**Status:** Locked for JB-6 sync implementation  
-**Aligned with:** app types in `src/db/types.ts` (`v0.4.0`)  
-**Workbook:** paste full Google Sheets URL in Settings → store as `settings.sheetUrl`  
-**Example id:** `1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw`  
-Extract id with: `/spreadsheets\/d\/([a-zA-Z0-9-_]+)/`
-
----
-
-## 1. Source tabs (read-only roster)
-
-| classKey   | Sheet tab name | Columns | Data rows |
-|------------|----------------|---------|-----------|
-| KGA_Eng_CW | KGA Eng CW     | A=roll, B=name | from row **4** |
-| KGB_Eng_CW | KGB Eng CW     | A=roll, B=name | from row **4** |
-| KGA_Eng_HW | KGA Eng HW     | A=roll, B=name | from row **4** |
-| KGB_Eng_HW | KGB Eng HW     | A=roll, B=name | from row **4** |
-
-**Rules**
-- Join key = `classKey` + `roll` (never name alone).
-- Skip empty names; coerce roll to integer.
-- **Do not** read or write date/TRUE/FALSE columns, PENDING, Current, or Status on these tabs.
-- Roster refresh = upsert students; never delete `SoW_RosterMeta.left` rows when a name disappears temporarily.
+**Status:** Locked for Sync A — Eng tabs are source of truth for dates/ticks  
+**Workbook id:** `1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw`  
+Extract id with: `/spreadsheets\/d\/([a-zA-Z0-9-_]+)/`  
+**Aligned with:** app types in `src/db/types.ts`
 
 ---
 
-## 2. App-owned tabs (create if missing)
+## 1. Eng tabs (roster + Current + ticks)
 
-Header row = row 1, exact column names below. Booleans written as `TRUE` / `FALSE`. Dates displayed as `D/M` (e.g. `14/10`); ISO allowed in storage if needed but UI is `D/M`.
+| classKey   | Sheet tab name |
+|------------|----------------|
+| KGA_Eng_CW | KGA Eng CW     |
+| KGB_Eng_CW | KGB Eng CW     |
+| KGA_Eng_HW | KGA Eng HW     |
+| KGB_Eng_HW | KGB Eng HW     |
+
+### Layout (same on all four)
+
+| Area | Cells | Meaning |
+|------|-------|---------|
+| Roster | A=roll, B=name from **row 4+** | Upsert students; skip empty names; roll → int |
+| Tick columns | Row **2** = date (D/M), row **3** = topic, row **4+** = TRUE/FALSE | Each non-empty date in row 2 is one mark column → app `set` |
+| Current | **F2**=Date label, **G2**=Topic label; **F3/G3** = date1/topic1; **F4/G4** = date2/topic2 when filled | Drive active session |
+| PENDING | From col **I** rightward (FILTER lists) | **Never** read or write |
+| Empty col E | spacer before Current | Ignore |
+
+**Tick-column scan:** start at **C**, walk right; include columns whose row 2 is a non-empty date; **stop before** Current (col F). Do not treat F:G or I+ as ticks.
+
+**Join key:** `classKey` + `roll` (never name alone).
+
+**Eng ticks = `set` only.** There is no `submitted` column on Eng tabs; `submitted` stays app-local / `SoW_Marks`.
+
+**Live snapshot (2026-10-27):**
+- KGA/KGB Eng CW: C=`28/10` D=`2/11` (topic Q)
+- KGA Eng HW: C=`7/10` D=`14/10` (topic P p)
+- KGB Eng HW: C=`30/9` only (topic N n)
+
+**Roster refresh:** upsert students; never delete `SoW_RosterMeta.left` when a name disappears temporarily.
+
+---
+
+## 2. App-owned tabs `SoW_*` (backup · hide from UI)
+
+Create if missing. Header row = row 1. Booleans `TRUE`/`FALSE`. Dates D/M in UI.
+
+**Hide** these three tabs in the workbook (Sheets `hidden: true`) so Steve only sees Eng tabs; app still reads/writes them as backup.
 
 ### `SoW_Sessions`
-| column | type | notes |
-|--------|------|-------|
-| sessionId | string | uuid |
-| classKey | string | one of four keys above |
-| date1 | string | required |
-| topic1 | string | |
-| date2 | string | empty if unused |
-| topic2 | string | empty if unused |
-| createdAt | string | ISO |
-| updatedAt | string | ISO |
+sessionId, classKey, date1, topic1, date2, topic2, createdAt, updatedAt
 
 ### `SoW_Marks`
-| column | type | notes |
-|--------|------|-------|
-| markId | string | prefer `classKey\|roll\|date` |
-| classKey | string | |
-| roll | number | |
-| name | string | snapshot at write time |
-| date | string | equals session date1 or date2 |
-| topic | string | |
-| set | boolean | setting-of-work tick |
-| submitted | boolean | submitted tick |
-| updatedAt | string | ISO |
-
-One row per **student × date**. Link to session via `classKey` + `date ∈ {date1, date2}`.
+markId (`classKey|roll|date`), classKey, roll, name, date, topic, set, submitted, updatedAt  
+One row per student × date.
 
 ### `SoW_RosterMeta`
-| column | type | notes |
-|--------|------|-------|
-| classKey | string | |
-| roll | number | |
-| name | string | cache |
-| left | boolean | left school / inactive |
-| updatedAt | string | ISO |
+classKey, roll, name, left, updatedAt
 
-**Seed Left (apply on first sync if missing):**
-- Ishita Kumari — all **KGA_*** keys  
-- Riyaarth Narayan — all **KGA_*** keys  
-- Rudransh Pandey — all **KGB_*** keys  
+**Left seed (only these unless Steve changes):**
+- Ishita Kumari roll **19** — KGA_Eng_CW + KGA_Eng_HW  
+- Riyaarth Narayan roll **31** — KGA_Eng_CW + KGA_Eng_HW  
+- Rudransh Pandey roll **33** — KGB_Eng_CW + KGB_Eng_HW  
+
+Clear phone demo seed Left on first Sync A (do not re-apply fake Left to real rolls).
 
 ---
 
-## 3. Sync behaviour (for JB-6)
+## 3. Sync A behaviour (locked)
 
-1. **Test URL:** parse id; confirm spreadsheet accessible; create any missing `SoW_*` tab with headers.
-2. **Pull roster:** teaching tabs → local `students` (upsert).
-3. **Pull SoW_*:** sessions / marks / rosterMeta → IndexedDB; conflict = higher `updatedAt` wins.
-4. **Push:** local sessions, marks, rosterMeta → `SoW_*` (app history is authoritative going forward).
-5. **Offline:** queue mutations; flush when online.
-6. **Never** write into the four teaching tabs’ mark columns.
+1. **Pull roster** from Eng A:B row 4+.
+2. **Pull Current** F3:G4 → session date1/topic1 (+ date2/topic2).
+3. **Pull ticks** from scanned date columns → local marks (`set`); stamp import with `sheetSeenAt`.
+4. **Hash** Eng tick block + Current block per tab; if hash ≠ last snapshot, update snapshot + `sheetSeenAt`.
+5. **Merge:** for each mark, if Eng value changed since last sync → Eng wins unless local `updatedAt` > last successful sync time for that classKey. Unchanged Eng + newer local keeps local until Push (out of Sync A).
+6. **Pull/push `SoW_*`** as backup mirror of local sessions/marks/rosterMeta (conflict = higher `updatedAt`).
+7. **Hide** `SoW_*` tabs after ensure-exists.
+8. **Offline:** queue; flush when online. Sync blocked offline (existing).
+9. **Do not write Eng tick/Current columns in Sync A** (Push-to-Eng is a later JB).
 
-### Filters ↔ fields (unchanged)
+### Filters ↔ fields
 - Finished / Pending → `set`
-- Submitted / Not submitted → `submitted`
-- Date chip → UI column only
-- Hide left → Settings UI; persisted `left` in `SoW_RosterMeta`
+- Submitted / Not submitted → `submitted` (app-only until Eng gains a column)
+- Hide left → Settings; `SoW_RosterMeta.left`
+
+### Change log (Q-SYNC-3)
+App records `{what, when}` for tick / copy / push / pull. Optional while-open poll of Eng hash (PWA cannot poll when asleep).
 
 ---
 
-## 4. Out of scope (post JB-6 optional)
-- One-time import of old TRUE/FALSE from teaching date columns  
-- Mirroring ticks back into KGA/KGB Eng CW/HW columns  
+## 4. Later (not Sync A)
+- Push to Eng tabs with confirm + undo snapshot  
+- Copy date-A checklist → date-B (app)  
+- Dual-date slide-to-check (app)  
+- Full historical import beyond Current tick columns  
 
 ---
 
-## 5. Acceptance (JB-5 done)
-- [x] Field names match `src/db/types.ts`  
-- [x] Tab names + classKeys documented  
-- [x] Left seed names listed  
-- [x] Sync order + no-write rule on teaching tabs clear for implementer  
+## 5. Acceptance (Sync A)
+- [ ] Eng Current → session dates/topics on Sync  
+- [ ] Eng TRUE/FALSE columns → `set` marks  
+- [ ] Merge uses `sheetSeenAt` / last-sync vs local `updatedAt`  
+- [ ] `SoW_*` hidden; still round-trip as backup  
+- [ ] Demo Left cleared; only seed Left names remain  
+- [ ] Teaching PENDING / formulas untouched  
