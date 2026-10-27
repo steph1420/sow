@@ -46,7 +46,7 @@ export default function AppShell() {
       <header className="top">
         <div>
           <h1>{titles[pathname] ?? 'SoW'}</h1>
-          <div className="muted">Setting of Work · v0.4.0</div>
+          <div className="muted">Setting of Work · v0.5.0</div>
         </div>
         <button type="button" className="theme-toggle" onClick={() => void toggleTheme()}>
           {theme === 'night' ? 'Day' : 'Night'}

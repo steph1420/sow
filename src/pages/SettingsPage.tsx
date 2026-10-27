@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getSettings, putSettings } from '../db'
+import { runSync, testConnection } from '../sync'
 import '../styles/shell.css'
 
 function looksLikeSheet(url: string): boolean {
@@ -14,17 +15,24 @@ function looksLikeSheet(url: string): boolean {
 
 export default function SettingsPage() {
   const [sheetUrl, setSheetUrl] = useState('')
+  const [syncUrl, setSyncUrl] = useState('')
   const [hideLeft, setHideLeft] = useState(false)
   const [theme, setTheme] = useState<'night' | 'day'>('night')
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [lastSyncAt, setLastSyncAt] = useState('')
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     ;(async () => {
       const s = await getSettings()
       setSheetUrl(s.sheetUrl || '')
+      setSyncUrl(s.syncUrl || '')
       setHideLeft(!!s.hideLeft)
       setTheme(s.theme === 'day' ? 'day' : 'night')
+      setLastSyncAt(s.lastSyncAt || '')
+      if (s.lastSyncError) setSyncMsg({ ok: false, text: s.lastSyncError })
       setReady(true)
     })()
   }, [])
@@ -34,16 +42,21 @@ export default function SettingsPage() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme, ready])
 
-  async function saveUrl(next: string) {
+  async function saveSheet(next: string) {
     setSheetUrl(next)
     await putSettings({ sheetUrl: next })
   }
 
-  async function paste() {
+  async function saveSyncUrl(next: string) {
+    setSyncUrl(next)
+    await putSettings({ syncUrl: next })
+  }
+
+  async function pasteSheet() {
     try {
       const text = (await navigator.clipboard.readText()).trim()
       if (text) {
-        await saveUrl(text)
+        await saveSheet(text)
         setTestMsg(null)
       }
     } catch {
@@ -51,15 +64,39 @@ export default function SettingsPage() {
     }
   }
 
-  function test() {
-    if (!sheetUrl.trim()) {
-      setTestMsg({ ok: false, text: 'Paste a Sheet URL first.' })
-      return
+  async function onTest() {
+    setBusy(true)
+    setTestMsg(null)
+    try {
+      if (!sheetUrl.trim()) {
+        setTestMsg({ ok: false, text: 'Paste a Sheet URL first.' })
+        return
+      }
+      if (!looksLikeSheet(sheetUrl.trim()) && !/^[a-zA-Z0-9-_]{20,}$/.test(sheetUrl.trim())) {
+        setTestMsg({ ok: false, text: 'URL should be a docs.google.com/spreadsheets link.' })
+        return
+      }
+      const r = await testConnection()
+      setTestMsg({ ok: r.ok, text: r.message })
+    } finally {
+      setBusy(false)
     }
-    if (looksLikeSheet(sheetUrl.trim())) {
-      setTestMsg({ ok: true, text: 'Looks like a Google Sheet URL (stored locally; sync lands in JB-6).' })
-    } else {
-      setTestMsg({ ok: false, text: 'URL should be a docs.google.com/spreadsheets link.' })
+  }
+
+  async function onSync() {
+    setBusy(true)
+    setSyncMsg(null)
+    try {
+      const r = await runSync()
+      setSyncMsg({ ok: r.ok, text: r.message })
+      if (r.ok) {
+        const s = await getSettings()
+        setLastSyncAt(s.lastSyncAt || '')
+      }
+    } catch (e) {
+      setSyncMsg({ ok: false, text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -97,20 +134,52 @@ export default function SettingsPage() {
           <input
             type="url"
             value={sheetUrl}
-            onChange={(e) => void saveUrl(e.target.value)}
+            onChange={(e) => void saveSheet(e.target.value)}
             placeholder="https://docs.google.com/spreadsheets/d/…/edit"
           />
           <div className="btn-pair">
-            <button type="button" className="paste" onClick={() => void paste()}>
+            <button type="button" className="paste" disabled={busy} onClick={() => void pasteSheet()}>
               Paste
             </button>
-            <button type="button" className="test" onClick={test}>
+            <button type="button" className="test" disabled={busy} onClick={() => void onTest()}>
               Test
             </button>
           </div>
           {testMsg ? (
             <p className={`test-msg ${testMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
               {testMsg.text}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <p className="field-label">Sync Web App URL</p>
+          <p className="hint">
+            Optional. Deploy <code>apps-script/SoWSync.gs</code> for push + creating SoW_* tabs. Pull-only works without it.
+          </p>
+          <input
+            type="url"
+            value={syncUrl}
+            onChange={(e) => void saveSyncUrl(e.target.value)}
+            placeholder="https://script.google.com/macros/s/…/exec"
+          />
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ marginTop: 10 }}
+            disabled={busy}
+            onClick={() => void onSync()}
+          >
+            {busy ? 'Working…' : 'Sync now'}
+          </button>
+          {syncMsg ? (
+            <p className={`test-msg ${syncMsg.ok ? 'ok' : 'bad'}`} style={{ marginTop: 8 }}>
+              {syncMsg.text}
+            </p>
+          ) : null}
+          {lastSyncAt ? (
+            <p className="foot-note" style={{ marginTop: 8 }}>
+              Last sync: {new Date(lastSyncAt).toLocaleString()}
             </p>
           ) : null}
         </div>
@@ -142,7 +211,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <p className="foot-note">App writes its own tabs. Local-first; sheet is the shared backup.</p>
+      <p className="foot-note">
+        App writes its own tabs only. Local-first; sheet is the shared backup. Setup notes in docs/SYNC_SETUP.md.
+      </p>
 
       <Link to="/history" className="btn-secondary" style={{ display: 'block' }}>
         History →

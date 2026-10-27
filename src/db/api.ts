@@ -4,17 +4,29 @@ import { markId as makeMarkId, studentId } from './types'
 
 const now = () => new Date().toISOString()
 
+async function markDirty(): Promise<void> {
+  const db = await getDb()
+  const cur = (await db.get('settings', 'app')) ?? {
+    id: 'app' as const,
+    hideLeft: false,
+    sheetUrl: '',
+    syncUrl: '',
+    theme: 'night' as const,
+  }
+  if (!cur.syncDirty) await db.put('settings', { ...cur, id: 'app', syncDirty: true })
+}
+
 export async function getSettings(): Promise<Settings> {
   const db = await getDb()
   const s = await db.get('settings', 'app')
-  return (
-    s ?? {
-      id: 'app',
-      hideLeft: false,
-      sheetUrl: '',
-      theme: 'night',
-    }
-  )
+  const base: Settings = {
+    id: 'app',
+    hideLeft: false,
+    sheetUrl: '',
+    syncUrl: '',
+    theme: 'night',
+  }
+  return s ? { ...base, ...s, id: 'app' } : base
 }
 
 export async function putSettings(patch: Partial<Omit<Settings, 'id'>>): Promise<Settings> {
@@ -44,6 +56,7 @@ export async function putRosterMeta(m: Omit<RosterMeta, 'id' | 'updatedAt'> & { 
     updatedAt: m.updatedAt ?? now(),
   }
   await db.put('rosterMeta', row)
+  await markDirty()
   return row
 }
 
@@ -69,6 +82,7 @@ export async function putSession(s: Session): Promise<Session> {
   const db = await getDb()
   const row = { ...s, updatedAt: now() }
   await db.put('sessions', row)
+  await markDirty()
   return row
 }
 
@@ -93,6 +107,7 @@ export async function putMark(
     updatedAt: input.updatedAt ?? now(),
   }
   await db.put('marks', row)
+  await markDirty()
   return row
 }
 

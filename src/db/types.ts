@@ -61,8 +61,13 @@ export interface Settings {
   id: 'app'
   hideLeft: boolean
   sheetUrl: string
+  /** Apps Script web app URL for push / ensure SoW_* tabs */
+  syncUrl: string
   theme: 'night' | 'day'
   seededAt?: string
+  lastSyncAt?: string
+  lastSyncError?: string
+  syncDirty?: boolean
 }
 
 export function studentId(classKey: ClassKey, roll: number): string {

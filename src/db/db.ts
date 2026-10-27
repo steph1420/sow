@@ -1,6 +1,15 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { Mark, RosterMeta, Session, Settings, Student } from './types'
 
+export type SyncQueueRow = {
+  id: string
+  kind: string
+  createdAt: string
+  sessionId?: string
+  markId?: string
+  metaId?: string
+}
+
 interface SowDB extends DBSchema {
   students: { key: string; value: Student; indexes: { 'by-class': string } }
   rosterMeta: { key: string; value: RosterMeta; indexes: { 'by-class': string } }
@@ -11,31 +20,39 @@ interface SowDB extends DBSchema {
     indexes: { 'by-class': string; 'by-class-date': [string, string] }
   }
   settings: { key: string; value: Settings }
+  syncQueue: { key: string; value: SyncQueueRow }
 }
 
 const DB_NAME = 'sow-pwa'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 let dbPromise: Promise<IDBPDatabase<SowDB>> | null = null
 
 export function getDb(): Promise<IDBPDatabase<SowDB>> {
   if (!dbPromise) {
     dbPromise = openDB<SowDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        const students = db.createObjectStore('students', { keyPath: 'id' })
-        students.createIndex('by-class', 'classKey')
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const students = db.createObjectStore('students', { keyPath: 'id' })
+          students.createIndex('by-class', 'classKey')
 
-        const roster = db.createObjectStore('rosterMeta', { keyPath: 'id' })
-        roster.createIndex('by-class', 'classKey')
+          const roster = db.createObjectStore('rosterMeta', { keyPath: 'id' })
+          roster.createIndex('by-class', 'classKey')
 
-        const sessions = db.createObjectStore('sessions', { keyPath: 'sessionId' })
-        sessions.createIndex('by-class', 'classKey')
+          const sessions = db.createObjectStore('sessions', { keyPath: 'sessionId' })
+          sessions.createIndex('by-class', 'classKey')
 
-        const marks = db.createObjectStore('marks', { keyPath: 'markId' })
-        marks.createIndex('by-class', 'classKey')
-        marks.createIndex('by-class-date', ['classKey', 'date'])
+          const marks = db.createObjectStore('marks', { keyPath: 'markId' })
+          marks.createIndex('by-class', 'classKey')
+          marks.createIndex('by-class-date', ['classKey', 'date'])
 
-        db.createObjectStore('settings', { keyPath: 'id' })
+          db.createObjectStore('settings', { keyPath: 'id' })
+        }
+        if (oldVersion < 2) {
+          if (!db.objectStoreNames.contains('syncQueue')) {
+            db.createObjectStore('syncQueue', { keyPath: 'id' })
+          }
+        }
       },
     })
   }

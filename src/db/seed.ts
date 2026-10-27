@@ -109,7 +109,8 @@ export async function seedIfEmpty(): Promise<{ seeded: boolean }> {
 
   await putSettings({
     hideLeft: false,
-    sheetUrl: '',
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw/edit',
+    syncUrl: '',
     theme: 'night',
     seededAt: ts,
   })

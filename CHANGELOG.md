@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] — 2026-10-27
+### Added
+- JB-6: Sheet sync — gviz roster pull, SoW_* merge by updatedAt, offline dirty/queue, Apps Script bridge (`apps-script/SoWSync.gs`), Settings Test/Sync + syncUrl
+- docs/SYNC_SETUP.md
+
 ## [JB-5] — 2026-10-27
 ### Docs
 - Locked sheet mapping: `docs/SHEET_MAPPING.md` (roster tabs + SoW_Sessions / SoW_Marks / SoW_RosterMeta)
