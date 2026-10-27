@@ -124,6 +124,12 @@ export async function getMark(classKey: ClassKey, roll: number, date: string): P
   return db.get('marks', makeMarkId(classKey, roll, date))
 }
 
+export async function deleteMark(markId: string): Promise<void> {
+  const db = await getDb()
+  await db.delete('marks', markId)
+  await markDirty()
+}
+
 export async function listMarks(classKey: ClassKey, date?: string): Promise<Mark[]> {
   const db = await getDb()
   if (date) return db.getAllFromIndex('marks', 'by-class-date', [classKey, date])

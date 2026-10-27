@@ -69,7 +69,7 @@ export default function SessionPage() {
   }
 
   function openMark() {
-    nav(`/mark?class=${classKey}`)
+    nav(`/checklist?class=${classKey}`)
   }
 
   return (

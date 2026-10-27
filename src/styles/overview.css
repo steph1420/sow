@@ -1,0 +1,98 @@
+/* JB-R3 Overview */
+
+.ov-page { display: flex; flex-direction: column; gap: 14px; }
+
+.ov-filters {
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding: 2px 0 4px; scrollbar-width: none;
+  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+}
+.ov-filters::-webkit-scrollbar { display: none; }
+
+.ov-sep {
+  flex-shrink: 0; color: var(--muted); font-weight: 600; font-size: 14px;
+  padding: 0 2px; opacity: 0.7; user-select: none;
+}
+
+.ov-chip {
+  flex-shrink: 0; border-radius: 999px; padding: 8px 14px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+}
+.ov-chip:active { opacity: 0.85; }
+
+/* Selected styles — default shade (B); underline / boldColor ready for Dev */
+.ov-chip.on.shade {
+  background: var(--accent-bg); border-color: transparent; color: var(--accent);
+}
+.ov-chip.on.underline {
+  background: transparent; border-color: transparent; color: var(--text);
+  border-radius: 0; border-bottom: 2px solid var(--accent); padding-bottom: 6px;
+}
+.ov-chip.on.boldColor {
+  background: transparent; border-color: transparent;
+  color: var(--accent); font-weight: 800;
+}
+
+.ov-list { display: flex; flex-direction: column; gap: 10px; }
+
+.ov-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 4px; text-align: left; width: 100%;
+  display: flex; flex-direction: column; gap: 0;
+}
+.ov-card.open { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+
+.ov-card-main {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%;
+  padding: 10px 10px 8px; text-align: left; border-radius: 12px;
+}
+.ov-card-main:active { opacity: 0.92; background: var(--surface2); }
+.ov-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ov-card-expand { padding: 0 10px 10px; }
+.ov-card-title {
+  font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -0.01em;
+}
+.ov-card-line {
+  font-size: 13px; color: var(--muted); margin: 0; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ov-card-line .strong { color: var(--text); font-weight: 600; }
+
+.ov-ring {
+  flex-shrink: 0; width: 52px; height: 52px;
+}
+.ov-ring text {
+  fill: var(--text); font-size: 11px; font-weight: 700;
+  font-family: inherit;
+}
+
+.ov-topic-full {
+  margin: 10px 0 0; font-size: 14px; font-weight: 500; line-height: 1.4;
+  color: var(--text); white-space: normal; word-break: break-word;
+}
+
+.ov-status {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+}
+.ov-pill {
+  font-size: 12px; font-weight: 700; border-radius: 999px;
+  padding: 4px 10px; border: 1px solid var(--border); background: var(--surface2);
+}
+.ov-pill.set { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); background: var(--accent-bg); }
+.ov-pill.sub { color: var(--submit-fg); border-color: color-mix(in srgb, var(--submit) 40%, var(--border)); background: var(--submit-bg); }
+
+.ov-actions {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; margin-top: 12px;
+}
+.ov-actions .btn-primary,
+.ov-actions .btn-secondary {
+  padding: 12px 14px; font-size: 14px; border-radius: 12px;
+}
+
+.ov-empty {
+  color: var(--muted); font-size: 14px; padding: 28px 16px; text-align: center;
+  background: var(--surface); border: 1px dashed var(--border); border-radius: 14px;
+}
+.ov-loading { color: var(--muted); font-size: 14px; padding: 12px 0; }

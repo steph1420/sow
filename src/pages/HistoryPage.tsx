@@ -105,7 +105,7 @@ export default function HistoryPage() {
             key={r.session.sessionId}
             type="button"
             className="hist-card"
-            onClick={() => nav(`/mark?class=${classKey}`)}
+            onClick={() => nav(`/checklist?class=${classKey}`)}
           >
             <div className="body">
               <p className="dates">{r.label}</p>

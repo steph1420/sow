@@ -114,3 +114,6 @@
 .test-msg.ok { color: var(--ok); }
 .test-msg.bad { color: var(--warn); }
 .empty-soft { color: var(--muted); font-size: 14px; padding: 20px; text-align: center; }
+
+
+/* JB-R2: 3-tab nav + More popup live in app.css (.nav, .more-*) */

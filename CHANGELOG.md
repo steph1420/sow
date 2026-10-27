@@ -1,6 +1,37 @@
 # Changelog
 
+## [0.12.0] — 2026-10-28
+### Added
+- JB-R6 Settings + Dev: Appearance Night/Day bold + Day HC (`data-*` tokens); Developer options for Overview filter A/B/C, undo icons|iconsLabel, A–Z physics; central `sow.prefs.v1` load/save/export/import
+### Changed
+- Settings restructured into Sheet & sync · Appearance · Checklist · A–Z · Developer drill-in
+
+
+## [0.11.0] — 2026-10-28
+### Added
+- JB-R5 Calendar: month grid with Cancel + Confirm from Checklist date ▾ / cal icon (no “Use xyz”); session-date dots; Confirm selects session date or retargets active slot via putSession (+ mark migrate)
+
+
+## [0.10.0] — 2026-10-28
+### Added
+- JB-R4 Checklist chrome: set count under class; calendar icon under date; Topic trunc → toast + pencil edit + X; undo/redo icons (per-class stacks); Set|Submitted always on; search icon→expand; Myntra Sort|Filters FAB + bottom sheets; list clears FAB; thin A–Z idle
+- `undo.chrome` pref hook (default icons; iconsLabel CSS ready for Dev in JB-R6)
+
+
+## [0.9.0] — 2026-10-28
+### Added
+- JB-R3 Overview: flat class×date session cards with progress ring %, soft-shade `{All|KGA|KGB}|{dates}` filter row, in-place expand (Set/Submitted + Open Checklist + Share), topic truncates when long
+- `overview.filterStyle` pref hook (default shade; underline / boldColor CSS ready for Dev in JB-R6)
+
+
+## [0.8.0] — 2026-10-27
+### Added
+- JB-R2 shell IA: 3-tab bar Checklist · Overview · More (popup → Roster / History / Settings)
+- `/checklist` route (Mark renamed); `/overview` stub for JB-R3; redirects `/` `/session` `/mark` → Checklist
+
 ## [0.7.1] — 2026-10-27
+### Docs
+- Redesign locks documented (JB-R1): `JOB_BUNDLES_REDESIGN.md`, `LOCKED_UI.md`, extended `SETTINGS_STG.md` — Steve locked-in build phase 2026-10-27
 ### Fixed
 - Mark A–Z strip: pinned to viewport (full height, no list scroll), exit letter filter (tap same letter, ∗ All, or Clear chip)
 ### Added

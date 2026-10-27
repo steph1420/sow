@@ -25,3 +25,33 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+/* JB-R6 appearance variants */
+html[data-night-bold="on"],
+html[data-day-bold="on"] {
+  --font-weight-body: 550;
+  --font-weight-strong: 800;
+}
+html[data-night-bold="on"] body,
+html[data-day-bold="on"] body {
+  font-weight: 550;
+}
+html[data-night-bold="on"] .page-title,
+html[data-day-bold="on"] .page-title,
+html[data-night-bold="on"] .ov-card-title,
+html[data-day-bold="on"] .ov-card-title,
+html[data-night-bold="on"] .cl-value,
+html[data-day-bold="on"] .cl-value {
+  font-weight: 800;
+}
+html[data-day-hc="on"][data-theme="day"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface2: #eef0f3;
+  --border: #1a1a1a;
+  --text: #000000;
+  --muted: #3a3a3a;
+  --accent: #0050c8;
+  --ok: #0b6b28;
+  --warn: #9a1f00;
+}
