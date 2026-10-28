@@ -38,13 +38,17 @@ export type SowPrefs = {
   'appearance.dayHC': boolean
   'share.template': string
   'share.includeClassPrefix': boolean
+  /** Sort/Filters FAB — Steve default hide (t118u). */
+  'chrome.showFab': boolean
+  /** Dev: swap /checklist to rebuild tree (also always at /checklist-next). */
+  'chrome.useRebuild': boolean
 }
 
 export const PREFS_DEFAULTS: SowPrefs = {
   'az.mode': 'fisheye',
   'az.hideEmpty': false,
   'az.widenOnPress': true,
-  'az.idleWidth': 35,
+  'az.idleWidth': 42,
   'az.pressWidth': 48,
   'az.pressFont': 12,
   'az.focusFont': 22,
@@ -69,6 +73,8 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'appearance.dayHC': false,
   'share.template': DEFAULT_WA_TEMPLATE,
   'share.includeClassPrefix': false,
+  'chrome.showFab': false,
+  'chrome.useRebuild': false,
 }
 
 const STORE_KEY = 'sow.prefs.v1'
@@ -77,6 +83,8 @@ const LEGACY_UNDO = 'sow.prefs.undo.chrome'
 const EVENT = 'sow-prefs'
 /** One-shot: field devices with hideEmpty=on → off (MJ-15 aesthetics). */
 const MJ15_HIDE_EMPTY_MIG = 'sow.prefs.mj15.hideEmptyOff'
+/** One-shot: sticky idleWidth < 40 → 42 (rebuild anti-squish). */
+const MJ16_IDLE_W_MIG = 'sow.prefs.mj16.idleWidth42'
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n))
@@ -111,7 +119,7 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'az.mode': mode === 'single' ? 'single' : 'fisheye',
     'az.hideEmpty': Boolean(g('az.hideEmpty')),
     'az.widenOnPress': Boolean(g('az.widenOnPress')),
-    'az.idleWidth': clamp(Number(g('az.idleWidth')) || d['az.idleWidth'], 12, 40),
+    'az.idleWidth': clamp(Number(g('az.idleWidth')) || d['az.idleWidth'], 12, 48),
     'az.pressWidth': clamp(Number(g('az.pressWidth')) || d['az.pressWidth'], 16, 72),
     'az.pressFont': clamp(Number(g('az.pressFont')) || d['az.pressFont'], 8, 20),
     'az.focusFont': clamp(Number(g('az.focusFont')) || d['az.focusFont'], 12, 36),
@@ -149,6 +157,8 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
       return s.trim() ? s : d['share.template']
     })(),
     'share.includeClassPrefix': Boolean(g('share.includeClassPrefix')),
+    'chrome.showFab': Boolean(g('chrome.showFab')),
+    'chrome.useRebuild': Boolean(g('chrome.useRebuild')),
   }
 }
 
@@ -165,14 +175,10 @@ function readLegacy(): Partial<SowPrefs> {
   return out
 }
 
-/** MJ-15: bump sticky idleWidth < 34 → 35; one-shot hideEmpty on → off. */
+/** MJ-15 hideEmpty one-shot + MJ-16 idleWidth < 40 → 42 one-shot. */
 function migrateMj15Aesthetics(prefs: SowPrefs): SowPrefs {
   let next = prefs
   let dirty = false
-  if (next['az.idleWidth'] < 34) {
-    next = { ...next, 'az.idleWidth': 35 }
-    dirty = true
-  }
   try {
     if (localStorage.getItem(MJ15_HIDE_EMPTY_MIG) !== '1') {
       if (next['az.hideEmpty']) {
@@ -183,6 +189,22 @@ function migrateMj15Aesthetics(prefs: SowPrefs): SowPrefs {
     }
   } catch {
     /* ignore */
+  }
+  try {
+    if (localStorage.getItem(MJ16_IDLE_W_MIG) !== '1') {
+      if (next['az.idleWidth'] < 40) {
+        next = { ...next, 'az.idleWidth': 42 }
+        dirty = true
+      }
+      localStorage.setItem(MJ16_IDLE_W_MIG, '1')
+    }
+  } catch {
+    /* ignore */
+  }
+  // Always bump pathological sticky widths below safety floor (even after one-shot).
+  if (next['az.idleWidth'] < 34) {
+    next = { ...next, 'az.idleWidth': 42 }
+    dirty = true
   }
   if (dirty) {
     try {
@@ -351,6 +373,10 @@ export function parsePrefsExport(text: string): Partial<SowPrefs> | null {
   }
   if (raw['share.includeClassPrefix'] !== undefined)
     patch['share.includeClassPrefix'] = parseBool(raw['share.includeClassPrefix'], false)
+  if (raw['chrome.showFab'] !== undefined)
+    patch['chrome.showFab'] = parseBool(raw['chrome.showFab'], false)
+  if (raw['chrome.useRebuild'] !== undefined)
+    patch['chrome.useRebuild'] = parseBool(raw['chrome.useRebuild'], false)
   return patch
 }
 

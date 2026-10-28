@@ -71,28 +71,64 @@ az.mode=single
   it('defaults object is complete', () => {
     expect(Object.keys(PREFS_DEFAULTS).length).toBeGreaterThan(15)
   })
-})
 
-  it('defaults idleWidth to 35 and hideEmpty off', () => {
-    expect(loadPrefs()['az.idleWidth']).toBe(35)
-    expect(loadPrefs()['az.hideEmpty']).toBe(false)
-    expect(PREFS_DEFAULTS['az.idleWidth']).toBe(35)
+  it('defaults idleWidth 42, hideEmpty off, showFab false, useRebuild false', () => {
+    expect(PREFS_DEFAULTS['az.idleWidth']).toBe(42)
+    expect(PREFS_DEFAULTS['az.hideEmpty']).toBe(false)
+    expect(PREFS_DEFAULTS['chrome.showFab']).toBe(false)
+    expect(PREFS_DEFAULTS['chrome.useRebuild']).toBe(false)
+    expect(loadPrefs()['az.idleWidth']).toBe(42)
+    expect(loadPrefs()['chrome.showFab']).toBe(false)
+    expect(loadPrefs()['chrome.useRebuild']).toBe(false)
   })
 
-  it('migrates sticky idleWidth < 34 → 35 on load', () => {
+  it('migrates sticky idleWidth < 40 → 42 once (MJ-16) and hideEmpty off (MJ-15)', () => {
     localStorage.removeItem('sow.prefs.mj15.hideEmptyOff')
+    localStorage.removeItem('sow.prefs.mj16.idleWidth42')
     localStorage.setItem(
       'sow.prefs.v1',
-      JSON.stringify({ ...PREFS_DEFAULTS, 'az.idleWidth': 22, 'az.hideEmpty': true }),
+      JSON.stringify({ ...PREFS_DEFAULTS, 'az.idleWidth': 35, 'az.hideEmpty': true }),
     )
     const p = loadPrefs()
-    expect(p['az.idleWidth']).toBe(35)
+    expect(p['az.idleWidth']).toBe(42)
     expect(p['az.hideEmpty']).toBe(false)
-    // one-shot done — user can re-enable hideEmpty in Dev
-    savePrefs({ 'az.hideEmpty': true })
+    // one-shot done — user can re-enable hideEmpty / set width in Dev
+    savePrefs({ 'az.hideEmpty': true, 'az.idleWidth': 35 })
     expect(loadPrefs()['az.hideEmpty']).toBe(true)
-    // idleWidth still bumps every load when < 34
-    savePrefs({ 'az.idleWidth': 22 })
-    expect(loadPrefs()['az.idleWidth']).toBe(35)
+    expect(loadPrefs()['az.idleWidth']).toBe(35) // after one-shot, 35 stays (still ≥34)
   })
 
+  it('always bumps pathological idleWidth < 34 → 42', () => {
+    localStorage.setItem('sow.prefs.mj16.idleWidth42', '1')
+    localStorage.setItem(
+      'sow.prefs.v1',
+      JSON.stringify({ ...PREFS_DEFAULTS, 'az.idleWidth': 22 }),
+    )
+    expect(loadPrefs()['az.idleWidth']).toBe(42)
+  })
+
+  it('clamps idleWidth up to 48', () => {
+    savePrefs({ 'az.idleWidth': 48 })
+    expect(loadPrefs()['az.idleWidth']).toBe(48)
+    savePrefs({ 'az.idleWidth': 99 })
+    expect(loadPrefs()['az.idleWidth']).toBe(48)
+  })
+
+  it('missing chrome.showFab coerces to false', () => {
+    localStorage.setItem('sow.prefs.v1', JSON.stringify({ 'az.idleWidth': 42 }))
+    localStorage.setItem('sow.prefs.mj15.hideEmptyOff', '1')
+    localStorage.setItem('sow.prefs.mj16.idleWidth42', '1')
+    expect(loadPrefs()['chrome.showFab']).toBe(false)
+  })
+
+  it('exports and imports chrome keys', () => {
+    savePrefs({ 'chrome.showFab': true, 'chrome.useRebuild': true })
+    const text = exportPrefsText()
+    expect(text).toContain('chrome.showFab=true')
+    expect(text).toContain('chrome.useRebuild=true')
+    localStorage.clear()
+    const next = importPrefsText(text)
+    expect(next?.['chrome.showFab']).toBe(true)
+    expect(next?.['chrome.useRebuild']).toBe(true)
+  })
+})

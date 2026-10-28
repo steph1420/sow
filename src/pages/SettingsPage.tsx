@@ -418,6 +418,12 @@ export default function SettingsPage() {
             on={prefs['filter.showSearch']}
             onToggle={() => patchPrefs({ 'filter.showSearch': !prefs['filter.showSearch'] })}
           />
+          <ToggleRow
+            label="Show Sort/Filters FAB"
+            hint="Default off — roster breathes; Sort/Filters via this panel when hidden"
+            on={prefs['chrome.showFab']}
+            onToggle={() => patchPrefs({ 'chrome.showFab': !prefs['chrome.showFab'] })}
+          />
         </div>
         <p className="stg-section">A–Z strip</p>
         <div className="stg-card">
@@ -485,6 +491,16 @@ export default function SettingsPage() {
         <BackBar onBack={() => setPanel('root')} backLabel="Settings" title="Developer" />
         <p className="sub">Feel-lab knobs. Export prefs to paste to Kiwi.</p>
 
+        <p className="stg-section">Checklist rebuild</p>
+        <div className="stg-card">
+          <ToggleRow
+            label="Use rebuild on /checklist"
+            hint="Default off — always dogfood at /checklist-next"
+            on={prefs['chrome.useRebuild']}
+            onToggle={() => patchPrefs({ 'chrome.useRebuild': !prefs['chrome.useRebuild'] })}
+          />
+        </div>
+
         <p className="stg-section">A–Z physics</p>
         <div className="stg-card">
           <SegRow
@@ -517,10 +533,10 @@ export default function SettingsPage() {
           />
           <NumRow
             label="Idle width"
-            hint="px thin bar when not held (default 35; sticky <34 auto-bumps)"
+            hint="px thin bar when not held (default 42; sticky <40 one-shot → 42)"
             value={prefs['az.idleWidth']}
             min={12}
-            max={40}
+            max={48}
             onChange={(n) => patchPrefs({ 'az.idleWidth': n })}
           />
           <ToggleRow
