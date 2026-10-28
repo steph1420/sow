@@ -757,7 +757,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <p className="stg-version">Setting of Work · v0.20.0</p>
+      <p className="stg-version">Setting of Work · v0.21.0</p>
     </div>
   )
 }

@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased (local — Phase 2)
-
-- Checklist rebuild Phase 2: hold-paint (mostly-horizontal), name-hold select (~800ms), roll-drag, Actions copy/clear, undo — on `ck-*` when Dev `chrome.useRebuild`.
-- Design psychology: Perceived freedom & control (Steve t126u).
-- Not pushed; Pages still v0.20.0 until Steve says.
+## [0.21.0] — 2026-10-28
+### Added
+- Checklist rebuild Phase 2 on `ck-*`: hold-paint (mostly-horizontal), name-hold select (~800ms), roll-drag, Actions copy/clear, undo — when Dev `chrome.useRebuild`
+- Design psychology: Perceived freedom & control (Steve t126u)
+### Notes
+- Dogfood: Settings → Dev → Use rebuild on /checklist. Production MarkPage still default off-toggle. Tests 60/60.
 
 ## [0.20.0] — 2026-10-28
 ### Added
