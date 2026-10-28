@@ -1,30 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { getSettings, seedIfEmpty } from './db'
-import { applyAppearanceAttrs } from './lib/sowPrefs'
-import { runSync } from './sync'
-import './styles/app.css'
+import './styles/tokens.css'
+import './styles/shell.css'
 
-async function boot() {
-  await seedIfEmpty()
-  const settings = await getSettings()
-  const theme = settings.theme === 'day' ? 'day' : 'night'
-  applyAppearanceAttrs(undefined, theme)
-  window.addEventListener('online', () => {
-    void (async () => {
-      const s = await getSettings()
-      if (s.syncUrl && s.syncDirty) await runSync()
-    })()
-  })
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
-}
-
-boot().catch((err) => {
-  console.error(err)
-  document.body.textContent = String(err)
-})
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)

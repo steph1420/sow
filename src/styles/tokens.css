@@ -1,104 +1,102 @@
-:root, [data-theme="night"] {
+/* Quiet Lucid Night tokens — CLEANER_UI_PLAN.md (locked t136u) */
+:root {
   color-scheme: dark;
-  --bg: #0b0c10; --surface: #16181f; --surface2: #1e222b; --border: #2a2e38;
-  --text: #e8eaed; --muted: #9aa0aa; --text-secondary: #9aa0aa; --text-tertiary: #6e7480;
-  --accent: #5ac8fa; --ok: #30d158;
-  --warn: #ff9f0a; --left: #5c6370; --submit: #bf5af2; --tap: 52px;
-  --on-accent: #041018; --submit-fg: #e0b0ff;
-  --ok-bg: rgba(48, 209, 88, 0.2); --submit-bg: rgba(191, 90, 242, 0.22);
-  --accent-bg: rgba(90, 200, 250, 0.16);
-  --theme-meta: #0b0c10;
-  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #0a0b0e;
+  --surface: #111318;
+  --surface2: #15171c;
+  --border: #1c1f26;
+  --border-soft: #181b21;
+  --hairline: rgba(255, 255, 255, 0.06);
+  --text: #f2f3f5;
+  --text-sec: #9aa0aa;
+  --text-ter: #5a616c;
+  --ok: #30d158;
+  --warn: #ff9f0a;
+  --danger: #ff453a;
+  --sel: rgba(48, 209, 88, 0.09);
+  --fs-label: 10px;
+  --fw-label: 500;
+  --fs-value: 15px;
+  --fw-value: 600;
+  --fs-name: 15px;
+  --fw-name: 550;
+  --fs-roll: 12px;
+  --fw-roll: 500;
+  --fs-meta: 12px;
+  --fw-meta: 500;
+  --fs-chip: 12px;
+  --fw-chip: 600;
+  --gap-header: 12px;
+  --gap-stack: 14px;
+  --gap-row: 8px;
+  --pad-list-x: 8px;
+  --pad-list-y: 10px;
+  --pad-chrome-x: 12px;
+  --pad-chrome-y: 14px;
+  --row-h: 48px;
+  --row-r: 12px;
+  --chip-h: 30px;
+  --soft-r: 10px;
+  --az-w: 42px;
+  --tabbar-h: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
-[data-theme="day"] {
-  color-scheme: light;
-  --bg: #f2f3f5; --surface: #ffffff; --surface2: #e8eaed; --border: #d1d5db;
-  --text: #1a1d24; --muted: #5c6470; --text-secondary: #5c6470; --text-tertiary: #8a919c;
-  --accent: #007aff; --ok: #248a3d;
-  --warn: #c93400; --left: #8e8e93; --submit: #8944ab; --tap: 52px;
-  --on-accent: #ffffff; --submit-fg: #8944ab;
-  --ok-bg: rgba(52, 199, 89, 0.18); --submit-bg: rgba(175, 82, 222, 0.16);
-  --accent-bg: rgba(0, 122, 255, 0.12);
-  --theme-meta: #f2f3f5;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-  background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
-a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
-
-/* JB-R6 / JB-R9 appearance variants */
-html[data-night-bold="on"],
-html[data-day-bold="on"] {
-  --font-weight-body: 550;
-  --font-weight-strong: 800;
-}
-html[data-night-bold="on"] body,
-html[data-day-bold="on"] body {
-  font-weight: 550;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-/* Strong titles / key chrome across Checklist · Overview · Roster · History · Settings · sheets */
-html[data-night-bold="on"] .page-title,
-html[data-day-bold="on"] .page-title,
-html[data-night-bold="on"] .top h1,
-html[data-day-bold="on"] .top h1,
-html[data-night-bold="on"] .ov-card-title,
-html[data-day-bold="on"] .ov-card-title,
-html[data-night-bold="on"] .cl-value,
-html[data-day-bold="on"] .cl-value,
-html[data-night-bold="on"] .ck-value,
-html[data-day-bold="on"] .ck-value,
-html[data-night-bold="on"] .cl-topic-text,
-html[data-day-bold="on"] .cl-topic-text,
-html[data-night-bold="on"] .ck-topic-text,
-html[data-day-bold="on"] .ck-topic-text,
-html[data-night-bold="on"] .cl-sheet-head h3,
-html[data-day-bold="on"] .cl-sheet-head h3,
-html[data-night-bold="on"] .ros-name,
-html[data-day-bold="on"] .ros-name,
-html[data-night-bold="on"] .hist-card-title,
-html[data-day-bold="on"] .hist-card-title,
-html[data-night-bold="on"] .hist-card-pct,
-html[data-day-bold="on"] .hist-card-pct,
-html[data-night-bold="on"] .t-label,
-html[data-day-bold="on"] .t-label,
-html[data-night-bold="on"] .field-label,
-html[data-day-bold="on"] .field-label,
-html[data-night-bold="on"] .mark .name,
-html[data-day-bold="on"] .mark .name,
-html[data-night-bold="on"] .ck-name,
-html[data-day-bold="on"] .ck-name,
-html[data-night-bold="on"] .ck-fab-btn,
-html[data-day-bold="on"] .ck-fab-btn,
-html[data-night-bold="on"] .btn-primary,
-html[data-day-bold="on"] .btn-primary,
-html[data-night-bold="on"] .cl-fab-btn,
-html[data-day-bold="on"] .cl-fab-btn {
-  font-weight: 800;
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
-/* Day high-contrast — full token set so every screen/sheet/FAB picks it up */
-html[data-day-hc="on"][data-theme="day"] {
-  --bg: #ffffff;
+/* No blue focus rings — Quiet / Lucid lock */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.22);
+  outline-offset: 2px;
+}
+
+/* Day theme — Quiet Lucid */
+:root[data-theme='day'] {
+  color-scheme: light;
+  --bg: #f4f5f7;
   --surface: #ffffff;
   --surface2: #eef0f3;
-  --border: #1a1a1a;
-  --text: #000000;
-  --muted: #3a3a3a; --text-secondary: #3a3a3a; --text-tertiary: #555555;
-  --accent: #0050c8;
-  --ok: #0b6b28;
-  --warn: #9a1f00;
-  --left: #555555;
-  --submit: #6b2a90;
-  --on-accent: #ffffff;
-  --submit-fg: #6b2a90;
-  --ok-bg: rgba(11, 107, 40, 0.16);
-  --submit-bg: rgba(107, 42, 144, 0.14);
-  --accent-bg: rgba(0, 80, 200, 0.12);
-  --theme-meta: #ffffff;
+  --border: #d8dce3;
+  --border-soft: #e4e7ec;
+  --hairline: rgba(0, 0, 0, 0.08);
+  --text: #12141a;
+  --text-sec: #5a616c;
+  --text-ter: #8b919c;
+  --ok: #1a9f4b;
+  --warn: #c77700;
+  --danger: #d93025;
+  --sel: rgba(26, 159, 75, 0.1);
 }

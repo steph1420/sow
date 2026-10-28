@@ -12,9 +12,9 @@ export default defineConfig({
       manifest: {
         name: 'Setting of Work',
         short_name: 'SoW',
-        description: 'KGA/KGB Eng CW/HW marking',
-        theme_color: '#0b0c10',
-        background_color: '#0b0c10',
+        description: 'KGA/KGB Eng CW/HW marking — Lucid rewrite',
+        theme_color: '#0a0b0e',
+        background_color: '#0a0b0e',
         display: 'standalone',
         orientation: 'any',
         start_url: '/sow/',
@@ -31,5 +31,5 @@ export default defineConfig({
       },
     }),
   ],
-  server: { host: true, port: 5173 },
+  server: { host: true, port: 5174 },
 })

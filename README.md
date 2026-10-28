@@ -1,9 +1,26 @@
 # Setting of Work (SoW)
 
-PWA for KGA/KGB Eng CW/HW marking. Local-first with sheet sync (JB-6+) and Day/Night PWA (JB-7).
+KGA/KGB Eng CW/HW marking PWA — **Lucid Quiet whole-app rewrite** (v0.22.0).
+
+**Live:** https://steph1420.github.io/sow/
+
+## Local
 
 ```bash
-cd /workspace/sow-pwa && npm install && npm run dev
+npm install
+npm run dev    # http://localhost:5173/sow/ (or 5174 if set)
+npm test
+npm run build  # base /sow/ → dist for Pages
 ```
 
-`0.1.0` — JB-1 scaffold (shell + stubs).
+## Rollback
+
+```bash
+git fetch --tags
+git checkout v0.21.0-pre-rewrite   # or v0.21.0
+```
+
+## Docs
+
+- `docs/SHEET_MAPPING.md` · `docs/SYNC_SETUP.md` · `apps-script/SoWSync.gs`
+- Rewrite canon (local): `/workspace/sow-mockups/WHOLE_APP_REWRITE.md`

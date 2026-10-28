@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0 — 2026-10-28 (Asia/Calcutta)
+
+### Whole-app Lucid Quiet rewrite cutover (Phase F)
+- Replaces MarkPage / `ck-*` hybrid with ground-up `/workspace/sow-app` rewrite (Phases A–E).
+- Checklist Wave A (hold-paint, select, A–Z 42, pills), Overview Lucid cards, More popup, Settings/Dev, IDB persist + Sync screen.
+- Visual north star: Lucid Quiet remocks (`lucid-mj*`); More = popup (Steve t137u).
+- Rollback: git tag `v0.21.0` / `v0.21.0-pre-rewrite` (last pre-rewrite Pages dogfood).
+- Eng push still needs Apps Script syncUrl for round-trip; pull works when Sheet is link-readable.
+- Live: https://steph1420.github.io/sow/
+
 ## [0.21.0] — 2026-10-28
 ### Added
 - Checklist rebuild Phase 2 on `ck-*`: hold-paint (mostly-horizontal), name-hold select (~800ms), roll-drag, Actions copy/clear, undo — when Dev `chrome.useRebuild`

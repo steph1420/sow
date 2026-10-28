@@ -1,0 +1,260 @@
+/* More destinations — Lucid Quiet */
+
+.more-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.more-top {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.more-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--soft-r);
+  border: 1px solid var(--hairline);
+  color: var(--text-sec);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.more-heading {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.more-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 14px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.more-sec {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-ter);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
+.more-card {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.more-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 550;
+  text-align: left;
+}
+.more-card .more-row:last-child {
+  border-bottom: 0;
+}
+.more-row .meta {
+  margin-left: auto;
+  color: var(--text-ter);
+  font-size: 12px;
+  font-weight: 500;
+}
+.more-row .chev {
+  color: var(--text-ter);
+  font-size: 14px;
+}
+.more-row:active {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.more-hint {
+  font-size: 12px;
+  color: var(--text-ter);
+  line-height: 1.45;
+}
+
+.seg {
+  display: flex;
+  border: 1px solid var(--hairline);
+  border-radius: var(--soft-r);
+  padding: 2px;
+  gap: 2px;
+}
+.seg button {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-ter);
+}
+.seg button.on {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.toggle {
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.04);
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.toggle.on {
+  background: rgba(48, 209, 88, 0.22);
+  border-color: rgba(48, 209, 88, 0.4);
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-sec);
+  transition: transform 0.15s ease;
+}
+.toggle.on::after {
+  transform: translateX(18px);
+  background: var(--ok);
+}
+
+.roster-list,
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roster-item,
+.history-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.roster-item .roll {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-ter);
+  font-variant-numeric: tabular-nums;
+}
+.roster-item .name {
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.roster-item .tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-ter);
+}
+.roster-item.left {
+  opacity: 0.45;
+}
+.roster-item.left .tag {
+  color: var(--warn);
+}
+
+.history-item {
+  grid-template-columns: 1fr auto;
+}
+.history-item .k {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+.history-item .line {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-ter);
+}
+.history-item .line b {
+  color: var(--text-sec);
+  font-weight: 600;
+}
+.history-item .pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ok);
+}
+.history-item .pct.warn {
+  color: var(--warn);
+}
+.history-item .pct.low {
+  color: var(--danger);
+}
+
+.class-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.class-chips .chip,
+.class-chips button {
+  flex-shrink: 0;
+  padding: 7px 13px;
+  border-radius: var(--soft-r);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--text-ter);
+}
+.class-chips button.on {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sync-input {
+  width: 100%;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+}

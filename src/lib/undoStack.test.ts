@@ -1,22 +1,34 @@
-import { describe, expect, it, beforeEach } from 'vitest'
-import { canRedo, canUndo, clearUndoStacks, popRedo, popUndo, pushUndo } from './undoStack'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  canRedo,
+  canUndo,
+  clearUndoStacks,
+  popRedo,
+  popUndo,
+  pushUndo,
+} from './undoStack'
 
-describe('undoStack per-class', () => {
-  beforeEach(() => clearUndoStacks())
+beforeEach(() => clearUndoStacks())
 
-  it('pushes and pops undo/redo per class', () => {
-    const entry = {
-      undo: [{ roll: 1, name: 'A', date: '28/10', topic: 't', set: false, submitted: false }],
-      redo: [{ roll: 1, name: 'A', date: '28/10', topic: 't', set: true, submitted: false }],
-    }
-    pushUndo('KGA_Eng_CW', entry)
-    expect(canUndo('KGA_Eng_CW')).toBe(true)
-    expect(canUndo('KGB_Eng_CW')).toBe(false)
-    const u = popUndo('KGA_Eng_CW')
-    expect(u).toEqual(entry)
-    expect(canRedo('KGA_Eng_CW')).toBe(true)
-    const r = popRedo('KGA_Eng_CW')
-    expect(r).toEqual(entry)
-    expect(canUndo('KGA_Eng_CW')).toBe(true)
+describe('undoStack', () => {
+  it('push / undo / redo', () => {
+    pushUndo('KGA', {
+      undo: [{ roll: 1, date: 'd', set: false, submitted: false }],
+      redo: [{ roll: 1, date: 'd', set: true, submitted: false }],
+    })
+    expect(canUndo('KGA')).toBe(true)
+    expect(canRedo('KGA')).toBe(false)
+    const u = popUndo('KGA')
+    expect(u?.undo[0]?.set).toBe(false)
+    expect(canRedo('KGA')).toBe(true)
+    const r = popRedo('KGA')
+    expect(r?.redo[0]?.set).toBe(true)
+  })
+
+  it('push clears redo', () => {
+    pushUndo('KGA', { undo: [], redo: [] })
+    popUndo('KGA')
+    pushUndo('KGA', { undo: [], redo: [] })
+    expect(canRedo('KGA')).toBe(false)
   })
 })

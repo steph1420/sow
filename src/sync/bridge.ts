@@ -1,21 +1,19 @@
-/** Talk to the optional Apps Script web app (execute as owner, anyone with link). */
+/** Optional Apps Script web app for push / ensure SoW_* tabs. */
 
 export type BridgeResult = {
   ok: boolean
   message?: string
-  sessions?: string[][]
-  marks?: string[][]
-  rosterMeta?: string[][]
 }
 
-export async function bridgeCall(
+export async function bridgePush(
   syncUrl: string,
-  body: Record<string, unknown>,
+  sheetId: string,
+  payload: { note: string },
 ): Promise<BridgeResult> {
   const res = await fetch(syncUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on GAS
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'push', sheetId, ...payload }),
   })
   const text = await res.text()
   try {
@@ -23,16 +21,4 @@ export async function bridgeCall(
   } catch {
     throw new Error(`Sync bridge returned non-JSON (${res.status})`)
   }
-}
-
-export async function bridgeEnsureAndPull(syncUrl: string, sheetId: string): Promise<BridgeResult> {
-  return bridgeCall(syncUrl, { action: 'ensureAndPull', sheetId })
-}
-
-export async function bridgePush(
-  syncUrl: string,
-  sheetId: string,
-  payload: { sessions: string[][]; marks: string[][]; rosterMeta: string[][] },
-): Promise<BridgeResult> {
-  return bridgeCall(syncUrl, { action: 'push', sheetId, ...payload })
 }

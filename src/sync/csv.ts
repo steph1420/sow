@@ -1,11 +1,11 @@
-/** Minimal CSV parser (handles quoted fields). */
+/** Minimal CSV parser (quoted fields). */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
   let cur = ''
   let inQ = false
   for (let i = 0; i < text.length; i++) {
-    const c = text[i]
+    const c = text[i]!
     if (inQ) {
       if (c === '"') {
         if (text[i + 1] === '"') {

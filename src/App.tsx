@@ -1,44 +1,69 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import AppShell from './layout/AppShell'
-import MarkPage from './pages/MarkPage'
-import ChecklistPage from './pages/checklist/ChecklistPage'
-import OverviewPage from './pages/OverviewPage'
-import RosterPage from './pages/RosterPage'
-import HistoryPage from './pages/HistoryPage'
-import SettingsPage from './pages/SettingsPage'
-import { loadPrefs, subscribePrefs } from './lib/sowPrefs'
+import { useEffect, useState, type ReactNode } from 'react'
+import { seedIfEmpty } from './data'
+import { WorkspaceProvider, useWorkspace } from './demo/WorkspaceContext'
+import { PrefsProvider } from './prefs/PrefsContext'
+import { AppShell } from './shell/AppShell'
 
-/** Keep ?class= (etc.) when renaming Mark → Checklist. */
-function RedirectMarkToChecklist() {
-  const { search } = useLocation()
-  return <Navigate to={`/checklist${search}`} replace />
-}
-
-/** Production checklist: MarkPage unless Dev chrome.useRebuild. */
-function ChecklistRoute() {
-  const [useRebuild, setUseRebuild] = useState(() => loadPrefs()['chrome.useRebuild'])
-  useEffect(() => subscribePrefs((p) => setUseRebuild(p['chrome.useRebuild'])), [])
-  return useRebuild ? <ChecklistPage /> : <MarkPage />
+function BootGate({ children }: { children: ReactNode }) {
+  const { ready } = useWorkspace()
+  if (!ready) {
+    return (
+      <div
+        style={{
+          height: '100%',
+          display: 'grid',
+          placeItems: 'center',
+          color: 'var(--text-ter)',
+          fontSize: 13,
+        }}
+      >
+        Starting…
+      </div>
+    )
+  }
+  return children
 }
 
 export default function App() {
+  const [seeded, setSeeded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await seedIfEmpty()
+      } finally {
+        if (!cancelled) setSeeded(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!seeded) {
+    return (
+      <div
+        style={{
+          height: '100%',
+          display: 'grid',
+          placeItems: 'center',
+          color: 'var(--text-ter)',
+          fontSize: 13,
+        }}
+      >
+        Starting…
+      </div>
+    )
+  }
+
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route index element={<Navigate to="/checklist" replace />} />
-          <Route path="checklist" element={<ChecklistRoute />} />
-          <Route path="checklist-next" element={<ChecklistPage />} />
-          <Route path="overview" element={<OverviewPage />} />
-          <Route path="roster" element={<RosterPage />} />
-          <Route path="history" element={<HistoryPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="mark" element={<RedirectMarkToChecklist />} />
-          <Route path="session" element={<Navigate to="/checklist" replace />} />
-          <Route path="*" element={<Navigate to="/checklist" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <PrefsProvider>
+      <WorkspaceProvider>
+        <BootGate>
+          <AppShell />
+        </BootGate>
+      </WorkspaceProvider>
+    </PrefsProvider>
   )
 }
