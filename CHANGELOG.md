@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.25.0 — 2026-10-29 (Asia/Calcutta)
+
+### Immersion pack — opaque chrome · A–Z mid-snap · Submitted purple · DD/MM
+- **Opaque sticky chrome**: lean tools + `#`/`NAME` solid `--bg`; names never peek under.
+- **A–Z scrub**: first-child highlight · **urgent** smooth list scroll · **mid-snap** (~50% viewport) with near-top clamp (no empty gap) · empty letter → latch next populated (HUD finger letter dim).
+- **Lean title auto-hide**: `.sw-lean-main` only on scroll-down / show scroll-up; tools + col-head stay; Quiet ease; honor Reduce motion.
+- **Two-date honesty**: pills **DD/MM** (`28/10` · `2/11`); lean topic lists both when two dates active.
+- **Hide dimmed letters**: Appearance → Checklist feel toggle (`az.hideEmpty`); default off; Dev mirror.
+- **Submitted accent**: Quiet purple `#8b7cf7` (`--sub`); Set stays soft-green `#30d158`.
+- **Tick-all column register**: colhead horizontal insets match row (L10/R6); shared 44px tracks; header ✓ on body check axes.
+- **Appearance air**: body gap 16 · surface cards · no mid-row cut.
+- Coding triangulation: `/workspace/sow-mockups/CODE_TRIANGULATION_immersion.md` · plan `IMMERSION_PLAN.md` · remocks immersion-mj1…mj5 locked (Steve t149u).
+- Live: https://steph1420.github.io/sow/
+- Rollback: git tag `v0.24.0` / `8a58d64`
+
 ## 0.24.0 — 2026-10-28 (Asia/Calcutta)
 
 ### Pretty plug — accordion · Sync now · Settings craft · multi-subject

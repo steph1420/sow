@@ -5,7 +5,9 @@ import {
   AZ_LETTERS,
   azSlotTopPercent,
   firstLetterOfName,
+  jumpLetterToRoll,
   letterAtY,
+  letterEmpty,
   presentLetters,
 } from './azLayout'
 
@@ -32,5 +34,25 @@ describe('azLayout', () => {
   it('letterAtY maps strip', () => {
     expect(letterAtY(0, 0, 270)).toBe('*')
     expect(letterAtY(135, 0, 270)).toBe('M')
+  })
+
+  it('letterAtY respects filtered letters (hide-dimmed)', () => {
+    const letters = ['*', 'A', 'B', 'D'] as const
+    expect(letterAtY(0, 0, 400, letters)).toBe('*')
+    expect(letterAtY(250, 0, 400, letters)).toBe('B')
+  })
+
+  it('jumpLetterToRoll latches next populated on empty letter', () => {
+    const rows = [
+      { roll: 1, name: 'Aaditya' },
+      { roll: 8, name: 'Dhruv' },
+      { roll: 11, name: 'Farhan' },
+    ]
+    expect(jumpLetterToRoll('A', rows)).toBe(1)
+    expect(jumpLetterToRoll('C', rows)).toBe(8) // empty C → D
+    expect(jumpLetterToRoll('F', rows)).toBe(11)
+    expect(jumpLetterToRoll('*', rows)).toBe(1)
+    expect(letterEmpty('C', rows.map((r) => r.name))).toBe(true)
+    expect(letterEmpty('A', rows.map((r) => r.name))).toBe(false)
   })
 })

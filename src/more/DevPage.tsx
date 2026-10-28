@@ -30,7 +30,7 @@ export function DevPage({ onBack }: Props) {
           className="more-row"
           onClick={() => setPref('az.hideEmpty', !prefs['az.hideEmpty'])}
         >
-          Hide missing letters
+          Hide dimmed letters
           <span className={`toggle${prefs['az.hideEmpty'] ? ' on' : ''}`} aria-hidden />
         </button>
         <button

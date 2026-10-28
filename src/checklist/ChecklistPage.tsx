@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
 import { CheckMark } from '../components/CheckMark'
-import { AzStrip, jumpLetterToRoll } from './az/AzStrip'
+import { AzStrip } from './az/AzStrip'
 import { SearchBar } from './chrome/SearchBar'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
@@ -47,6 +47,10 @@ export function ChecklistPage({ onGoOverview }: Props) {
   const [glowRolls, setGlowRolls] = useState<Set<number>>(() => new Set())
   const [toolsOpen, setToolsOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
+  const [leanHidden, setLeanHidden] = useState(false)
+  const [azFocusRoll, setAzFocusRoll] = useState<number | null>(null)
+  const lastScrollY = useRef(0)
+  const reduceMotion = prefs['chrome.reduceMotion']
 
   const paintRef = useRef<{
     session: PaintSession | null
@@ -92,24 +96,57 @@ export function ChecklistPage({ onGoOverview }: Props) {
     return out
   }, [orderedRolls])
 
-  const scrollToRoll = useCallback((roll: number) => {
-    const el = rowRefs.current.get(roll)
-    const wrap = listRef.current
-    if (!el || !wrap) return
-    const er = el.getBoundingClientRect()
-    const wr = wrap.getBoundingClientRect()
-    const mid = wr.top + wr.height * 0.45
-    const delta = er.top + er.height / 2 - mid
-    wrap.scrollTop += delta
-  }, [])
+  /** Mid-snap to ~50% viewport; clamp(0,max) = near-top exception (no empty gap). */
+  const scrollToRoll = useCallback(
+    (roll: number, urgent = true) => {
+      const el = rowRefs.current.get(roll)
+      const wrap = listRef.current
+      if (!el || !wrap) return
+      const er = el.getBoundingClientRect()
+      const wr = wrap.getBoundingClientRect()
+      const mid = wr.top + wr.height * 0.5
+      const delta = er.top + er.height / 2 - mid
+      const maxScroll = Math.max(0, wrap.scrollHeight - wrap.clientHeight)
+      const target = Math.max(0, Math.min(wrap.scrollTop + delta, maxScroll))
+      if (!urgent || reduceMotion) {
+        wrap.scrollTop = target
+      } else {
+        wrap.scrollTo({ top: target, behavior: 'smooth' })
+      }
+    },
+    [reduceMotion],
+  )
 
   const onAzJump = useCallback(
-    (letter: AzLetter) => {
-      const roll = jumpLetterToRoll(letter, m.filteredRoster)
-      if (roll != null) scrollToRoll(roll)
+    (_letter: AzLetter, roll: number | null) => {
+      if (roll == null) {
+        setAzFocusRoll(null)
+        return
+      }
+      setAzFocusRoll(roll)
+      scrollToRoll(roll, true)
     },
-    [m.filteredRoster, scrollToRoll],
+    [scrollToRoll],
   )
+
+  const onAzScrubEnd = useCallback(() => {
+    window.setTimeout(() => setAzFocusRoll(null), 700)
+  }, [])
+
+  const onListScroll = useCallback(() => {
+    const wrap = listRef.current
+    if (!wrap) return
+    const y = wrap.scrollTop
+    const dy = y - lastScrollY.current
+    if (Math.abs(dy) < 10) {
+      lastScrollY.current = y
+      return
+    }
+    // Browser toolbar: hide on scroll-down (scrollTop↑), show on scroll-up
+    if (dy > 0 && y > 24) setLeanHidden(true)
+    else if (dy < 0) setLeanHidden(false)
+    lastScrollY.current = y
+  }, [])
 
   const onCheckPointerDown = (
     e: ReactPointerEvent,
@@ -294,7 +331,9 @@ export function ChecklistPage({ onGoOverview }: Props) {
   }, [])
 
   return (
-    <div className="sw-page">
+    <div
+      className={`sw-page${m.mode === 'submitted' ? ' mode-sub' : ''}${reduceMotion ? ' reduce-motion' : ''}`}
+    >
       {select.active ? (
         <SelectBar
           count={select.selected.size}
@@ -305,7 +344,7 @@ export function ChecklistPage({ onGoOverview }: Props) {
       ) : null}
 
       <div className="sw-lean">
-        <div className="sw-lean-main">
+        <div className={`sw-lean-main${leanHidden ? ' is-hidden' : ''}`}>
           <button
             type="button"
             className="sw-lean-left"
@@ -314,14 +353,20 @@ export function ChecklistPage({ onGoOverview }: Props) {
           >
             <div className="sw-lean-class">{m.classLabel}</div>
             <div className="sw-lean-topic">
-              {echoDate.topic} <span className="d">· {echoDate.dayLabel}</span>
+              {echoDate.topic}{' '}
+              <span className="d">
+                ·{' '}
+                {m.showTwoCol
+                  ? `${m.dates[0].dayNum} · ${m.dates[1].dayNum}`
+                  : (m.visibleDates[0] ?? echoDate).dayNum}
+              </span>
             </div>
           </button>
-          <div className="sw-lean-count">
+          <div className={`sw-lean-count${m.mode === 'submitted' ? ' mode-sub' : ''}`}>
             <div className="n">
               {echoProg.n}/{echoProg.total}
             </div>
-            <div className="u">{m.mode === 'set' ? 'set' : 'sub'}</div>
+            <div className="u">{m.mode === 'set' ? 'set' : 'submitted'}</div>
           </div>
         </div>
 
@@ -377,7 +422,11 @@ export function ChecklistPage({ onGoOverview }: Props) {
       </div>
 
       <div className="sw-body">
-        <div className={`sw-list-wrap${azLeft ? ' az-left' : ''}`} ref={listRef}>
+        <div
+          className={`sw-list-wrap${azLeft ? ' az-left' : ''}`}
+          ref={listRef}
+          onScroll={onListScroll}
+        >
           <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
             <span>#</span>
             <span>Name</span>
@@ -405,7 +454,7 @@ export function ChecklistPage({ onGoOverview }: Props) {
               return (
                 <div
                   key={r.roll}
-                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? ' paint-glow' : ''}`}
+                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? ' paint-glow' : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}`}
                   ref={(el) => {
                     if (el) rowRefs.current.set(r.roll, el)
                     else rowRefs.current.delete(r.roll)
@@ -454,7 +503,13 @@ export function ChecklistPage({ onGoOverview }: Props) {
           </div>
         </div>
 
-        <AzStrip names={m.filteredRoster.map((r) => r.name)} onJump={onAzJump} />
+        <AzStrip
+          names={m.filteredRoster.map((r) => r.name)}
+          rows={m.filteredRoster}
+          onJump={onAzJump}
+          onScrubEnd={onAzScrubEnd}
+          modeSub={m.mode === 'submitted'}
+        />
         {showFab ? (
           <div className={`sw-fab${azLeft ? ' az-left' : ''}`}>
             <button type="button" onClick={() => m.setPendingOnly((v) => !v)}>

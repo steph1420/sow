@@ -15,7 +15,7 @@ export type AppPrefs = {
   'chrome.reduceMotion': boolean
   /** Dev: A–Z on left. */
   'az.leftSide': boolean
-  /** Dev: hide missing letters — default OFF (full alphabet dim). */
+  /** Hide dimmed A–Z letters (Appearance Checklist feel) — default OFF. */
   'az.hideEmpty': boolean
   /** Dev: letter HUD while scrubbing. */
   'az.showHud': boolean

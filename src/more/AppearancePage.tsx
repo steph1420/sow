@@ -93,6 +93,20 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           </span>
           <span className="chev">›</span>
         </button>
+        <button
+          type="button"
+          className="more-row g-row-like"
+          onClick={() => setPref('az.hideEmpty', !prefs['az.hideEmpty'])}
+        >
+          <span className="g-ico soft" aria-hidden>
+            ∅
+          </span>
+          <span className="g-body">
+            <span className="g-title">Hide dimmed letters</span>
+            <span className="g-sub">Drop empty letters from strip</span>
+          </span>
+          <span className={`toggle${prefs['az.hideEmpty'] ? ' on' : ''}`} aria-hidden />
+        </button>
       </div>
 
       <div className="more-sec">Comfort</div>
@@ -107,7 +121,7 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           </span>
           <span className="g-body">
             <span className="g-title">Reduce motion</span>
-            <span className="g-sub">Less glow on stroke</span>
+            <span className="g-sub">Less glow on stroke · jump A–Z OK</span>
           </span>
           <span
             className={`toggle${prefs['chrome.reduceMotion'] ? ' on' : ''}`}

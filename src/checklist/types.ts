@@ -3,8 +3,9 @@ export type MarkMode = 'set' | 'submitted'
 export type DateSlot = {
   date: string
   topic: string
-  dayLabel: string // e.g. "Wed 28"
-  dayNum: string // e.g. "28"
+  dayLabel: string // e.g. "Wed 28" (legacy long)
+  /** Pill / topic date label — complete DD/MM (immersion t147u). */
+  dayNum: string // e.g. "28/10"
 }
 
 export type StudentRow = {
@@ -28,3 +29,10 @@ export function markKey(roll: number, date: string): string {
 export type ColPills = [boolean, boolean]
 
 export type SelectAction = 'mark' | 'clear' | 'done'
+
+/** Format ISO date YYYY-MM-DD → DD/MM. */
+export function toDdMm(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim())
+  if (!m) return iso
+  return `${Number(m[3])}/${Number(m[2])}`
+}

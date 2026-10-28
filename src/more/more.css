@@ -44,7 +44,7 @@
   padding: 14px 14px 28px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px; /* air — Appearance panels must not cut (immersion MJ4) */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -54,14 +54,19 @@
   color: var(--text-ter);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-top: 4px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
+.more-sec + .more-card {
+  margin-top: -8px; /* pull card to its label; body gap 16 still separates groups */
+}
 .more-card {
   border: 1px solid var(--hairline);
   border-radius: 14px;
-  background: transparent;
+  background: var(--surface);
   overflow: hidden;
+  flex-shrink: 0; /* never crop mid-row */
 }
 
 .more-row {

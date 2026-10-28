@@ -10,13 +10,13 @@ export const DEMO_DATES: [DateSlot, DateSlot] = [
     date: '2026-10-28',
     topic: 'Nouns — common & proper',
     dayLabel: 'Wed 28',
-    dayNum: '28',
+    dayNum: '28/10',
   },
   {
     date: '2026-11-02',
     topic: 'Picture composition',
     dayLabel: 'Mon 2',
-    dayNum: '2',
+    dayNum: '2/11',
   },
 ]
 

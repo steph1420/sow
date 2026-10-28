@@ -3,52 +3,75 @@ import { usePrefs } from '../../prefs/PrefsContext'
 import {
   AZ_LETTERS,
   azSlotTopPercent,
-  firstLetterOfName,
+  jumpLetterToRoll,
   letterAtY,
+  letterEmpty,
   presentLetters,
   type AzLetter,
 } from '../gestures/azLayout'
 
 type Props = {
   names: string[]
-  onJump: (letter: AzLetter) => void
+  rows: { roll: number; name: string }[]
+  /** Fired each scrub tick with finger letter + latched first-child roll (or null). */
+  onJump: (letter: AzLetter, roll: number | null) => void
+  /** Scrub ended — clear focus glow after hold. */
+  onScrubEnd?: () => void
+  modeSub?: boolean
 }
 
-export function AzStrip({ names, onJump }: Props) {
+export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
   const { prefs } = usePrefs()
   const ref = useRef<HTMLDivElement>(null)
   const present = useMemo(() => presentLetters(names), [names])
   const [hud, setHud] = useState<AzLetter | null>(null)
+  const [hudDim, setHudDim] = useState(false)
   const [hi, setHi] = useState<AzLetter | null>(null)
   const left = prefs['az.leftSide']
   const hideEmpty = prefs['az.hideEmpty']
   const showHud = prefs['az.showHud']
-
-  const scrub = useCallback(
-    (clientY: number) => {
-      const el = ref.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const letter = letterAtY(clientY, rect.top, rect.height)
-      if (showHud) setHud(letter)
-      setHi(letter)
-      onJump(letter)
-    },
-    [onJump, showHud],
-  )
 
   const letters = useMemo(() => {
     if (!hideEmpty) return [...AZ_LETTERS]
     return AZ_LETTERS.filter((L) => L === '*' || present.has(L))
   }, [hideEmpty, present])
 
+  const scrub = useCallback(
+    (clientY: number) => {
+      const el = ref.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const letter = letterAtY(clientY, rect.top, rect.height, letters)
+      const empty = letterEmpty(letter, names)
+      if (showHud) {
+        setHud(letter)
+        setHudDim(empty)
+      }
+      setHi(letter)
+      const roll = jumpLetterToRoll(letter, rows)
+      onJump(letter, roll)
+    },
+    [letters, names, onJump, rows, showHud],
+  )
+
+  const end = () => {
+    setHud(null)
+    setHudDim(false)
+    window.setTimeout(() => setHi(null), 600)
+    onScrubEnd?.()
+  }
+
   return (
     <>
       {hud && showHud ? (
-        <div className={`sw-az-hud${left ? ' left' : ''}`}>{hud === '*' ? '•' : hud}</div>
+        <div
+          className={`sw-az-hud${left ? ' left' : ''}${hudDim ? ' dim' : ''}${modeSub ? ' mode-sub' : ''}`}
+        >
+          {hud === '*' ? '•' : hud}
+        </div>
       ) : null}
       <div
-        className={`sw-az${left ? ' left' : ''}`}
+        className={`sw-az${left ? ' left' : ''}${modeSub ? ' mode-sub' : ''}`}
         ref={ref}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId)
@@ -58,14 +81,8 @@ export function AzStrip({ names, onJump }: Props) {
           if (e.buttons === 0) return
           scrub(e.clientY)
         }}
-        onPointerUp={() => {
-          setHud(null)
-          window.setTimeout(() => setHi(null), 600)
-        }}
-        onPointerCancel={() => {
-          setHud(null)
-          setHi(null)
-        }}
+        onPointerUp={end}
+        onPointerCancel={end}
       >
         {letters.map((L, i) => {
           const isStar = L === '*'
@@ -89,11 +106,4 @@ export function AzStrip({ names, onJump }: Props) {
   )
 }
 
-export function jumpLetterToRoll(
-  letter: AzLetter,
-  rows: { roll: number; name: string }[],
-): number | null {
-  if (letter === '*') return rows[0]?.roll ?? null
-  const hit = rows.find((r) => firstLetterOfName(r.name) === letter)
-  return hit?.roll ?? null
-}
+export { jumpLetterToRoll }
