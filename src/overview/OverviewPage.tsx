@@ -12,14 +12,17 @@ type Props = {
 }
 
 /**
- * Overview — Quiet Lucid cards (lucid-mj2).
- * Open Checklist is the power move.
+ * Overview — entry portal / home (Portal IA portal-mj1).
+ * Pick class · date · topic · Open Checklist.
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
-  const { sessions, marksByClass, rosterFor, setActiveClassKey } = useWorkspace()
+  const { sessions, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [dateF, setDateF] = useState<DateFilter>('All')
-  const [expandedId, setExpandedId] = useState<string | null>(sessions[0]?.id ?? null)
+  const [expandedId, setExpandedId] = useState<string | null>(() => {
+    const match = sessions.find((s) => s.classKey === activeClassKey)
+    return match?.id ?? sessions[0]?.id ?? null
+  })
   const [shareNote, setShareNote] = useState<string | null>(null)
 
   const dateChips = useMemo(() => {
@@ -39,9 +42,55 @@ export function OverviewPage({ onOpenChecklist }: Props) {
     })
   }, [sessions, group, dateF])
 
+  const nowMarking = useMemo(() => {
+    if (!filtered.length) return null
+    const exp = filtered.find((s) => s.id === expandedId)
+    return exp ?? filtered[0]!
+  }, [filtered, expandedId])
+
+  const others = useMemo(() => {
+    if (!nowMarking) return []
+    return filtered.filter((s) => s.id !== nowMarking.id)
+  }, [filtered, nowMarking])
+
+  const subLine = useMemo(() => {
+    const d = WORKSPACE_DATES[0]
+    return `${d.dayLabel} Oct · pick a class to mark`
+  }, [])
+
+  const renderCard = (s: (typeof sessions)[0], expanded: boolean) => {
+    const prog = progressForSession(
+      marksByClass[s.classKey],
+      rosterFor(s.classKey),
+      s.date.date,
+    )
+    return (
+      <SessionCard
+        key={s.id}
+        session={s}
+        progress={prog}
+        expanded={expanded}
+        onExpand={() => setExpandedId(s.id)}
+        onOpenChecklist={() => {
+          setActiveClassKey(s.classKey)
+          setExpandedId(s.id)
+          onOpenChecklist()
+        }}
+        onShare={() => {
+          setShareNote(`Share for ${s.label} — Sync.`)
+          window.setTimeout(() => setShareNote(null), 2200)
+        }}
+      />
+    )
+  }
+
   return (
     <div className="ov-page">
-      <div className="ov-title">Overview</div>
+      <div className="ov-hero">
+        <div className="ov-eyebrow">Home</div>
+        <div className="ov-title">Overview</div>
+        <div className="ov-sub">{subLine}</div>
+      </div>
 
       <div className="ov-filters">
         <div className="ov-slide">
@@ -71,36 +120,24 @@ export function OverviewPage({ onOpenChecklist }: Props) {
         </div>
       </div>
 
-      <div className="ov-list">
-        {filtered.length === 0 ? (
-          <div className="ov-empty">No sessions match these filters.</div>
-        ) : (
-          filtered.map((s) => {
-            const prog = progressForSession(
-              marksByClass[s.classKey],
-              rosterFor(s.classKey),
-              s.date.date,
-            )
-            return (
-              <SessionCard
-                key={s.id}
-                session={s}
-                progress={prog}
-                expanded={expandedId === s.id}
-                onExpand={() => setExpandedId((id) => (id === s.id ? null : s.id))}
-                onOpenChecklist={() => {
-                  setActiveClassKey(s.classKey)
-                  onOpenChecklist()
-                }}
-                onShare={() => {
-                  setShareNote(`Share for ${s.label} — Phase D / Sync.`)
-                  window.setTimeout(() => setShareNote(null), 2200)
-                }}
-              />
-            )
-          })
-        )}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="ov-empty">No sessions match these filters.</div>
+      ) : (
+        <div className="ov-list">
+          {nowMarking ? (
+            <>
+              <div className="ov-section-lbl">Now marking</div>
+              {renderCard(nowMarking, true)}
+            </>
+          ) : null}
+          {others.length ? (
+            <>
+              <div className="ov-section-lbl">Other classes</div>
+              {others.map((s) => renderCard(s, false))}
+            </>
+          ) : null}
+        </div>
+      )}
 
       {shareNote ? (
         <div className="ov-empty" role="status">

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.23.0 — 2026-10-28 (Asia/Calcutta)
+
+### Portal IA — Overview entry · lean Checklist
+- **Default landing = Overview** (Home / entry portal); tab order Overview · Checklist · More.
+- Checklist chrome collapsed to lean panel: **class · topic · set-count** + micro tools (date pills · undo/redo · Tools ▾ · search).
+- Fat dual date-card stack, modebar, Pending/Copy bands leave Checklist → Overview / **Tools sheet**.
+- Class tap on lean panel returns to Overview. Wave A gestures, A–Z 42, tick C, soft-green, More popup unchanged.
+- Remocks locked: `portal-mj1…mj3` · plan `PORTAL_IA_PLAN.md` (Steve t141u).
+- Live: https://steph1420.github.io/sow/
+
 ## 0.22.0 — 2026-10-28 (Asia/Calcutta)
 
 ### Whole-app Lucid Quiet rewrite cutover (Phase F)

@@ -14,12 +14,12 @@ import { OverviewScreen } from '../screens/OverviewScreen'
 export type TabId = 'checklist' | 'overview'
 
 /**
- * AppShell — Checklist · Overview · More as popup (Steve t137u).
- * More destinations use a stack so Back pops exactly one step.
+ * AppShell — Overview · Checklist · More popup (Portal IA v0.23).
+ * Default landing = Overview (Steve t141u). More stays popup (t137u).
  */
 export function AppShell() {
   const { setActiveClassKey } = useWorkspace()
-  const [tab, setTab] = useState<TabId>('checklist')
+  const [tab, setTab] = useState<TabId>('overview')
   const [moreOpen, setMoreOpen] = useState(false)
   const [stack, setStack] = useState<MoreStack>([])
 
@@ -39,6 +39,12 @@ export function AppShell() {
     setMoreOpen(false)
     setStack([])
     setTab('checklist')
+  }, [])
+
+  const openOverview = useCallback(() => {
+    setMoreOpen(false)
+    setStack([])
+    setTab('overview')
   }, [])
 
   const top = topRoute(stack)
@@ -95,10 +101,10 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <main className="app-main">
-        {tab === 'checklist' ? (
-          <ChecklistScreen />
-        ) : (
+        {tab === 'overview' ? (
           <OverviewScreen onOpenChecklist={openChecklist} />
+        ) : (
+          <ChecklistScreen onGoOverview={openOverview} />
         )}
       </main>
 
@@ -123,6 +129,17 @@ export function AppShell() {
       <nav className="tabbar" aria-label="Primary">
         <button
           type="button"
+          className={`tab${tab === 'overview' && !moreOpen ? ' on' : ''}`}
+          onClick={() => {
+            setMoreOpen(false)
+            setTab('overview')
+          }}
+        >
+          <span className="tic">▦</span>
+          Overview
+        </button>
+        <button
+          type="button"
           className={`tab${tab === 'checklist' && !moreOpen ? ' on' : ''}`}
           onClick={() => {
             setMoreOpen(false)
@@ -133,17 +150,6 @@ export function AppShell() {
             <CheckMark size={15} />
           </span>
           Checklist
-        </button>
-        <button
-          type="button"
-          className={`tab${tab === 'overview' && !moreOpen ? ' on' : ''}`}
-          onClick={() => {
-            setMoreOpen(false)
-            setTab('overview')
-          }}
-        >
-          <span className="tic">▦</span>
-          Overview
         </button>
         <button
           type="button"

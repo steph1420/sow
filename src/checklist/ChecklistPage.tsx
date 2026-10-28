@@ -27,11 +27,16 @@ import './checklist.css'
 
 type RowGeom = { roll: number; top: number; bottom: number }
 
+type Props = {
+  /** Class tap → Overview portal (Portal IA). */
+  onGoOverview?: () => void
+}
+
 /**
- * Phase B Checklist — new gesture system from psychology contracts.
- * Not a port of MarkPage / ck-* / useHoldPaint.
+ * Portal IA Checklist — lean panel (class · topic · set-count).
+ * Mode / Pending / Copy live in Tools sheet. Wave A gestures unchanged.
  */
-export function ChecklistPage() {
+export function ChecklistPage({ onGoOverview }: Props) {
   const m = useChecklistModel()
   const { prefs } = usePrefs()
   const showFab = prefs['chrome.showFab']
@@ -40,6 +45,7 @@ export function ChecklistPage() {
   const rowRefs = useRef(new Map<number, HTMLDivElement>())
   const [select, setSelect] = useState<SelectModel>(() => createSelectModel())
   const [glowRolls, setGlowRolls] = useState<Set<number>>(() => new Set())
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
 
   const paintRef = useRef<{
@@ -72,6 +78,9 @@ export function ChecklistPage() {
     [m.filteredRoster],
   )
 
+  const echoDate = m.visibleDates[0] ?? m.dates[m.activeDateIndex]
+  const echoProg = m.progressFor(echoDate.date)
+
   const measureRows = useCallback((): RowGeom[] => {
     const out: RowGeom[] = []
     for (const roll of orderedRolls) {
@@ -102,7 +111,6 @@ export function ChecklistPage() {
     [m.filteredRoster, scrollToRoll],
   )
 
-  // ——— Check paint / tap ———
   const onCheckPointerDown = (
     e: ReactPointerEvent,
     roll: number,
@@ -137,9 +145,7 @@ export function ChecklistPage() {
 
     if (!st.engaged) {
       if (!shouldEngagePaint({ dx, dy })) return
-      // Engage — no hold delay; mostly-horizontal
       st.session = startPaintSession(st.startCol, st.startValue, st.startRoll)
-      // 1-col: brush the visible date; 2-col: opposite ✓
       if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
       setGlowRolls(new Set([st.startRoll]))
@@ -180,7 +186,6 @@ export function ChecklistPage() {
     finishPaint(e, moved < 8 && !(st?.engaged))
   }
 
-  // ——— Name hold → select ———
   const clearNameHold = () => {
     const h = nameHoldRef.current
     if (h) window.clearTimeout(h.timer)
@@ -215,10 +220,8 @@ export function ChecklistPage() {
     const h = nameHoldRef.current
     if (!h || h.pointerId !== e.pointerId) return
     clearNameHold()
-    // short tap on name in mark mode: no-op (hold enters select; scroll uses pan-y)
   }
 
-  // ——— Roll drag select ———
   const onRollPointerDown = (e: ReactPointerEvent, roll: number) => {
     if (!select.active) return
     e.preventDefault()
@@ -239,7 +242,6 @@ export function ChecklistPage() {
     if (rollDragRef.current?.pointerId === e.pointerId) rollDragRef.current = null
   }
 
-  // Select actions
   const selectedRolls = [...select.selected]
   const onSelectMark = () => {
     if (!selectedRolls.length) return
@@ -259,9 +261,9 @@ export function ChecklistPage() {
   const copyDate = (from: 0 | 1, to: 0 | 1) => {
     m.copyField(m.dates[from]!.date, m.dates[to]!.date)
     setCopyOpen(false)
+    setToolsOpen(false)
   }
 
-  // tick-all for a visible date
   const tickAll = (date: string, value: boolean) => {
     m.setCellsValue(
       m.filteredRoster.map((r) => ({ roll: r.roll, date })),
@@ -279,20 +281,17 @@ export function ChecklistPage() {
     return 'partial'
   }
 
-  // Escape select on back? Done button handles it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelect(exitSelect())
         setCopyOpen(false)
+        setToolsOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-
-  const p0 = m.progressFor(m.dates[0].date)
-  const p1 = m.progressFor(m.dates[1].date)
 
   return (
     <div className="sw-page">
@@ -305,82 +304,28 @@ export function ChecklistPage() {
         />
       ) : null}
 
-      <div className="sw-chrome">
-        <div>
-          <div className="sw-lbl">Class</div>
-          <div className="sw-val">{m.classLabel} ▾</div>
-          <div className="sw-counts">
-            <b>{p0.n}</b>
-            {' · '}
-            <b>{p1.n}</b>
-            {' / '}
-            {m.counts.active} {m.mode === 'set' ? 'set' : 'submitted'}
-          </div>
-        </div>
-
-        <div className="sw-date-pair">
-          {m.dates.map((d, i) => {
-            const on = m.pills[i as 0 | 1]
-            const prog = i === 0 ? p0 : p1
-            return (
-              <button
-                key={d.date}
-                type="button"
-                className={`sw-dchip${on ? ' on' : ' dim'}`}
-                onClick={() => {
-                  // tap focused card is fine; pills own col agency
-                }}
-              >
-                <div>
-                  <div className="dl">Date {i + 1}</div>
-                  <div className="dd">{d.dayLabel} ▾</div>
-                </div>
-                <div className="drt">
-                  <div className="dt">{d.topic}</div>
-                  <div className="dp">
-                    {prog.n}/{prog.total} {m.mode === 'set' ? 'set' : 'sub'}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="sw-mode-row">
-          <div className="sw-modebar">
-            <button
-              type="button"
-              className={m.mode === 'set' ? 'on' : ''}
-              onClick={() => m.setMode('set')}
-            >
-              Set
-            </button>
-            <button
-              type="button"
-              className={m.mode === 'submitted' ? 'on' : ''}
-              onClick={() => m.setMode('submitted')}
-            >
-              Submitted
-            </button>
-          </div>
-          <div className="sw-undo-pair">
-            <button type="button" className="sw-icon-btn" disabled={!m.canUndo} onClick={m.undo}>
-              ↶
-            </button>
-            <button type="button" className="sw-icon-btn" disabled={!m.canRedo} onClick={m.redo}>
-              ↷
-            </button>
-          </div>
-        </div>
-
-        <div className="sw-chip-row">
+      <div className="sw-lean">
+        <div className="sw-lean-main">
           <button
             type="button"
-            className={`sw-chip${m.pendingOnly ? ' on' : ''}`}
-            onClick={() => m.setPendingOnly((v) => !v)}
+            className="sw-lean-left"
+            onClick={() => onGoOverview?.()}
+            aria-label="Back to Overview"
           >
-            <span className="dot">●</span> Pending
+            <div className="sw-lean-class">{m.classLabel}</div>
+            <div className="sw-lean-topic">
+              {echoDate.topic} <span className="d">· {echoDate.dayLabel}</span>
+            </div>
           </button>
+          <div className="sw-lean-count">
+            <div className="n">
+              {echoProg.n}/{echoProg.total}
+            </div>
+            <div className="u">{m.mode === 'set' ? 'set' : 'sub'}</div>
+          </div>
+        </div>
+
+        <div className="sw-lean-tools">
           <button
             type="button"
             className={`sw-chip date-pill${m.pills[0] ? ' on' : ''}`}
@@ -395,11 +340,20 @@ export function ChecklistPage() {
           >
             {m.dates[1].dayNum}
           </button>
-          {m.dates.length === 2 ? (
-            <button type="button" className="sw-copy-chip" onClick={() => setCopyOpen(true)}>
-              ⎘ Copy…
-            </button>
-          ) : null}
+          <button type="button" className="sw-icon-btn" disabled={!m.canUndo} onClick={m.undo}>
+            ↶
+          </button>
+          <button type="button" className="sw-icon-btn" disabled={!m.canRedo} onClick={m.redo}>
+            ↷
+          </button>
+          <span className="sw-lean-spacer" />
+          <button
+            type="button"
+            className={`sw-chip sw-tools-chip${toolsOpen ? ' on' : ''}`}
+            onClick={() => setToolsOpen(true)}
+          >
+            Tools ▾
+          </button>
           <button
             type="button"
             className={`sw-search-btn${m.searchOpen ? ' on' : ''}`}
@@ -512,6 +466,60 @@ export function ChecklistPage() {
           </div>
         ) : null}
       </div>
+
+      {toolsOpen ? (
+        <>
+          <button
+            type="button"
+            className="sw-copy-scrim"
+            aria-label="Dismiss Tools"
+            onClick={() => setToolsOpen(false)}
+          />
+          <div className="sw-tools-sheet" role="dialog" aria-label="Tools">
+            <div className="sw-tools-lbl">Mode</div>
+            <div className="sw-modebar">
+              <button
+                type="button"
+                className={m.mode === 'set' ? 'on' : ''}
+                onClick={() => m.setMode('set')}
+              >
+                Set
+              </button>
+              <button
+                type="button"
+                className={m.mode === 'submitted' ? 'on' : ''}
+                onClick={() => m.setMode('submitted')}
+              >
+                Submitted
+              </button>
+            </div>
+            <button
+              type="button"
+              className={`sw-tools-row${m.pendingOnly ? ' on' : ''}`}
+              onClick={() => m.setPendingOnly((v) => !v)}
+            >
+              <span className="dot">●</span> Pending only
+              <span className="chev">{m.pendingOnly ? 'On' : 'Off'}</span>
+            </button>
+            {m.dates.length === 2 ? (
+              <button
+                type="button"
+                className="sw-tools-row"
+                onClick={() => {
+                  setToolsOpen(false)
+                  setCopyOpen(true)
+                }}
+              >
+                ⎘ Copy marks…
+                <span className="chev">›</span>
+              </button>
+            ) : null}
+            <button type="button" className="sw-tools-row mute" onClick={() => setToolsOpen(false)}>
+              Done
+            </button>
+          </div>
+        </>
+      ) : null}
 
       {copyOpen ? (
         <>
