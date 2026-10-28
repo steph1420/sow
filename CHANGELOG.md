@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.20.0] — 2026-10-28
+### Added
+- Ground-up Checklist chrome (`src/pages/checklist/*`, `ck-*` CSS) beside MarkPage
+- Dogfood route **`/checklist-next`**; Dev **Use rebuild on /checklist** (`chrome.useRebuild`, default off)
+- Pref **`chrome.showFab`** default **false** (FAB optional)
+- A–Z idle width default **42** (anti-squish letter floor); Autofill-safe search (`type=search`, `autoComplete=off`)
+### Notes
+- Production **`/checklist`** still MarkPage until Dev toggle. Phase 0–1 chrome only — marking/Wave A paint land in Phase 2+. Tests 60/60. Ingenuity = craft in hand, not flash.
+
+
 ## [0.19.0] — 2026-10-28
 ### Added
 - Date **pills** (day numbers) replace “1 date” chip — both on = 2-col; one on = 1-col; force ≥1 on
