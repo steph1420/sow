@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.17.0] — 2026-10-28
+### Added
+- Checklist two-date **2-col** default when `date2` exists · **1|2** column toggle
+- Easy date chip pair (date1/date2 topics + counts)
+- **Copy…** chip only when 2 dates — opens Actions (copy date1↔date2 / clear)
+- Hold-paint **~180ms**: hold either ✓, drag horizontal to opposite ✓ (either direction); no free diagonal
+- Select mode: **800ms hold on name**; roll# drag-to-select; ✕ exit; Actions FAB → sheet
+- Actions sheet **does not dismiss on tap-outside** (✕ / action only); **0 selected = none** (actions disabled)
+### Changed
+- A–Z is **scroll-to only** (list never letter-filters); quiet letter HUD; strip styled as vertical **pill**
+- Quiet type/spacing on Checklist: name 15/550, roll tertiary, muted labels, hairline rows ~48px, softer FAB, wider gutters
+- **Forgiving touch hit areas (all platforms)** — visual chrome stays compact; recognition/hit boxes grow: ✓ ~36 visual / ~48 hit, name & hold-paint finger slop, wider roll column, taller A–Z letter bands, ≥44px chips/FAB/Actions
+### Notes
+- Wave A + Quiet type blueprint plugged from sow-mockups locks; letter-filter not restored (optional Dev later)
+
 ## [0.16.1] — 2026-10-28
 ### Fixed
 - A–Z strip no longer spaces letters apart while scrolling Checklist (`--az-top` is scroll-compensated)

@@ -395,7 +395,7 @@ export default function SettingsPage() {
         <div className="stg-card">
           <SegRow
             label="Default filter"
-            hint="Letter filter is A–Z strip only"
+            hint="A–Z strip scrolls to letter (does not filter)"
             value={prefs['filter.default']}
             options={[
               { id: 'none', label: 'None' },

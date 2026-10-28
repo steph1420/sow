@@ -3,35 +3,32 @@ import { AZ_LETTERS } from '../lib/azScrubber'
 import { loadPrefs, subscribePrefs, type SowPrefs } from '../lib/sowPrefs'
 
 type Props = {
+  /** Last jumped letter (highlight only; list is never filtered). */
   active: string | null
   present: Set<string>
-  onSelect: (letter: string | null) => void
+  /** Scroll-to letter (null / ∗ = top). Does not filter the list. */
+  onJump: (letter: string | null) => void
 }
 
 /**
- * Fixed viewport A–Z section index with press-drag fisheye + All (*) clear.
- * Physics knobs come from sow.prefs (`az.*`).
- * Idle gutter only; press width overlays checklist with dim scrim.
+ * Fixed viewport A–Z section index — scroll-to only (never filters).
+ * Press-drag fisheye + quiet letter HUD. Physics from sow.prefs (`az.*`).
+ * Letter slots use flex bands taller than the glyph for easier scrub (all platforms).
  */
-export default function AzScrubber({ active, present, onSelect }: Props) {
+export default function AzScrubber({ active, present, onJump }: Props) {
   const stripRef = useRef<HTMLDivElement>(null)
   const scrubbing = useRef(false)
   const [hud, setHud] = useState<string | null>(null)
   const [prefs, setPrefs] = useState<SowPrefs>(() => loadPrefs())
-  const pendingClear = useRef(false)
   const moved = useRef(false)
   const startY = useRef(0)
 
   useEffect(() => subscribePrefs(setPrefs), [])
 
-  // Publish idle gutter for list padding (name cards stop just before idle strip)
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--az-idle-width', `${prefs['az.idleWidth']}px`)
     root.style.setProperty('--az-inset-right', `${prefs['az.insetRight']}px`)
-    return () => {
-      /* leave last values — MarkPage may remount scrubber */
-    }
   }, [prefs])
 
   const letters = useMemo(() => {
@@ -49,10 +46,10 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
       const idx = Math.max(0, Math.min(slotCount - 1, Math.floor((clientY - rect.top) / (rect.height / slotCount))))
       const next = idx === 0 ? null : letters[idx - 1] ?? null
       setHud(next ?? '∗')
-      onSelect(next)
+      onJump(next)
       return next
     },
-    [onSelect, letters, slotCount],
+    [onJump, letters, slotCount],
   )
 
   const onPointerDown = (e: ReactPointerEvent) => {
@@ -61,17 +58,13 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
     scrubbing.current = true
     moved.current = false
     startY.current = e.clientY
-    const next = pickFromEvent(e.clientY)
-    pendingClear.current = next !== null && next === active
-    if (!pendingClear.current) onSelect(next)
+    pickFromEvent(e.clientY)
   }
 
   const onPointerMove = (e: ReactPointerEvent) => {
     if (!scrubbing.current) return
-    if (Math.abs(e.clientY - startY.current) > 6) {
-      moved.current = true
-      pendingClear.current = false
-    }
+    // Generous vertical slop before counting as drag (all platforms)
+    if (Math.abs(e.clientY - startY.current) > 4) moved.current = true
     pickFromEvent(e.clientY)
   }
 
@@ -83,13 +76,8 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
     } catch {
       /* already released */
     }
-    if (pendingClear.current && !moved.current) {
-      onSelect(null)
-    } else if (!moved.current && !pendingClear.current) {
-      pickFromEvent(e.clientY)
-    }
+    if (!moved.current) pickFromEvent(e.clientY)
     setHud(null)
-    pendingClear.current = false
     moved.current = false
   }
 
@@ -144,7 +132,7 @@ export default function AzScrubber({ active, present, onSelect }: Props) {
         ref={stripRef}
         className={`az-scrub${widen ? ' wide' : ''}`}
         role="navigation"
-        aria-label="Jump by letter"
+        aria-label="Scroll to letter"
         style={stripStyle}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
