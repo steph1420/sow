@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.19.0] — 2026-10-28
+### Added
+- Date **pills** (day numbers) replace “1 date” chip — both on = 2-col; one on = 1-col; force ≥1 on
+- Check mark **C**: plain geometric ~2px stroke SVG ✓ on row checks + tick-all (empty = outline only)
+### Changed
+- Col-h is **✓-only** — no day · count · ✓ pack
+- Date cards: drop “focused” / “· focused” / “· active” wording — accent border/fill only
+- A–Z default idleWidth **35**; full alphabet with missing letters **dim**
+- Auto-migrate sticky `az.idleWidth` < 34 → 35 on load; one-shot `az.hideEmpty` on → off (Dev can re-enable)
+### Notes
+- Wave A tools kept (hold-paint, Copy, undo, A–Z scroll-to, search snap, cal swipe, forgiving hits). Quiet type unchanged.
+
 ## [0.18.0] — 2026-10-28
 ### Added
 - Date cards packed: left Date n + day · right subdued topic + `n/N set`

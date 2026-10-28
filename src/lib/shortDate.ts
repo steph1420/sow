@@ -23,6 +23,16 @@ export function parseSheetDate(raw: string, now = new Date()): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+/** Day-of-month number for date pills (`28`, `2`). */
+export function sheetDayNumber(raw: string, now = new Date()): string {
+  const d = parseSheetDate(raw, now)
+  if (d) return String(d.getDate())
+  const m = String(raw ?? '')
+    .trim()
+    .match(/^(\d{1,2})\//)
+  return m ? m[1] : String(raw ?? '')
+}
+
 export function shortDateLabel(raw: string, now = new Date()): string {
   const d = parseSheetDate(raw, now)
   if (!d) {

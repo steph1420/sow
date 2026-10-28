@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSheetDate, shortDateLabel, sheetDateSortKey, historyDateLabel } from './shortDate'
+import { parseSheetDate, shortDateLabel, sheetDateSortKey, historyDateLabel, sheetDayNumber } from './shortDate'
 
 describe('shortDate', () => {
   const now = new Date(2026, 9, 28) // Wed 28 Oct 2026
@@ -7,6 +7,11 @@ describe('shortDate', () => {
   it('formats dd/mm as weekday + day', () => {
     expect(shortDateLabel('28/10', now)).toBe('Wed 28')
     expect(shortDateLabel('14/10', now)).toBe('Wed 14')
+  })
+
+  it('day number for date pills', () => {
+    expect(sheetDayNumber('28/10', now)).toBe('28')
+    expect(sheetDayNumber('2/11', now)).toBe('2')
   })
 
   it('parses single-digit month', () => {

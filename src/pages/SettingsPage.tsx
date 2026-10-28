@@ -505,7 +505,7 @@ export default function SettingsPage() {
           />
           <ToggleRow
             label="Hide empty letters"
-            hint="Hide letters with no kids"
+            hint="Dev: hide missing letters (default off — missing stay dim)"
             on={prefs['az.hideEmpty']}
             onToggle={() => patchPrefs({ 'az.hideEmpty': !prefs['az.hideEmpty'] })}
           />
@@ -517,7 +517,7 @@ export default function SettingsPage() {
           />
           <NumRow
             label="Idle width"
-            hint="px thin bar when not held"
+            hint="px thin bar when not held (default 35; sticky <34 auto-bumps)"
             value={prefs['az.idleWidth']}
             min={12}
             max={40}
@@ -741,7 +741,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <p className="stg-version">Setting of Work · v0.18.0</p>
+      <p className="stg-version">Setting of Work · v0.19.0</p>
     </div>
   )
 }

@@ -72,3 +72,27 @@ az.mode=single
     expect(Object.keys(PREFS_DEFAULTS).length).toBeGreaterThan(15)
   })
 })
+
+  it('defaults idleWidth to 35 and hideEmpty off', () => {
+    expect(loadPrefs()['az.idleWidth']).toBe(35)
+    expect(loadPrefs()['az.hideEmpty']).toBe(false)
+    expect(PREFS_DEFAULTS['az.idleWidth']).toBe(35)
+  })
+
+  it('migrates sticky idleWidth < 34 → 35 on load', () => {
+    localStorage.removeItem('sow.prefs.mj15.hideEmptyOff')
+    localStorage.setItem(
+      'sow.prefs.v1',
+      JSON.stringify({ ...PREFS_DEFAULTS, 'az.idleWidth': 22, 'az.hideEmpty': true }),
+    )
+    const p = loadPrefs()
+    expect(p['az.idleWidth']).toBe(35)
+    expect(p['az.hideEmpty']).toBe(false)
+    // one-shot done — user can re-enable hideEmpty in Dev
+    savePrefs({ 'az.hideEmpty': true })
+    expect(loadPrefs()['az.hideEmpty']).toBe(true)
+    // idleWidth still bumps every load when < 34
+    savePrefs({ 'az.idleWidth': 22 })
+    expect(loadPrefs()['az.idleWidth']).toBe(35)
+  })
+

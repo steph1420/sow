@@ -20,8 +20,9 @@ import {
 import { parseClassParam } from '../lib/classMeta'
 import { presentLettersFromNames } from '../lib/azScrubber'
 import { loadPrefs, subscribePrefs, type UndoChrome } from '../lib/sowPrefs'
-import { shortDateLabel } from '../lib/shortDate'
+import { sheetDayNumber, shortDateLabel } from '../lib/shortDate'
 import CalendarSheet from '../components/CalendarSheet'
+import CheckMark from '../components/CheckMark'
 import {
   canRedo,
   canUndo,
@@ -90,7 +91,8 @@ export default function MarkPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('name-asc')
   const [sheet, setSheet] = useState<Sheet>(null)
-  const [oneDateFilter, setOneDateFilter] = useState(false)
+  /** Date-column pills: both on = 2-col; one on = 1-col; force ≥1. */
+  const [colPills, setColPills] = useState<{ d1: boolean; d2: boolean }>({ d1: true, d2: true })
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [undoChrome, setUndoChrome] = useState<UndoChrome>(() => loadPrefs()['undo.chrome'])
@@ -177,7 +179,7 @@ export default function MarkPage() {
       window.removeEventListener('resize', apply)
       main?.removeEventListener('scroll', apply)
     }
-  }, [roster.length, searchOpen, topicToast, topicEditing, sheet, mode, setFilter, prefs, oneDateFilter, selectMode])
+  }, [roster.length, searchOpen, topicToast, topicEditing, sheet, mode, setFilter, prefs, colPills, selectMode])
 
   const reload = useCallback(async () => {
     const [sessions, ros, settings] = await Promise.all([
@@ -197,11 +199,11 @@ export default function MarkPage() {
         if (cur && dates.includes(cur)) return cur
         return dates[0] ?? null
       })
-      if (!sess.date2) setOneDateFilter(false)
+      if (!sess.date2) setColPills({ d1: true, d2: true })
     } else {
       setMarks([])
       setActiveDate(null)
-      setOneDateFilter(false)
+      setColPills({ d1: true, d2: true })
     }
   }, [classKey])
 
@@ -226,13 +228,27 @@ export default function MarkPage() {
   }, [session])
 
   const hasTwoDates = dates.length >= 2
-  /** 1-col is a filter (not a view toggle). Default with 2 dates = 2 cols. */
-  const showTwoCol = hasTwoDates && !oneDateFilter
+  const d1 = dates.find((d) => d.slot === 'd1') ?? dates[0] ?? null
+  const d2 = dates.find((d) => d.slot === 'd2') ?? (dates.length > 1 ? dates[1] : null)
+  /** Date pills: both on = 2-col; exactly one on = 1-col for that date. */
+  const showTwoCol = hasTwoDates && colPills.d1 && colPills.d2
+  const singlePillSlot: DateSlot | null =
+    hasTwoDates && !showTwoCol ? (colPills.d1 ? 'd1' : colPills.d2 ? 'd2' : 'd1') : null
 
-  const activeSlot = useMemo(
-    () => dates.find((d) => d.date === activeDate) ?? dates[0] ?? null,
-    [dates, activeDate],
-  )
+  function toggleColPill(slot: DateSlot) {
+    setColPills((prev) => {
+      const next = { ...prev, [slot]: !prev[slot] }
+      if (!next.d1 && !next.d2) return prev // force ≥1
+      return next
+    })
+  }
+
+  const activeSlot = useMemo(() => {
+    if (singlePillSlot) {
+      return dates.find((d) => d.slot === singlePillSlot) ?? dates[0] ?? null
+    }
+    return dates.find((d) => d.date === activeDate) ?? dates[0] ?? null
+  }, [dates, activeDate, singlePillSlot])
 
   const markMap = useMemo(() => {
     const m = new Map<string, Mark>()
@@ -461,10 +477,10 @@ export default function MarkPage() {
     setSubFilter('all')
     setQ('')
     setSearchOpen(false)
-    setOneDateFilter(false)
+    setColPills({ d1: true, d2: true })
   }
 
-  const filtersActive = setFilter !== 'all' || subFilter !== 'all' || q.trim() !== '' || hideLeft || oneDateFilter
+  const filtersActive = setFilter !== 'all' || subFilter !== 'all' || q.trim() !== '' || hideLeft || (hasTwoDates && !(colPills.d1 && colPills.d2))
 
   const topicText = activeSlot?.topic ?? ''
 
@@ -846,8 +862,6 @@ export default function MarkPage() {
     )
   }
 
-  const d1 = dates[0]
-  const d2 = dates[1]
   const selCount = selected.size
   const actionsEnabled = selCount >= 1
 
@@ -901,8 +915,9 @@ export default function MarkPage() {
           {hasTwoDates ? (
             <div className={`cl-date-pair${dates.length > 2 ? ' sliding' : ''}`}>
               {dates.map((d, i) => {
-                const focused = showTwoCol || activeSlot?.date === d.date
-                const dim = oneDateFilter && activeSlot?.date !== d.date
+                const pillOn = d.slot === 'd1' ? colPills.d1 : colPills.d2
+                const focused = showTwoCol || (pillOn && activeSlot?.date === d.date)
+                const dim = hasTwoDates && !pillOn
                 const topicShort = (d.topic || '—').length > 18 ? `${(d.topic || '—').slice(0, 17)}…` : d.topic || '—'
                 return (
                   <button
@@ -910,9 +925,14 @@ export default function MarkPage() {
                     type="button"
                     className={`cl-dchip${dates.length > 2 ? ' slide-item' : ''}${focused && !dim ? ' focused' : ''}${dim ? ' dim' : ''}${!showTwoCol && activeSlot?.date === d.date ? ' on' : ''}`}
                     onClick={() => {
-                      if (oneDateFilter) {
-                        if (activeSlot?.date === d.date) setSheet('cal')
-                        else setActiveDate(d.date)
+                      if (!showTwoCol) {
+                        // 1-col: tap dim card → switch to that date; tap active → calendar
+                        if (activeSlot?.date === d.date) {
+                          setSheet('cal')
+                        } else {
+                          setColPills(d.slot === 'd1' ? { d1: true, d2: false } : { d1: false, d2: true })
+                          setActiveDate(d.date)
+                        }
                         return
                       }
                       setActiveDate(d.date)
@@ -920,11 +940,7 @@ export default function MarkPage() {
                     }}
                   >
                     <div className="dlft">
-                      <div className="dl">
-                        Date {i + 1}
-                        {oneDateFilter && activeSlot?.date === d.date ? ' · active' : ''}
-                        {showTwoCol ? ' · focused' : ''}
-                      </div>
+                      <div className="dl">Date {i + 1}</div>
                       <div className="dd">{shortDateLabel(d.date)} ▾</div>
                     </div>
                     <div className="drt">
@@ -1046,13 +1062,26 @@ export default function MarkPage() {
               Pending
             </button>
           ) : null}
-          {hasTwoDates ? (
+          {hasTwoDates && d1 ? (
             <button
               type="button"
-              className={`chip${oneDateFilter ? ' on' : ''}`}
-              onClick={() => setOneDateFilter((v) => !v)}
+              className={`chip date-pill${colPills.d1 ? ' on' : ' off'}`}
+              aria-pressed={colPills.d1}
+              aria-label={`Show date ${sheetDayNumber(d1.date)}`}
+              onClick={() => toggleColPill('d1')}
             >
-              1 date
+              {sheetDayNumber(d1.date)}
+            </button>
+          ) : null}
+          {hasTwoDates && d2 ? (
+            <button
+              type="button"
+              className={`chip date-pill${colPills.d2 ? ' on' : ' off'}`}
+              aria-pressed={colPills.d2}
+              aria-label={`Show date ${sheetDayNumber(d2.date)}`}
+              onClick={() => toggleColPill('d2')}
+            >
+              {sheetDayNumber(d2.date)}
             </button>
           ) : null}
           {hasTwoDates ? (
@@ -1091,39 +1120,39 @@ export default function MarkPage() {
         <span className="n">Name</span>
         {showTwoCol && d1 && d2 ? (
           <>
-            <span className="col-h">
-              <span className="dh">{shortDateLabel(d1.date).replace(/^\w+ /, '')}</span>
+            <span className="col-h tick-only">
               <button
                 type="button"
                 className={`all${allOnFor(d1.date) ? (mode === 'set' ? ' set' : ' sub') : ''}`}
                 title="Check/uncheck all visible"
+                aria-label="Check all date 1"
                 onClick={() => void onCheckAll(d1.date, d1.topic)}
               >
-                ✓
+                {allOnFor(d1.date) ? <CheckMark /> : null}
               </button>
             </span>
-            <span className="col-h">
-              <span className="dh">{shortDateLabel(d2.date).replace(/^\w+ /, '')}</span>
+            <span className="col-h tick-only">
               <button
                 type="button"
                 className={`all${allOnFor(d2.date) ? (mode === 'set' ? ' set' : ' sub') : ''}`}
                 title="Check/uncheck all visible"
+                aria-label="Check all date 2"
                 onClick={() => void onCheckAll(d2.date, d2.topic)}
               >
-                ✓
+                {allOnFor(d2.date) ? <CheckMark /> : null}
               </button>
             </span>
           </>
         ) : activeSlot ? (
-          <span className="col-h">
-            <span className="dh">{shortDateLabel(activeSlot.date)}</span>
+          <span className="col-h tick-only">
             <button
               type="button"
               className={`all${allOnFor(activeSlot.date) ? (mode === 'set' ? ' set' : ' sub') : ''}`}
               title="Check/uncheck all visible"
+              aria-label="Check all"
               onClick={() => void onCheckAll(activeSlot.date, activeSlot.topic)}
             >
-              ✓
+              {allOnFor(activeSlot.date) ? <CheckMark /> : null}
             </button>
           </span>
         ) : null}
@@ -1178,7 +1207,7 @@ export default function MarkPage() {
                   <span
                     className={`${checkClass(on1)}${paintFrom === 'd1' ? ' hold' : ''}${paintTo === 'd1' ? ' paint' : ''}`}
                   >
-                    ✓
+                    {on1 || paintTo === 'd1' ? <CheckMark /> : null}
                   </span>
                 </button>
                 <button
@@ -1194,7 +1223,7 @@ export default function MarkPage() {
                   <span
                     className={`${checkClass(on2)}${paintFrom === 'd2' ? ' hold' : ''}${paintTo === 'd2' ? ' paint' : ''}`}
                   >
-                    ✓
+                    {on2 || paintTo === 'd2' ? <CheckMark /> : null}
                   </span>
                 </button>
               </div>
@@ -1236,7 +1265,7 @@ export default function MarkPage() {
                 aria-label={`Mark ${s.name}`}
                 onClick={() => void onTap(s.roll, s.name, activeSlot.date, activeSlot.topic, s.left)}
               >
-                <span className={checkClass(on)}>✓</span>
+                <span className={checkClass(on)}>{on ? <CheckMark /> : null}</span>
               </button>
             </div>
           )
@@ -1326,16 +1355,6 @@ export default function MarkPage() {
 
       {sheet === 'filters' ? (
         <SheetFrame title="Filters" onClose={() => setSheet(null)}>
-          {hasTwoDates ? (
-            <button
-              type="button"
-              className={`sheet-row${oneDateFilter ? ' on' : ''}`}
-              onClick={() => setOneDateFilter((v) => !v)}
-            >
-              1 date / single column
-              <span className="sheet-meta">focus one date card</span>
-            </button>
-          ) : null}
           <button
             type="button"
             className={`sheet-row${setFilter === 'pending' ? ' on' : ''}`}

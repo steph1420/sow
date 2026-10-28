@@ -44,7 +44,7 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'az.mode': 'fisheye',
   'az.hideEmpty': false,
   'az.widenOnPress': true,
-  'az.idleWidth': 28,
+  'az.idleWidth': 35,
   'az.pressWidth': 48,
   'az.pressFont': 12,
   'az.focusFont': 22,
@@ -75,6 +75,8 @@ const STORE_KEY = 'sow.prefs.v1'
 const LEGACY_FILTER = 'sow.prefs.overview.filterStyle'
 const LEGACY_UNDO = 'sow.prefs.undo.chrome'
 const EVENT = 'sow-prefs'
+/** One-shot: field devices with hideEmpty=on → off (MJ-15 aesthetics). */
+const MJ15_HIDE_EMPTY_MIG = 'sow.prefs.mj15.hideEmptyOff'
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n))
@@ -163,17 +165,46 @@ function readLegacy(): Partial<SowPrefs> {
   return out
 }
 
+/** MJ-15: bump sticky idleWidth < 34 → 35; one-shot hideEmpty on → off. */
+function migrateMj15Aesthetics(prefs: SowPrefs): SowPrefs {
+  let next = prefs
+  let dirty = false
+  if (next['az.idleWidth'] < 34) {
+    next = { ...next, 'az.idleWidth': 35 }
+    dirty = true
+  }
+  try {
+    if (localStorage.getItem(MJ15_HIDE_EMPTY_MIG) !== '1') {
+      if (next['az.hideEmpty']) {
+        next = { ...next, 'az.hideEmpty': false }
+        dirty = true
+      }
+      localStorage.setItem(MJ15_HIDE_EMPTY_MIG, '1')
+    }
+  } catch {
+    /* ignore */
+  }
+  if (dirty) {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(next))
+    } catch {
+      /* ignore */
+    }
+  }
+  return next
+}
+
 export function loadPrefs(): SowPrefs {
   try {
     const raw = localStorage.getItem(STORE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, unknown>
-      return coerce({ ...readLegacy(), ...parsed })
+      return migrateMj15Aesthetics(coerce({ ...readLegacy(), ...parsed }))
     }
   } catch {
     /* ignore */
   }
-  return coerce(readLegacy())
+  return migrateMj15Aesthetics(coerce(readLegacy()))
 }
 
 export function savePrefs(patch: Partial<SowPrefs>): SowPrefs {
