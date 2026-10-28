@@ -38,15 +38,13 @@ type SetFilter = 'all' | 'finished' | 'pending'
 type SubFilter = 'all' | 'submitted' | 'not'
 type SortMode = 'name-asc' | 'name-desc' | 'roll-asc' | 'roll-desc' | 'pending-first'
 type Sheet = null | 'class' | 'cal' | 'sort' | 'filters' | 'actions'
-type ColMode = '1' | '2'
 type DateSlot = 'd1' | 'd2'
 
-const HOLD_PAINT_MS = 180
 const HOLD_SELECT_MS = 800
 /** Finger slop (px) before hold is cancelled / drag starts — all platforms. */
 const HOLD_SLOP_PX = 12
-/** Vertical drift allowed during horizontal paint (not free diagonal). */
-const PAINT_VERT_SLOP_PX = 28
+/** Mostly-horizontal lock: |dx| must beat |dy| and clear this to start paint (no hold ms). */
+const PAINT_LOCK_PX = 10
 /** Horizontal distance toward opposite ✓ to commit paint. */
 const PAINT_COMMIT_PX = 22
 
@@ -87,11 +85,12 @@ export default function MarkPage() {
   const [subFilter, setSubFilter] = useState<SubFilter>('all')
   const [activeDate, setActiveDate] = useState<string | null>(null)
   const [jumpLetter, setJumpLetter] = useState<string | null>(null)
+  const [latchRoll, setLatchRoll] = useState<number | null>(null)
   const [q, setQ] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('name-asc')
   const [sheet, setSheet] = useState<Sheet>(null)
-  const [colMode, setColMode] = useState<ColMode>('1')
+  const [oneDateFilter, setOneDateFilter] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [undoChrome, setUndoChrome] = useState<UndoChrome>(() => loadPrefs()['undo.chrome'])
@@ -107,7 +106,23 @@ export default function MarkPage() {
   useEffect(() => {
     document.documentElement.style.setProperty('--az-idle-width', `${prefs['az.idleWidth']}px`)
     document.documentElement.style.setProperty('--az-inset-right', `${prefs['az.insetRight']}px`)
+    document.documentElement.dataset.azSide = prefs['az.leftSide'] ? 'left' : 'right'
   }, [prefs])
+
+  useEffect(() => {
+    if (!searchOpen) return
+    const id = window.requestAnimationFrame(() => {
+      const bar = searchBarRef.current
+      const main = (bar?.closest('.main') ?? listRef.current?.closest('.main')) as HTMLElement | null
+      if (bar && main) {
+        const top = bar.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop
+        main.scrollTo({ top: Math.max(0, top - 8), behavior: 'smooth' })
+      } else {
+        bar?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      }
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [searchOpen])
   const [stackTick, setStackTick] = useState(0)
 
   const [topicToast, setTopicToast] = useState(false)
@@ -116,6 +131,7 @@ export default function MarkPage() {
   const topicInputRef = useRef<HTMLInputElement>(null)
   const headRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const searchBarRef = useRef<HTMLDivElement>(null)
 
   // Hold-paint / select gesture refs
   const paintRef = useRef<{
@@ -161,7 +177,7 @@ export default function MarkPage() {
       window.removeEventListener('resize', apply)
       main?.removeEventListener('scroll', apply)
     }
-  }, [roster.length, searchOpen, topicToast, topicEditing, sheet, mode, setFilter, prefs, colMode, selectMode])
+  }, [roster.length, searchOpen, topicToast, topicEditing, sheet, mode, setFilter, prefs, oneDateFilter, selectMode])
 
   const reload = useCallback(async () => {
     const [sessions, ros, settings] = await Promise.all([
@@ -181,25 +197,15 @@ export default function MarkPage() {
         if (cur && dates.includes(cur)) return cur
         return dates[0] ?? null
       })
-      if (!sess.date2) setColMode('1')
+      if (!sess.date2) setOneDateFilter(false)
     } else {
       setMarks([])
       setActiveDate(null)
-      setColMode('1')
+      setOneDateFilter(false)
     }
   }, [classKey])
 
-  // On first session load with date2, prefer 2-col once
-  const didInitCol = useRef(false)
   useEffect(() => {
-    if (!session) return
-    if (didInitCol.current) return
-    didInitCol.current = true
-    setColMode(session.date2 ? '2' : '1')
-  }, [session])
-
-  useEffect(() => {
-    didInitCol.current = false
     void reload()
     setJumpLetter(null)
     setQ('')
@@ -220,7 +226,8 @@ export default function MarkPage() {
   }, [session])
 
   const hasTwoDates = dates.length >= 2
-  const showTwoCol = hasTwoDates && colMode === '2'
+  /** 1-col is a filter (not a view toggle). Default with 2 dates = 2 cols. */
+  const showTwoCol = hasTwoDates && !oneDateFilter
 
   const activeSlot = useMemo(
     () => dates.find((d) => d.date === activeDate) ?? dates[0] ?? null,
@@ -454,9 +461,10 @@ export default function MarkPage() {
     setSubFilter('all')
     setQ('')
     setSearchOpen(false)
+    setOneDateFilter(false)
   }
 
-  const filtersActive = setFilter !== 'all' || subFilter !== 'all' || q.trim() !== '' || hideLeft
+  const filtersActive = setFilter !== 'all' || subFilter !== 'all' || q.trim() !== '' || hideLeft || oneDateFilter
 
   const topicText = activeSlot?.topic ?? ''
 
@@ -464,13 +472,20 @@ export default function MarkPage() {
     setJumpLetter(letter)
     const main = listRef.current?.closest('.main') as HTMLElement | null
     if (!letter) {
-      main?.scrollTo({ top: 0, behavior: 'smooth' })
+      setLatchRoll(null)
+      // Instant = more urgent than finger scroll
+      main?.scrollTo({ top: 0, behavior: 'auto' })
       return
     }
     const target = rows.find((s) => s.name.toUpperCase().startsWith(letter))
-    if (!target) return
+    if (!target) {
+      setLatchRoll(null)
+      return
+    }
+    setLatchRoll(target.roll)
     const el = listRef.current?.querySelector(`[data-roll="${target.roll}"]`) as HTMLElement | null
-    el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    // Mid-viewport latch; auto (not smooth) ≈ ~2× urgency vs finger fling
+    el?.scrollIntoView({ block: 'center', behavior: 'auto' })
   }
 
   function exitSelect() {
@@ -488,18 +503,10 @@ export default function MarkPage() {
     })
   }
 
-  // —— Hold-paint (either ✓ → opposite, ~180ms, forgiving slop) ——
+  // —— Paint: no hold ms — lock on mostly-horizontal drag; vertical = scroll ——
   function paintDown(e: ReactPointerEvent, roll: number, from: DateSlot, left: boolean) {
     if (left || selectMode || !hasTwoDates || !showTwoCol) return
-    e.preventDefault()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     if (paintRef.current?.timer) window.clearTimeout(paintRef.current.timer)
-    const timer = window.setTimeout(() => {
-      if (paintRef.current && paintRef.current.roll === roll) {
-        paintRef.current.held = true
-        setPaintUi({ roll, from })
-      }
-    }, HOLD_PAINT_MS)
     paintRef.current = {
       roll,
       from,
@@ -507,32 +514,47 @@ export default function MarkPage() {
       startY: e.clientY,
       held: false,
       painted: false,
-      timer,
+      timer: null,
     }
   }
 
   function paintMove(e: ReactPointerEvent) {
     const g = paintRef.current
-    if (!g) return
+    if (!g || g.roll == null) return
     const dx = e.clientX - g.startX
     const dy = e.clientY - g.startY
+    const adx = Math.abs(dx)
+    const ady = Math.abs(dy)
     if (!g.held) {
-      // Cancel hold only if finger moves beyond slop before 180ms
-      if (Math.hypot(dx, dy) > HOLD_SLOP_PX) {
-        if (g.timer) window.clearTimeout(g.timer)
+      // Mostly vertical → abandon so pan-y scroll wins
+      if (ady > PAINT_LOCK_PX && ady >= adx) {
         paintRef.current = null
         setPaintUi(null)
+        return
       }
-      return
+      // Mostly horizontal → lock paint (no hold timer)
+      if (adx > PAINT_LOCK_PX && adx > ady) {
+        g.held = true
+        try {
+          ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+        } catch {
+          /* */
+        }
+        e.preventDefault()
+        setPaintUi({ roll: g.roll, from: g.from })
+      } else {
+        return
+      }
     }
-    // Held: require mostly horizontal; tolerate vertical drift
-    if (Math.abs(dy) > PAINT_VERT_SLOP_PX && Math.abs(dy) > Math.abs(dx) * 1.2) return
+    e.preventDefault()
     const towardRight = g.from === 'd1' && dx > PAINT_COMMIT_PX
     const towardLeft = g.from === 'd2' && dx < -PAINT_COMMIT_PX
     if (towardRight || towardLeft) {
       const to: DateSlot = g.from === 'd1' ? 'd2' : 'd1'
       g.painted = true
       setPaintUi({ roll: g.roll, from: g.from, to })
+    } else {
+      setPaintUi({ roll: g.roll, from: g.from })
     }
   }
 
@@ -865,66 +887,55 @@ export default function MarkPage() {
               </div>
             </div>
             <div className="cl-date">
-              {hasTwoDates ? (
-                <>
-                  <span className="cl-lbl">View</span>
-                  <div className="cl-view-tog" role="group" aria-label="Columns">
-                    <button type="button" className={colMode === '1' ? 'on' : ''} onClick={() => setColMode('1')}>
-                      1-col
-                    </button>
-                    <button type="button" className={colMode === '2' ? 'on' : ''} onClick={() => setColMode('2')}>
-                      2-col
-                    </button>
-                  </div>
-                </>
-              ) : (
+              {!hasTwoDates ? (
                 <>
                   <span className="cl-lbl">Date</span>
                   <button type="button" className="cl-value" onClick={() => setSheet('cal')}>
                     {activeSlot ? shortDateLabel(activeSlot.date) : '—'} <span className="caret">▾</span>
                   </button>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
 
           {hasTwoDates ? (
-            <div className="cl-date-pair">
-              {d1 ? (
-                <button
-                  type="button"
-                  className={`cl-dchip${!showTwoCol && activeSlot?.date === d1.date ? ' on' : ''}`}
-                  onClick={() => {
-                    setActiveDate(d1.date)
-                    if (showTwoCol) setSheet('cal')
-                    else setSheet('cal')
-                  }}
-                >
-                  <div className="dl">Date 1{!showTwoCol && activeSlot?.date === d1.date ? ' · active' : ''}</div>
-                  <div className="dd">{shortDateLabel(d1.date)} ▾</div>
-                  <div className="dt">{d1.topic || '—'}</div>
-                  <div className="cnt">
-                    <b>{countFor(d1.date)}</b>/{setStatus.active}
-                  </div>
-                </button>
-              ) : null}
-              {d2 ? (
-                <button
-                  type="button"
-                  className={`cl-dchip${!showTwoCol && activeSlot?.date === d2.date ? ' on' : ''}`}
-                  onClick={() => {
-                    setActiveDate(d2.date)
-                    setSheet('cal')
-                  }}
-                >
-                  <div className="dl">Date 2{!showTwoCol && activeSlot?.date === d2.date ? ' · active' : ''}</div>
-                  <div className="dd">{shortDateLabel(d2.date)} ▾</div>
-                  <div className="dt">{d2.topic || '—'}</div>
-                  <div className="cnt">
-                    <b>{countFor(d2.date)}</b>/{setStatus.active}
-                  </div>
-                </button>
-              ) : null}
+            <div className={`cl-date-pair${dates.length > 2 ? ' sliding' : ''}`}>
+              {dates.map((d, i) => {
+                const focused = showTwoCol || activeSlot?.date === d.date
+                const dim = oneDateFilter && activeSlot?.date !== d.date
+                const topicShort = (d.topic || '—').length > 18 ? `${(d.topic || '—').slice(0, 17)}…` : d.topic || '—'
+                return (
+                  <button
+                    key={`${d.slot}-${d.date}`}
+                    type="button"
+                    className={`cl-dchip${dates.length > 2 ? ' slide-item' : ''}${focused && !dim ? ' focused' : ''}${dim ? ' dim' : ''}${!showTwoCol && activeSlot?.date === d.date ? ' on' : ''}`}
+                    onClick={() => {
+                      if (oneDateFilter) {
+                        if (activeSlot?.date === d.date) setSheet('cal')
+                        else setActiveDate(d.date)
+                        return
+                      }
+                      setActiveDate(d.date)
+                      setSheet('cal')
+                    }}
+                  >
+                    <div className="dlft">
+                      <div className="dl">
+                        Date {i + 1}
+                        {oneDateFilter && activeSlot?.date === d.date ? ' · active' : ''}
+                        {showTwoCol ? ' · focused' : ''}
+                      </div>
+                      <div className="dd">{shortDateLabel(d.date)} ▾</div>
+                    </div>
+                    <div className="drt">
+                      <div className="dt">{topicShort}</div>
+                      <div className="dp">
+                        {countFor(d.date)}/{setStatus.active} set
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           ) : (
             <div className="cl-topic-row">
@@ -962,33 +973,8 @@ export default function MarkPage() {
                   </button>
                 )}
               </div>
-              <div className="cl-undo" data-undo-chrome={undoChrome}>
-                <button type="button" className="cl-icon-btn" disabled={!undoOk} aria-label="Undo" onClick={() => void onUndo()}>
-                  <span aria-hidden>↶</span>
-                  {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Undo</span> : null}
-                </button>
-                <button type="button" className="cl-icon-btn" disabled={!redoOk} aria-label="Redo" onClick={() => void onRedo()}>
-                  <span aria-hidden>↷</span>
-                  {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Redo</span> : null}
-                </button>
-              </div>
             </div>
           )}
-
-          {hasTwoDates ? (
-            <div className="cl-topic-row">
-              <div className="cl-undo" data-undo-chrome={undoChrome} style={{ marginLeft: 'auto' }}>
-                <button type="button" className="cl-icon-btn" disabled={!undoOk} aria-label="Undo" onClick={() => void onUndo()}>
-                  <span aria-hidden>↶</span>
-                  {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Undo</span> : null}
-                </button>
-                <button type="button" className="cl-icon-btn" disabled={!redoOk} aria-label="Redo" onClick={() => void onRedo()}>
-                  <span aria-hidden>↷</span>
-                  {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Redo</span> : null}
-                </button>
-              </div>
-            </div>
-          ) : null}
         </>
       )}
 
@@ -1014,24 +1000,33 @@ export default function MarkPage() {
               Submitted
             </button>
           </div>
-          {hasTwoDates ? (
-            <button type="button" className="cl-copy-chip" onClick={() => { setSelectMode(true); setSheet('actions') }}>
-              ⎘ Copy…
+          <div className="cl-undo" data-undo-chrome={undoChrome}>
+            <button type="button" className="cl-icon-btn" disabled={!undoOk} aria-label="Undo" onClick={() => void onUndo()}>
+              <span aria-hidden>↶</span>
+              {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Undo</span> : null}
             </button>
-          ) : null}
+            <button type="button" className="cl-icon-btn" disabled={!redoOk} aria-label="Redo" onClick={() => void onRedo()}>
+              <span aria-hidden>↷</span>
+              {undoChrome === 'iconsLabel' ? <span className="cl-icon-lbl">Redo</span> : null}
+            </button>
+          </div>
         </div>
       ) : hasTwoDates ? (
         <div className="cl-date-pair">
           {d1 ? (
-            <div className="cl-dchip">
-              <div className="dl">Date 1</div>
-              <div className="dd">{shortDateLabel(d1.date)}</div>
+            <div className="cl-dchip focused">
+              <div className="dlft">
+                <div className="dl">Date 1</div>
+                <div className="dd">{shortDateLabel(d1.date)}</div>
+              </div>
             </div>
           ) : null}
           {d2 ? (
-            <div className="cl-dchip">
-              <div className="dl">Date 2</div>
-              <div className="dd">{shortDateLabel(d2.date)}</div>
+            <div className="cl-dchip focused">
+              <div className="dlft">
+                <div className="dl">Date 2</div>
+                <div className="dd">{shortDateLabel(d2.date)}</div>
+              </div>
             </div>
           ) : null}
         </div>
@@ -1051,6 +1046,20 @@ export default function MarkPage() {
               Pending
             </button>
           ) : null}
+          {hasTwoDates ? (
+            <button
+              type="button"
+              className={`chip${oneDateFilter ? ' on' : ''}`}
+              onClick={() => setOneDateFilter((v) => !v)}
+            >
+              1 date
+            </button>
+          ) : null}
+          {hasTwoDates ? (
+            <button type="button" className="cl-copy-chip" onClick={() => { setSelectMode(true); setSheet('actions') }}>
+              ⎘ Copy…
+            </button>
+          ) : null}
           {prefs['filter.showSearch'] ? (
             <button
               type="button"
@@ -1066,7 +1075,7 @@ export default function MarkPage() {
       ) : null}
 
       {searchOpen && !selectMode ? (
-        <div className="search">
+        <div className="search" ref={searchBarRef}>
           <span>⌕</span>
           <input value={q} autoFocus onChange={(e) => setQ(e.target.value)} placeholder="Search name or roll" />
           {q ? (
@@ -1135,7 +1144,7 @@ export default function MarkPage() {
               <div
                 key={s.id}
                 data-roll={s.roll}
-                className={`row two-col${s.left ? ' left' : ''}${isSel ? ' sel' : ''}`}
+                className={`row two-col${s.left ? ' left' : ''}${isSel ? ' sel' : ''}${latchRoll === s.roll ? ' az-latch' : ''}`}
               >
                 <span
                   className="roll"
@@ -1199,7 +1208,7 @@ export default function MarkPage() {
             <div
               key={s.id}
               data-roll={s.roll}
-              className={`row one-col${s.left ? ' left' : ''}${isSel ? ' sel' : ''}`}
+              className={`row one-col${s.left ? ' left' : ''}${isSel ? ' sel' : ''}${latchRoll === s.roll ? ' az-latch' : ''}`}
             >
               <span
                 className="roll"
@@ -1317,6 +1326,16 @@ export default function MarkPage() {
 
       {sheet === 'filters' ? (
         <SheetFrame title="Filters" onClose={() => setSheet(null)}>
+          {hasTwoDates ? (
+            <button
+              type="button"
+              className={`sheet-row${oneDateFilter ? ' on' : ''}`}
+              onClick={() => setOneDateFilter((v) => !v)}
+            >
+              1 date / single column
+              <span className="sheet-meta">focus one date card</span>
+            </button>
+          ) : null}
           <button
             type="button"
             className={`sheet-row${setFilter === 'pending' ? ' on' : ''}`}

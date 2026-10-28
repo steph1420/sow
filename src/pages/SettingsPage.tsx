@@ -423,7 +423,7 @@ export default function SettingsPage() {
         <div className="stg-card">
           <button type="button" className="stg-nav-row" onClick={() => setPanel('dev')}>
             <div>
-              <div className="t-label">Shift left · Idle width · Fisheye</div>
+              <div className="t-label">A–Z left · Idle width · Fisheye</div>
               <div className="t-hint">Developer → A–Z physics</div>
             </div>
             <span className="stg-chev">Dev ›</span>
@@ -523,9 +523,15 @@ export default function SettingsPage() {
             max={40}
             onChange={(n) => patchPrefs({ 'az.idleWidth': n })}
           />
+          <ToggleRow
+            label="A–Z on left"
+            hint="Dev: move strip to the left edge of the screen (right stays default)"
+            on={prefs['az.leftSide']}
+            onToggle={() => patchPrefs({ 'az.leftSide': !prefs['az.leftSide'] })}
+          />
           <NumRow
-            label="Shift left"
-            hint="Moves A–Z strip left from the right edge (px). Try 8–24 on phone."
+            label="Edge inset"
+            hint="px inset from the active edge (left or right)"
             value={prefs['az.insetRight']}
             min={0}
             max={64}
@@ -735,7 +741,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <p className="stg-version">Setting of Work · v0.16.1</p>
+      <p className="stg-version">Setting of Work · v0.18.0</p>
     </div>
   )
 }

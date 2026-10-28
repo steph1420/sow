@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.18.0] — 2026-10-28
+### Added
+- Date cards packed: left Date n + day · right subdued topic + `n/N set`
+- **1 date** filter (chip + Filters sheet) — not a view toggle; tap dim card swaps focus
+- Date-card strip slides when >2 dates (max 2 ✓ cols / focused cards)
+- Calendar: **swipe left/right** on sheet changes month (day tap + Cancel/Confirm unchanged)
+- Search: open snaps search bar to top of scroll; names filter live as you type
+- A–Z: mid-viewport latch + subtle first-letter row highlight; HUD just left of ✓ cols
+- Dev **A–Z on left** (strip on left edge; right remains default)
+### Changed
+- A–Z idle ~28px / ~9pt; vertical span = 1st name row → just above Sort/Filters
+- A–Z scrub scroll is instant/urgent (~2× feel vs smooth finger fling)
+- Chrome: Copy just left of search; undo/redo beside Set|Submitted; **1|2 view toggle removed**
+- Hold-paint: **no hold ms** — locks on mostly-horizontal drag; vertical pan scrolls through ✓ cols
+- Whole checklist (incl. ✓ + name–✓ gap) accepts vertical pan-y scroll
+### Notes
+- Manifest stays `standalone`. Wave A select 800ms / 0=none unchanged. Quiet type tokens kept.
+
 ## [0.17.0] — 2026-10-28
 ### Added
 - Checklist two-date **2-col** default when `date2` exists · **1|2** column toggle

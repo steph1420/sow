@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   MONTH_NAMES,
   buildMonthCells,
@@ -20,6 +20,8 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
 
+const SWIPE_MIN_PX = 48
+
 export default function CalendarSheet({ appliedDate, sessionDates, onCancel, onConfirm }: Props) {
   const [today] = useState(() => new Date())
   const applied = useMemo(
@@ -40,6 +42,7 @@ export default function CalendarSheet({ appliedDate, sessionDates, onCancel, onC
     return { y: base.getFullYear(), m: base.getMonth() }
   })
   const [draft, setDraft] = useState<Date>(() => applied ?? today)
+  const swipeRef = useRef<{ x: number; y: number; pid: number } | null>(null)
 
   const cells = useMemo(() => buildMonthCells(cursor.y, cursor.m), [cursor.y, cursor.m])
 
@@ -56,10 +59,39 @@ export default function CalendarSheet({ appliedDate, sessionDates, onCancel, onC
     })
   }
 
+  function onSwipeDown(e: ReactPointerEvent) {
+    // Ignore primary presses that start on action buttons
+    const t = e.target as HTMLElement
+    if (t.closest('.cal-actions') || t.closest('.cal-nav-btn')) return
+    swipeRef.current = { x: e.clientX, y: e.clientY, pid: e.pointerId }
+  }
+
+  function onSwipeUp(e: ReactPointerEvent) {
+    const g = swipeRef.current
+    swipeRef.current = null
+    if (!g || g.pid !== e.pointerId) return
+    const dx = e.clientX - g.x
+    const dy = e.clientY - g.y
+    if (Math.abs(dx) < SWIPE_MIN_PX) return
+    if (Math.abs(dx) <= Math.abs(dy) * 1.1) return // mostly vertical → ignore
+    // Swipe left → next month; swipe right → prev (calendar convention)
+    if (dx < 0) nextMonth()
+    else prevMonth()
+  }
+
   return (
     <div className="cl-sheet-layer" role="presentation">
       <button type="button" className="cl-sheet-scrim" aria-label="Close" onClick={onCancel} />
-      <div className="cl-sheet cl-cal-sheet" role="dialog" aria-label="Calendar">
+      <div
+        className="cl-sheet cl-cal-sheet"
+        role="dialog"
+        aria-label="Calendar"
+        onPointerDown={onSwipeDown}
+        onPointerUp={onSwipeUp}
+        onPointerCancel={() => {
+          swipeRef.current = null
+        }}
+      >
         <div className="cl-sheet-handle" aria-hidden />
         <div className="cal-nav">
           <button type="button" className="cal-nav-btn" aria-label="Previous month" onClick={prevMonth}>

@@ -23,6 +23,7 @@ export type SowPrefs = {
   'az.fe.count': number
   'az.showHud': boolean
   'az.insetRight': number
+  'az.leftSide': boolean
   'filter.default': FilterDefault
   'filter.showPending': boolean
   'filter.showSort': boolean
@@ -43,7 +44,7 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'az.mode': 'fisheye',
   'az.hideEmpty': false,
   'az.widenOnPress': true,
-  'az.idleWidth': 22,
+  'az.idleWidth': 28,
   'az.pressWidth': 48,
   'az.pressFont': 12,
   'az.focusFont': 22,
@@ -53,6 +54,7 @@ export const PREFS_DEFAULTS: SowPrefs = {
   'az.fe.count': 2,
   'az.showHud': true,
   'az.insetRight': 0,
+  'az.leftSide': false,
   'filter.default': 'none',
   'filter.showPending': true,
   'filter.showSort': true,
@@ -117,6 +119,7 @@ function coerce(partial: Partial<Record<string, unknown>>): SowPrefs {
     'az.fe.count': clamp(Math.round(Number(g('az.fe.count')) || 0), 1, 5),
     'az.showHud': Boolean(g('az.showHud')),
     'az.insetRight': clamp(Number(g('az.insetRight')) || 0, 0, 64),
+    'az.leftSide': Boolean(g('az.leftSide')),
     'filter.default': filterDefault === 'pending' ? 'pending' : 'none',
     'filter.showPending': Boolean(g('filter.showPending')),
     'filter.showSort': Boolean(g('filter.showSort')),
@@ -275,6 +278,7 @@ export function parsePrefsExport(text: string): Partial<SowPrefs> | null {
   if (raw['az.fe.count'] !== undefined) patch['az.fe.count'] = parseNum(raw['az.fe.count'], d['az.fe.count'])
   if (raw['az.showHud'] !== undefined) patch['az.showHud'] = parseBool(raw['az.showHud'], d['az.showHud'])
   if (raw['az.insetRight'] !== undefined) patch['az.insetRight'] = parseNum(raw['az.insetRight'], d['az.insetRight'])
+  if (raw['az.leftSide'] !== undefined) patch['az.leftSide'] = parseBool(raw['az.leftSide'], d['az.leftSide'])
   if (raw['filter.default']) {
     const v = raw['filter.default']
     patch['filter.default'] = v === 'pending' ? 'pending' : 'none'

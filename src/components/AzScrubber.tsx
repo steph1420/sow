@@ -12,8 +12,8 @@ type Props = {
 
 /**
  * Fixed viewport A–Z section index — scroll-to only (never filters).
- * Press-drag fisheye + quiet letter HUD. Physics from sow.prefs (`az.*`).
- * Letter slots use flex bands taller than the glyph for easier scrub (all platforms).
+ * Press-drag fisheye + quiet letter HUD (just left of ✓ cols).
+ * Physics from sow.prefs (`az.*`). Dev `az.leftSide` puts strip on left edge.
  */
 export default function AzScrubber({ active, present, onJump }: Props) {
   const stripRef = useRef<HTMLDivElement>(null)
@@ -29,6 +29,7 @@ export default function AzScrubber({ active, present, onJump }: Props) {
     const root = document.documentElement
     root.style.setProperty('--az-idle-width', `${prefs['az.idleWidth']}px`)
     root.style.setProperty('--az-inset-right', `${prefs['az.insetRight']}px`)
+    root.dataset.azSide = prefs['az.leftSide'] ? 'left' : 'right'
   }, [prefs])
 
   const letters = useMemo(() => {
@@ -63,7 +64,6 @@ export default function AzScrubber({ active, present, onJump }: Props) {
 
   const onPointerMove = (e: ReactPointerEvent) => {
     if (!scrubbing.current) return
-    // Generous vertical slop before counting as drag (all platforms)
     if (Math.abs(e.clientY - startY.current) > 4) moved.current = true
     pickFromEvent(e.clientY)
   }
@@ -90,10 +90,19 @@ export default function AzScrubber({ active, present, onJump }: Props) {
   const feStr = prefs['az.fe.strength'] / 100
   const fisheye = prefs['az.mode'] === 'fisheye'
   const inset = prefs['az.insetRight']
+  const onLeft = prefs['az.leftSide']
 
   const stripStyle: CSSProperties = {
     width: widen ? prefs['az.pressWidth'] : prefs['az.idleWidth'],
-    right: `calc(max(0px, (100vw - 480px) / 2) + ${inset}px)`,
+    ...(onLeft
+      ? {
+          left: `calc(max(0px, (100vw - 480px) / 2) + ${inset}px)`,
+          right: 'auto',
+        }
+      : {
+          right: `calc(max(0px, (100vw - 480px) / 2) + ${inset}px)`,
+          left: 'auto',
+        }),
     ['--az-press-font' as string]: `${prefs['az.pressFont']}px`,
     ['--az-focus-font' as string]: `${prefs['az.focusFont']}px`,
   }
@@ -117,7 +126,7 @@ export default function AzScrubber({ active, present, onJump }: Props) {
     }
     const t = 1 - dist / (feCount + 1)
     const scale = 1 + t * feRel * feStr
-    const pushPx = t * fePush * 10 * (idx < focusIdx ? -1 : 1)
+    const pushPx = t * fePush * 10 * (idx < focusIdx ? -1 : 1) * (onLeft ? 1 : -1)
     return {
       fontSize: prefs['az.pressFont'] * (0.85 + t * 0.4),
       transform: `translateX(${pushPx}px) scale(${scale})`,
@@ -130,7 +139,7 @@ export default function AzScrubber({ active, present, onJump }: Props) {
       {widen ? <div className="az-scrub-dim" aria-hidden /> : null}
       <div
         ref={stripRef}
-        className={`az-scrub${widen ? ' wide' : ''}`}
+        className={`az-scrub${widen ? ' wide' : ''}${onLeft ? ' left' : ''}`}
         role="navigation"
         aria-label="Scroll to letter"
         style={stripStyle}
