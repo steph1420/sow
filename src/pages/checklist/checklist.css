@@ -424,6 +424,76 @@
 .ck-row.is-left .ck-check { border-style: dashed; opacity: 0.4; }
 .ck-empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 13px; }
 
+
+/* —— Select / paint Wave A (Phase 2) —— */
+.ck-page.is-selecting .ck-roll {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ck-row.is-sel {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.ck-name {
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 4px 2px;
+  margin: -4px 0;
+}
+.ck-check.is-hold {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.ck-check.is-paint {
+  background: color-mix(in srgb, var(--ok) 28%, transparent);
+  border-color: var(--ok);
+  color: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.ck-sel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.ck-sel-bar .title { font-size: 15px; font-weight: 600; color: var(--text); }
+.ck-sel-bar .sub { font-size: 11px; font-weight: 500; color: var(--text-tertiary, var(--muted)); margin-top: 2px; }
+.ck-sel-exit {
+  width: 40px; height: 40px; border-radius: 10px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-size: 18px;
+}
+.ck-ctx-fab {
+  position: fixed; z-index: 32;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(72px + var(--safe-bottom));
+  min-height: 48px; padding: 0 20px;
+  border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(0,0,0,.32);
+  font-size: 14px; font-weight: 600; color: var(--text);
+}
+.ck-sheet-hint {
+  padding: 0 16px 8px;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-tertiary, var(--muted));
+}
+.ck-sheet-scrim.is-locked { cursor: default; }
+.ck-sheet-row.is-danger { color: var(--danger, #e85d5d); }
+.ck-sheet-row:disabled { opacity: 0.4; }
+.ck-sheet-meta {
+  display: block; font-size: 11px; font-weight: 500;
+  color: var(--text-tertiary, var(--muted)); margin-top: 2px;
+}
+
 /* —— A–Z absolute slots (anti-squish) —— */
 .ck-az {
   position: fixed;
