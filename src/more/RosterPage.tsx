@@ -1,4 +1,4 @@
-import { CLASS_KEYS, CLASS_LABELS } from '../data/types'
+import { CLASS_KEYS, prettyClassLabel } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
@@ -27,7 +27,7 @@ export function RosterPage({ onBack }: Props) {
             className={activeClassKey === k ? 'on' : ''}
             onClick={() => setActiveClassKey(k)}
           >
-            {CLASS_LABELS[k].replace(' Eng ', ' · ')}
+            {prettyClassLabel(k)}
           </button>
         ))}
       </div>

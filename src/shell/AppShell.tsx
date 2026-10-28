@@ -2,11 +2,14 @@ import { useCallback, useState } from 'react'
 import { CheckMark } from '../components/CheckMark'
 import type { ClassKey } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
+import { AboutPage } from '../more/AboutPage'
+import { AppearancePage } from '../more/AppearancePage'
 import { DevPage } from '../more/DevPage'
 import { HistoryPage } from '../more/HistoryPage'
 import { popRoute, pushRoute, topRoute, type MoreStack } from '../more/navStack'
 import { RosterPage } from '../more/RosterPage'
 import { SettingsPage } from '../more/SettingsPage'
+import { SubjectsPage } from '../more/SubjectsPage'
 import { SyncPage } from '../more/SyncPage'
 import { ChecklistScreen } from '../screens/ChecklistScreen'
 import { OverviewScreen } from '../screens/OverviewScreen'
@@ -14,7 +17,7 @@ import { OverviewScreen } from '../screens/OverviewScreen'
 export type TabId = 'checklist' | 'overview'
 
 /**
- * AppShell — Overview · Checklist · More popup (Portal IA v0.23).
+ * AppShell — Overview · Checklist · More popup (Portal IA + pretty Settings).
  * Default landing = Overview (Steve t141u). More stays popup (t137u).
  */
 export function AppShell() {
@@ -78,6 +81,11 @@ export function AppShell() {
             onBack={onBack}
             onOpenDev={() => setStack((s) => pushRoute(s, 'dev'))}
             onOpenSync={() => setStack((s) => pushRoute(s, 'sync'))}
+            onOpenAppearance={() => setStack((s) => pushRoute(s, 'appearance'))}
+            onOpenSubjects={() => setStack((s) => pushRoute(s, 'subjects'))}
+            onOpenRoster={() => setStack((s) => pushRoute(s, 'roster'))}
+            onOpenHistory={() => setStack((s) => pushRoute(s, 'history'))}
+            onOpenAbout={() => setStack((s) => pushRoute(s, 'about'))}
           />
         </div>
       )
@@ -92,7 +100,34 @@ export function AppShell() {
     if (top === 'sync') {
       return (
         <div className="app-shell">
-          <SyncPage onBack={onBack} />
+          <SyncPage
+            onBack={onBack}
+            onOpenSubjects={() => setStack((s) => pushRoute(s, 'subjects'))}
+          />
+        </div>
+      )
+    }
+    if (top === 'appearance') {
+      return (
+        <div className="app-shell">
+          <AppearancePage
+            onBack={onBack}
+            onOpenAzDev={() => setStack((s) => pushRoute(s, 'dev'))}
+          />
+        </div>
+      )
+    }
+    if (top === 'subjects') {
+      return (
+        <div className="app-shell">
+          <SubjectsPage onBack={onBack} />
+        </div>
+      )
+    }
+    if (top === 'about') {
+      return (
+        <div className="app-shell">
+          <AboutPage onBack={onBack} />
         </div>
       )
     }

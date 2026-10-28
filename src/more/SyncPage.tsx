@@ -1,24 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { SubjectId } from '../data/types'
 import { getSettings, putSettings } from '../data'
 import { readSyncStatus } from '../data/persistWorkspace'
 import { useWorkspace } from '../demo/WorkspaceContext'
-import { probeSheet, pullEng, pushLocal, type SyncReport } from '../sync'
+import { probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
-type Props = { onBack: () => void }
+type Props = {
+  onBack: () => void
+  onOpenSubjects?: () => void
+}
+
+const ALL_CHIPS: SubjectId[] = ['Eng', 'Math', 'Sci']
 
 /**
- * Sync — Quiet Lucid status + pull/push.
- * Offline-first: IDB persist always; Eng pull when sheet readable; push needs Apps Script URL.
+ * Sync — Sync now primary · Test / Pull only ghosts · this-run subject chips.
+ * Offline-first honesty (pretty-mj2 · Steve t144).
  */
-export function SyncPage({ onBack }: Props) {
+export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const { reloadFromIdb } = useWorkspace()
   const [sheetUrl, setSheetUrl] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
   const [status, setStatus] = useState<Awaited<ReturnType<typeof readSyncStatus>> | null>(null)
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<SyncReport | null>(null)
+  /** This-run selection — not the forever catalog (Subjects owns that). */
+  const [selected, setSelected] = useState<SubjectId[]>(['Eng', 'Math'])
 
   const refresh = useCallback(async () => {
     const s = await getSettings()
@@ -43,11 +51,21 @@ export function SyncPage({ onBack }: Props) {
       await saveUrls()
       const r = await fn()
       setReport(r)
-      if (r.ok && r.mode === 'pull') await reloadFromIdb()
+      if (r.ok && (r.mode === 'pull' || r.mode === 'sync')) await reloadFromIdb()
       await refresh()
     } finally {
       setBusy(false)
     }
+  }
+
+  const toggleChip = (s: SubjectId) => {
+    setSelected((cur) => {
+      if (cur.includes(s)) {
+        if (cur.length === 1) return cur // keep ≥1
+        return cur.filter((x) => x !== s)
+      }
+      return [...cur, s]
+    })
   }
 
   const last = status?.lastSyncAt
@@ -60,8 +78,8 @@ export function SyncPage({ onBack }: Props) {
   return (
     <MoreChrome title="Sync" onBack={onBack}>
       <div className="more-hint">
-        Offline-first · marks save to this device (IDB). Eng pull uses the Sheet link when readable.
-        Push needs an Apps Script web-app URL — leave blank until connected.
+        Offline-first · marks save on this device. Pull any readable subject tabs from the Sheet.
+        Push needs an Apps Script URL — leave blank until connected.
       </div>
 
       <div className="more-sec">Status</div>
@@ -74,9 +92,14 @@ export function SyncPage({ onBack }: Props) {
           Local dirty
           <span className="meta">{status?.syncDirty ? 'Yes' : 'No'}</span>
         </div>
-        <div className="more-row" style={{ cursor: 'default' }}>
-          Sheet
-          <span className="meta">{status?.connectedSheet ? 'URL set' : 'Not set'}</span>
+        <div className="more-row more-row-stack" style={{ cursor: 'default' }}>
+          <div className="more-row-main">
+            Sheet
+            <span className="meta" style={{ color: status?.connectedSheet ? 'var(--ok)' : undefined }}>
+              {status?.connectedSheet ? 'URL set' : 'Not set'}
+            </span>
+          </div>
+          <div className="more-row-sub">Eng · Math · shared roster</div>
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Push bridge
@@ -91,8 +114,8 @@ export function SyncPage({ onBack }: Props) {
       ) : null}
 
       <div className="more-sec">Connections</div>
-      <div className="more-card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <label className="more-hint" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="more-card" style={{ padding: 0 }}>
+        <label className="sync-field">
           Google Sheet URL
           <input
             className="sync-input"
@@ -103,7 +126,7 @@ export function SyncPage({ onBack }: Props) {
             name="sow-sheet-url"
           />
         </label>
-        <label className="more-hint" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label className="sync-field">
           Apps Script sync URL (push)
           <input
             className="sync-input"
@@ -114,24 +137,61 @@ export function SyncPage({ onBack }: Props) {
             name="sow-sync-url"
           />
         </label>
-        <button type="button" className="more-row" style={{ borderRadius: 10 }} onClick={() => void saveUrls()} disabled={busy}>
-          Save connections
-        </button>
+        <div className="pill-row">
+          {ALL_CHIPS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`subj-pill${selected.includes(s) ? ' on' : ''}`}
+              onClick={() => toggleChip(s)}
+              disabled={busy}
+            >
+              {s}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="subj-pill"
+            onClick={() => onOpenSubjects?.()}
+            disabled={busy || !onOpenSubjects}
+            title="Manage catalog in Subjects & sheets"
+          >
+            + tab
+          </button>
+        </div>
       </div>
 
-      <div className="more-sec">Actions</div>
-      <div className="more-card">
-        <button type="button" className="more-row" disabled={busy} onClick={() => void run(probeSheet)}>
+      <button
+        type="button"
+        className="sync-cta"
+        disabled={busy}
+        onClick={() => void run(() => syncNow(selected))}
+      >
+        <span className="spin" aria-hidden>
+          ⟳
+        </span>
+        Sync now
+      </button>
+      <div className="more-hint" style={{ marginTop: -6 }}>
+        Pulls selected tabs · pushes when bridge ready. Marks always save on this device.
+      </div>
+
+      <div className="sync-secondary">
+        <button
+          type="button"
+          className="ghost"
+          disabled={busy}
+          onClick={() => void run(probeSheet)}
+        >
           Test sheet
-          <span className="chev">›</span>
         </button>
-        <button type="button" className="more-row" disabled={busy} onClick={() => void run(pullEng)}>
-          Pull Eng tabs
-          <span className="chev">›</span>
-        </button>
-        <button type="button" className="more-row" disabled={busy} onClick={() => void run(pushLocal)}>
-          Push local
-          <span className="chev">›</span>
+        <button
+          type="button"
+          className="ghost"
+          disabled={busy}
+          onClick={() => void run(() => pullSubjects(selected))}
+        >
+          Pull only
         </button>
       </div>
 

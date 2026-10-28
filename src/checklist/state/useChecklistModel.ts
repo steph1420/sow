@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { CLASS_LABELS, type ClassKey } from '../../data/types'
+import { prettyClassLabel, type ClassKey } from '../../data/types'
 import { useWorkspace } from '../../demo/WorkspaceContext'
 import { WORKSPACE_DATES } from '../../demo/workspaceData'
 import {
@@ -22,7 +22,7 @@ function fieldOf(m: { set: boolean; submitted: boolean }, mode: MarkMode): boole
 }
 
 function classLabelOf(key: ClassKey): string {
-  return CLASS_LABELS[key].replace(' Eng ', ' · Eng ')
+  return prettyClassLabel(key)
 }
 
 export function useChecklistModel() {

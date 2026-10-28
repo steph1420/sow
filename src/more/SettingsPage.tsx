@@ -1,4 +1,3 @@
-import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
@@ -6,71 +5,114 @@ type Props = {
   onBack: () => void
   onOpenDev: () => void
   onOpenSync: () => void
+  onOpenAppearance: () => void
+  onOpenSubjects: () => void
+  onOpenRoster: () => void
+  onOpenHistory: () => void
+  onOpenAbout: () => void
 }
 
 /**
- * Settings — Quiet prefs that matter only.
- * No empty toggles / preference farm. Dev + Sync are progressive disclosure.
+ * Settings home — ColorOS-soft hero tiles + Classroom / System (pretty-mj3).
+ * No Soft-green toggle · no Marking-defaults duplicate.
  */
-export function SettingsPage({ onBack, onOpenDev, onOpenSync }: Props) {
-  const { prefs, setTheme, setPref } = usePrefs()
-
+export function SettingsPage({
+  onBack,
+  onOpenDev,
+  onOpenSync,
+  onOpenAppearance,
+  onOpenSubjects,
+  onOpenRoster,
+  onOpenHistory,
+  onOpenAbout,
+}: Props) {
   return (
     <MoreChrome title="Settings" onBack={onBack}>
-      <div className="more-sec">Appearance</div>
-      <div className="more-card">
-        <div className="more-row" style={{ cursor: 'default' }}>
-          Theme
-          <div className="seg" style={{ marginLeft: 'auto', width: 160 }}>
-            <button
-              type="button"
-              className={prefs.theme === 'night' ? 'on' : ''}
-              onClick={() => setTheme('night')}
-            >
-              Night
-            </button>
-            <button
-              type="button"
-              className={prefs.theme === 'day' ? 'on' : ''}
-              onClick={() => setTheme('day')}
-            >
-              Day
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="more-hint">Quiet Lucid tokens · Day is soft paper, not high-chrome.</div>
+      <div className="more-hint">Marking · sync · look & feel · teacher tools</div>
 
-      <div className="more-sec">Checklist</div>
-      <div className="more-card">
-        <button
-          type="button"
-          className="more-row"
-          onClick={() => setPref('chrome.showFab', !prefs['chrome.showFab'])}
-        >
-          Show Sort/Filters FAB
-          <span
-            className={`toggle${prefs['chrome.showFab'] ? ' on' : ''}`}
-            aria-hidden
-          />
+      <div className="hero-grid">
+        <button type="button" className="hero-card" onClick={onOpenSync}>
+          <span className="glow" style={{ background: '#30d158' }} />
+          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#2ecc71,#1fa855)' }}>
+            ⟳
+          </div>
+          <div>
+            <div className="hc-label">
+              Sync <span className="chev">›</span>
+            </div>
+            <div className="hc-sub">Sheet · subjects</div>
+          </div>
+        </button>
+        <button type="button" className="hero-card" onClick={onOpenAppearance}>
+          <span className="glow" style={{ background: '#8b7cf7' }} />
+          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#8b7cf7,#6c5ce7)' }}>
+            ◐
+          </div>
+          <div>
+            <div className="hc-label">
+              Appearance <span className="chev">›</span>
+            </div>
+            <div className="hc-sub">Night · Day</div>
+          </div>
+        </button>
+        <button type="button" className="hero-card wide" onClick={onOpenSubjects}>
+          <div className="hc-ico soft">☰</div>
+          <div style={{ flex: 1 }}>
+            <div className="hc-label">
+              Subjects & sheets <span className="chev">›</span>
+            </div>
+            <div className="hc-sub">Eng · Math · Sci · manage tabs</div>
+          </div>
         </button>
       </div>
-      <div className="more-hint">
-        Default off so the roster stays the hero. Turn on only when you want the cluster.
+
+      <div className="more-sec">Classroom</div>
+      <div className="more-card">
+        <button type="button" className="more-row g-row-like" onClick={onOpenRoster}>
+          <span className="g-ico teal" aria-hidden>
+            ◎
+          </span>
+          <span className="g-body">
+            <span className="g-title">Roster</span>
+            <span className="g-sub">KGA · KGB · rolls</span>
+          </span>
+          <span className="chev">›</span>
+        </button>
+        <button type="button" className="more-row g-row-like" onClick={onOpenHistory}>
+          <span className="g-ico orange" aria-hidden>
+            ◷
+          </span>
+          <span className="g-body">
+            <span className="g-title">History</span>
+            <span className="g-sub">Past mark sessions</span>
+          </span>
+          <span className="chev">›</span>
+        </button>
       </div>
 
       <div className="more-sec">System</div>
       <div className="more-card">
-        <button type="button" className="more-row" onClick={onOpenSync}>
-          Sync
+        <button type="button" className="more-row g-row-like" onClick={onOpenDev}>
+          <span className="g-ico soft" aria-hidden>
+            ⚙
+          </span>
+          <span className="g-body">
+            <span className="g-title">Dev options</span>
+            <span className="g-sub">Demo data · diagnostics</span>
+          </span>
           <span className="chev">›</span>
         </button>
-        <button type="button" className="more-row" onClick={onOpenDev}>
-          Dev options
+        <button type="button" className="more-row g-row-like" onClick={onOpenAbout}>
+          <span className="g-ico soft" aria-hidden>
+            ?
+          </span>
+          <span className="g-body">
+            <span className="g-title">About</span>
+            <span className="g-sub">v0.24.0 · Quiet Lucid</span>
+          </span>
           <span className="chev">›</span>
         </button>
       </div>
-      <div className="more-hint">Sync is offline-first · Eng pull when the Sheet is reachable · push needs Apps Script.</div>
     </MoreChrome>
   )
 }

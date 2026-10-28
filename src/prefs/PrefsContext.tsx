@@ -10,6 +10,7 @@ import {
 import {
   applyTheme,
   loadPrefs,
+  resolveTheme,
   savePrefs,
   type AppPrefs,
   type ThemeId,
@@ -27,8 +28,19 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<AppPrefs>(() => loadPrefs())
 
   useEffect(() => {
-    applyTheme(prefs.theme)
-  }, [prefs.theme])
+    applyTheme(resolveTheme(prefs))
+    document.documentElement.dataset.reduceMotion = prefs['chrome.reduceMotion']
+      ? '1'
+      : '0'
+  }, [prefs])
+
+  useEffect(() => {
+    if (!prefs['theme.followSystem']) return
+    const mq = window.matchMedia('(prefers-color-scheme: light)')
+    const onChange = () => applyTheme(resolveTheme(prefs))
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [prefs])
 
   useEffect(() => {
     savePrefs(prefs)
@@ -39,7 +51,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setTheme = useCallback((theme: ThemeId) => {
-    setPrefs((p) => ({ ...p, theme }))
+    setPrefs((p) => ({ ...p, theme, 'theme.followSystem': false }))
   }, [])
 
   const value = useMemo(() => ({ prefs, setPref, setTheme }), [prefs, setPref, setTheme])

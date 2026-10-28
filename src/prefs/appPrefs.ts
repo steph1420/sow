@@ -7,8 +7,12 @@ export type ThemeId = 'night' | 'day'
 
 export type AppPrefs = {
   theme: ThemeId
+  /** Match phone dark/light when on. */
+  'theme.followSystem': boolean
   /** Sort/Filters FAB — Steve default hide (t118u). */
   'chrome.showFab': boolean
+  /** Soft: less glow on stroke. */
+  'chrome.reduceMotion': boolean
   /** Dev: A–Z on left. */
   'az.leftSide': boolean
   /** Dev: hide missing letters — default OFF (full alphabet dim). */
@@ -19,7 +23,9 @@ export type AppPrefs = {
 
 export const PREFS_DEFAULTS: AppPrefs = {
   theme: 'night',
+  'theme.followSystem': false,
   'chrome.showFab': false,
+  'chrome.reduceMotion': false,
   'az.leftSide': false,
   'az.hideEmpty': false,
   'az.showHud': true,
@@ -46,4 +52,13 @@ export function applyTheme(theme: ThemeId): void {
   document.documentElement.dataset.theme = theme
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.setAttribute('content', theme === 'day' ? '#f4f5f7' : '#0a0b0e')
+}
+
+/** Resolve theme when follow-system is on. */
+export function resolveTheme(prefs: AppPrefs): ThemeId {
+  if (!prefs['theme.followSystem']) return prefs.theme
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'night'
+  }
+  return prefs.theme
 }

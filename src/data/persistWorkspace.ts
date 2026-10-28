@@ -23,12 +23,9 @@ export function marksToMap(marks: { roll: number; date: string; set: boolean; su
 }
 
 export function emptyMarksByClass(): MarksByClass {
-  return {
-    KGA_Eng_CW: {},
-    KGB_Eng_CW: {},
-    KGA_Eng_HW: {},
-    KGB_Eng_HW: {},
-  }
+  const out = {} as MarksByClass
+  for (const key of CLASS_KEYS) out[key] = {}
+  return out
 }
 
 /** Load workspace marks + rosters from IDB. Missing class → empty. */
@@ -57,12 +54,9 @@ export async function loadWorkspaceFromIdb(): Promise<{
 }
 
 function emptyRosters(): RostersByClass {
-  return {
-    KGA_Eng_CW: [],
-    KGB_Eng_CW: [],
-    KGA_Eng_HW: [],
-    KGB_Eng_HW: [],
-  }
+  const out = {} as RostersByClass
+  for (const key of CLASS_KEYS) out[key] = []
+  return out
 }
 
 /** Seed demo roster + marks into IDB (offline-first dogfood). */

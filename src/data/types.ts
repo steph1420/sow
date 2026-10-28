@@ -1,8 +1,26 @@
 /** Field names aligned with docs/SHEET_MAPPING.md */
 
-export type ClassKey = 'KGA_Eng_CW' | 'KGB_Eng_CW' | 'KGA_Eng_HW' | 'KGB_Eng_HW'
+export type SubjectId = 'Eng' | 'Math' | 'Sci'
+
+export type ClassKey =
+  | 'KGA_Eng_CW'
+  | 'KGB_Eng_CW'
+  | 'KGA_Eng_HW'
+  | 'KGB_Eng_HW'
+  | 'KGA_Math_CW'
+  | 'KGB_Math_HW'
 
 export const CLASS_KEYS: ClassKey[] = [
+  'KGA_Eng_CW',
+  'KGB_Eng_CW',
+  'KGA_Math_CW',
+  'KGA_Eng_HW',
+  'KGB_Eng_HW',
+  'KGB_Math_HW',
+]
+
+/** Eng sheet tabs — Sync A pull path. */
+export const ENG_CLASS_KEYS: ClassKey[] = [
   'KGA_Eng_CW',
   'KGB_Eng_CW',
   'KGA_Eng_HW',
@@ -14,6 +32,25 @@ export const CLASS_LABELS: Record<ClassKey, string> = {
   KGB_Eng_CW: 'KGB Eng CW',
   KGA_Eng_HW: 'KGA Eng HW',
   KGB_Eng_HW: 'KGB Eng HW',
+  KGA_Math_CW: 'KGA Math CW',
+  KGB_Math_HW: 'KGB Math HW',
+}
+
+export function subjectOf(key: ClassKey): SubjectId {
+  if (key.includes('_Math_')) return 'Math'
+  if (key.includes('_Sci_')) return 'Sci'
+  return 'Eng'
+}
+
+export function classKeysForSubject(subject: SubjectId): ClassKey[] {
+  return CLASS_KEYS.filter((k) => subjectOf(k) === subject)
+}
+
+export function prettyClassLabel(key: ClassKey): string {
+  return CLASS_LABELS[key]
+    .replace(' Eng ', ' · Eng ')
+    .replace(' Math ', ' · Math ')
+    .replace(' Sci ', ' · Sci ')
 }
 
 export interface Student {

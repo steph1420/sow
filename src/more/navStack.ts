@@ -1,6 +1,14 @@
 /** More destination stack — Back pops exactly one step. */
 
-export type MoreRouteId = 'roster' | 'history' | 'settings' | 'dev' | 'sync'
+export type MoreRouteId =
+  | 'roster'
+  | 'history'
+  | 'settings'
+  | 'dev'
+  | 'sync'
+  | 'appearance'
+  | 'subjects'
+  | 'about'
 
 export type MoreStack = MoreRouteId[]
 

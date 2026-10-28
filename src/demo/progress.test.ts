@@ -7,8 +7,10 @@ import {
 } from './workspaceData'
 
 describe('overview demo progress', () => {
-  it('seeds four sessions with remock-scale KGA CW progress', () => {
-    expect(DEMO_SESSIONS).toHaveLength(4)
+  it('seeds multi-subject sessions with remock-scale KGA Eng CW progress', () => {
+    expect(DEMO_SESSIONS.length).toBeGreaterThanOrEqual(5)
+    expect(DEMO_SESSIONS.some((s) => s.subject === 'Math')).toBe(true)
+    expect(DEMO_SESSIONS.some((s) => s.subject === 'Eng')).toBe(true)
     const key = 'KGA_Eng_CW'
     const marks = seedClassMarks(key)
     const p = progressForSession(marks, ROSTERS[key], '2026-10-28')
@@ -25,5 +27,14 @@ describe('overview demo progress', () => {
     expect(p.set).toBe(38)
     expect(p.pct).toBe(90)
     expect(p.tone).toBe('hi')
+  })
+
+  it('Math CW remock-scale ~22/40', () => {
+    const key = 'KGA_Math_CW'
+    const p = progressForSession(seedClassMarks(key), ROSTERS[key], '2026-10-28')
+    expect(p.total).toBe(40)
+    expect(p.set).toBe(22)
+    expect(p.submitted).toBe(9)
+    expect(p.pct).toBe(55)
   })
 })

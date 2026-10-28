@@ -1,6 +1,6 @@
 # Setting of Work (SoW)
 
-KGA/KGB Eng CW/HW marking PWA — **Lucid Quiet whole-app rewrite** (v0.23.0).
+KGA/KGB Eng CW/HW marking PWA — **Lucid Quiet whole-app rewrite** (v0.24.0).
 
 **Live:** https://steph1420.github.io/sow/
 

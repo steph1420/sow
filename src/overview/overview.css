@@ -204,3 +204,37 @@
   padding: 24px 8px;
   text-align: center;
 }
+
+.ov-subj-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-ter);
+  margin-bottom: 2px;
+}
+.ov-subj-tag.eng { color: rgba(48, 209, 88, 0.75); }
+.ov-subj-tag.math { color: rgba(91, 141, 239, 0.85); }
+.ov-subj-tag.sci { color: rgba(52, 199, 181, 0.85); }
+
+.ov-chev {
+  width: 18px;
+  height: 18px;
+  color: var(--text-ter);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+.ov-chev.open {
+  color: var(--ok);
+  transform: rotate(90deg);
+}
+
+.ov-actions .btn.primary {
+  flex: 1;
+}

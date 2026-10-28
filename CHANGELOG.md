@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.0 — 2026-10-28 (Asia/Calcutta)
+
+### Pretty plug — accordion · Sync now · Settings craft · multi-subject
+- **Overview accordion**: kill Now-marking promote; flat Classes list; `expandedId` expands in place; one open; stable order; subject tags; Eng·Math filters; **no Share** stub.
+- **Multi-subject**: demo Math sessions (`KGA_Math_CW`, `KGB_Math_HW`) + Eng; Sync/Settings copy says subject tabs (not Eng-only).
+- **Sync**: primary soft-green **Sync now** (pull selected · push iff bridge + dirty · else Quiet saved-on-device); ghosts Test sheet · Pull only; this-run subject chips; `+ tab` → Subjects.
+- **Settings craft**: ColorOS-soft hero tiles (Sync · Appearance · Subjects & sheets) + Classroom/System rows; Appearance Night/Day phones + FAB · A–Z · Reduce motion; **no** Soft-green toggle · **no** Marking-defaults dup.
+- **Subjects & sheets**: honest catalog stub (Sci = not on sheet yet).
+- Coding triangulation: `/workspace/sow-mockups/CODE_TRIANGULATION_v024.md` · plans locked + plugged.
+- Live: https://steph1420.github.io/sow/
+- Rollback: git tag `v0.23.0` / `eec0375`
+
+
 ## 0.23.0 — 2026-10-28 (Asia/Calcutta)
 
 ### Portal IA — Overview entry · lean Checklist

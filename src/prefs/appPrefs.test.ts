@@ -20,10 +20,12 @@ beforeEach(() => {
 })
 
 describe('appPrefs', () => {
-  it('defaults: FAB off, hideEmpty off, night', () => {
+  it('defaults: FAB off, hideEmpty off, night, reduceMotion off', () => {
     const p = loadPrefs()
     expect(p['chrome.showFab']).toBe(false)
     expect(p['az.hideEmpty']).toBe(false)
+    expect(p['chrome.reduceMotion']).toBe(false)
+    expect(p['theme.followSystem']).toBe(false)
     expect(p.theme).toBe('night')
     expect(p).toEqual(PREFS_DEFAULTS)
   })

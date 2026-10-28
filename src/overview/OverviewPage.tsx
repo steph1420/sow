@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
+import type { SubjectId } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { progressForSession, WORKSPACE_DATES } from '../demo/workspaceData'
 import { SessionCard } from './SessionCard'
 import './overview.css'
 
-type GroupFilter = 'All' | 'KGA' | 'KGB' | 'CW' | 'HW'
+type GroupFilter = 'All' | 'KGA' | 'KGB'
+type SubjectFilter = 'All' | SubjectId
 type DateFilter = 'All' | string // dayLabel or All
 
 type Props = {
@@ -12,18 +14,18 @@ type Props = {
 }
 
 /**
- * Overview — entry portal / home (Portal IA portal-mj1).
- * Pick class · date · topic · Open Checklist.
+ * Overview — entry portal / home (Portal IA + pretty accordion).
+ * Flat Classes list · expand in place · no Now-marking promote (Steve t142/t144).
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
   const { sessions, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
   const [group, setGroup] = useState<GroupFilter>('All')
+  const [subject, setSubject] = useState<SubjectFilter>('All')
   const [dateF, setDateF] = useState<DateFilter>('All')
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     const match = sessions.find((s) => s.classKey === activeClassKey)
     return match?.id ?? sessions[0]?.id ?? null
   })
-  const [shareNote, setShareNote] = useState<string | null>(null)
 
   const dateChips = useMemo(() => {
     const labels = WORKSPACE_DATES.map((d) => d.dayLabel)
@@ -34,54 +36,20 @@ export function OverviewPage({ onOpenChecklist }: Props) {
     return sessions.filter((s) => {
       if (group === 'KGA' || group === 'KGB') {
         if (s.group !== group) return false
-      } else if (group === 'CW' || group === 'HW') {
-        if (s.kind !== group) return false
       }
+      if (subject !== 'All' && s.subject !== subject) return false
       if (dateF !== 'All' && s.date.dayLabel !== dateF) return false
       return true
     })
-  }, [sessions, group, dateF])
-
-  const nowMarking = useMemo(() => {
-    if (!filtered.length) return null
-    const exp = filtered.find((s) => s.id === expandedId)
-    return exp ?? filtered[0]!
-  }, [filtered, expandedId])
-
-  const others = useMemo(() => {
-    if (!nowMarking) return []
-    return filtered.filter((s) => s.id !== nowMarking.id)
-  }, [filtered, nowMarking])
+  }, [sessions, group, subject, dateF])
 
   const subLine = useMemo(() => {
     const d = WORKSPACE_DATES[0]
     return `${d.dayLabel} Oct · pick a class to mark`
   }, [])
 
-  const renderCard = (s: (typeof sessions)[0], expanded: boolean) => {
-    const prog = progressForSession(
-      marksByClass[s.classKey],
-      rosterFor(s.classKey),
-      s.date.date,
-    )
-    return (
-      <SessionCard
-        key={s.id}
-        session={s}
-        progress={prog}
-        expanded={expanded}
-        onExpand={() => setExpandedId(s.id)}
-        onOpenChecklist={() => {
-          setActiveClassKey(s.classKey)
-          setExpandedId(s.id)
-          onOpenChecklist()
-        }}
-        onShare={() => {
-          setShareNote(`Share for ${s.label} — Sync.`)
-          window.setTimeout(() => setShareNote(null), 2200)
-        }}
-      />
-    )
+  const toggleExpand = (id: string) => {
+    setExpandedId((cur) => (cur === id ? null : id))
   }
 
   return (
@@ -94,16 +62,36 @@ export function OverviewPage({ onOpenChecklist }: Props) {
 
       <div className="ov-filters">
         <div className="ov-slide">
-          {(['All', 'KGA', 'KGB', 'CW'] as GroupFilter[]).map((g) => (
-            <button
-              key={g}
-              type="button"
-              className={`ov-f${group === g ? ' on' : ''}`}
-              onClick={() => setGroup(g)}
-            >
-              {g}
-            </button>
-          ))}
+          {(['All', 'KGA', 'KGB', 'Eng', 'Math'] as const).map((g) => {
+            const isOn =
+              g === 'All'
+                ? group === 'All' && subject === 'All'
+                : g === 'Eng' || g === 'Math'
+                  ? subject === g
+                  : group === g
+            const handle = () => {
+              if (g === 'Eng' || g === 'Math') {
+                setSubject(g)
+                setGroup('All')
+              } else if (g === 'All') {
+                setGroup('All')
+                setSubject('All')
+              } else {
+                setGroup(g)
+                setSubject('All')
+              }
+            }
+            return (
+              <button
+                key={g}
+                type="button"
+                className={`ov-f${isOn ? ' on' : ''}`}
+                onClick={handle}
+              >
+                {g}
+              </button>
+            )
+          })}
         </div>
         <div className="ov-div" />
         <div className="ov-slide">
@@ -123,27 +111,31 @@ export function OverviewPage({ onOpenChecklist }: Props) {
       {filtered.length === 0 ? (
         <div className="ov-empty">No sessions match these filters.</div>
       ) : (
-        <div className="ov-list">
-          {nowMarking ? (
-            <>
-              <div className="ov-section-lbl">Now marking</div>
-              {renderCard(nowMarking, true)}
-            </>
-          ) : null}
-          {others.length ? (
-            <>
-              <div className="ov-section-lbl">Other classes</div>
-              {others.map((s) => renderCard(s, false))}
-            </>
-          ) : null}
+        <div className="ov-list" aria-label="Classes">
+          {filtered.map((s) => {
+            const prog = progressForSession(
+              marksByClass[s.classKey],
+              rosterFor(s.classKey),
+              s.date.date,
+            )
+            const expanded = expandedId === s.id
+            return (
+              <SessionCard
+                key={s.id}
+                session={s}
+                progress={prog}
+                expanded={expanded}
+                onExpand={() => toggleExpand(s.id)}
+                onOpenChecklist={() => {
+                  setActiveClassKey(s.classKey)
+                  setExpandedId(s.id)
+                  onOpenChecklist()
+                }}
+              />
+            )
+          })}
         </div>
       )}
-
-      {shareNote ? (
-        <div className="ov-empty" role="status">
-          {shareNote}
-        </div>
-      ) : null}
     </div>
   )
 }

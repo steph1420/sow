@@ -14,6 +14,15 @@ describe('more navStack', () => {
     expect(topRoute(s)).toBe(null)
   })
 
+  it('settings → appearance → subjects stack', () => {
+    let s = pushRoute([], 'settings')
+    s = pushRoute(s, 'appearance')
+    s = pushRoute(s, 'subjects')
+    expect(topRoute(s)).toBe('subjects')
+    s = popRoute(s)
+    expect(topRoute(s)).toBe('appearance')
+  })
+
   it('pop on empty is safe', () => {
     expect(popRoute([])).toEqual([])
   })
