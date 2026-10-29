@@ -57,7 +57,7 @@
   border: 0;
   padding: 0;
   color: inherit;
-  cursor: pointer;
+  cursor: default;
 }
 
 .sw-lean-class {

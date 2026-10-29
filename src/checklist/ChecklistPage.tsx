@@ -39,7 +39,7 @@ type Props = {
  * Portal IA Checklist — lean panel (class · topic · set-count).
  * Mode / Pending / Copy live in Tools sheet. Wave A gestures unchanged.
  */
-export function ChecklistPage({ onGoOverview }: Props) {
+export function ChecklistPage(_props: Props) {
   const m = useChecklistModel()
   const { prefs } = usePrefs()
   const showFab = prefs['chrome.showFab']
@@ -377,12 +377,8 @@ export function ChecklistPage({ onGoOverview }: Props) {
       <div className="sw-chrome" data-testid="sw-chrome">
       <div className="sw-lean">
         <div className={`sw-lean-main${leanHidden ? ' is-hidden' : ''}`}>
-          <button
-            type="button"
-            className="sw-lean-left"
-            onClick={() => onGoOverview?.()}
-            aria-label="Back to Overview"
-          >
+          {/* P2-3: title is read-only (was a full-width "Back to Overview" button); Back/tab bar navigate */}
+          <div className="sw-lean-left">
             <div className="sw-lean-class">{m.classLabel}</div>
             <div className="sw-lean-topic">
               {echoDate.topic}{' '}
@@ -393,7 +389,7 @@ export function ChecklistPage({ onGoOverview }: Props) {
                   : (m.visibleDates[0] ?? echoDate).dayNum}
               </span>
             </div>
-          </button>
+          </div>
           <div className={`sw-lean-count${m.mode === 'submitted' ? ' mode-sub' : ''}`}>
             <div className="n">
               {echoProg.n}/{echoProg.total}
