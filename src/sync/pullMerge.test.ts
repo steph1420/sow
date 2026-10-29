@@ -114,3 +114,13 @@ describe('P1-2 offline sync keeps last tabs', () => {
     expect((await getSettings()).discoveredTabs?.length).toBe(4)
   })
 })
+
+describe('P2-4 undated tick column is a quiet note, not a sticky warning', () => {
+  it('keeps lastSyncError clean and records a note', async () => {
+    const r = await pullSubjects(['Eng'])
+    expect(r.ok).toBe(true)
+    const s = await getSettings()
+    expect(s.lastSyncError ?? '').not.toMatch(/no Current date/)
+    expect((s.syncNotes ?? []).join(' ')).toMatch(/KGB Eng HW.*col D/)
+  })
+})

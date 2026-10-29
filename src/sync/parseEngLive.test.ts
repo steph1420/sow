@@ -33,6 +33,6 @@ describe('parseEngTabLite — live sheet shapes (2026-10-29)', () => {
     const p = parseEngTabLite('KGB_Eng_HW', fx('kgb_eng_hw.csv'), NOW)
     expect(p.tickCols.map((t) => [t.col, t.date])).toEqual([[2, '30/9']])
     expect(p.marks.length).toBe(p.students.length)
-    expect(p.warnings.join(' ')).toMatch(/col D/)
+    expect(p.notes.join(' ')).toMatch(/col D/)
   })
 })

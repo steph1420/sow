@@ -111,6 +111,8 @@ export interface Settings {
   seededAt?: string
   lastSyncAt?: string
   lastSyncError?: string
+  /** P2-4: quiet per-tab notes from the last pull (replaced every pull, never a warning). */
+  syncNotes?: string[]
   syncDirty?: boolean
   /** Sync A: Eng tick+Current hash + seen/sync times per classKey */
   engSyncState?: Partial<Record<ClassKey, EngSyncState>>

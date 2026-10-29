@@ -38,6 +38,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const [selected, setSelected] = useState<SubjectId[]>([])
   const [tabs, setTabs] = useState<DiscoveredTab[]>([])
   const [discovering, setDiscovering] = useState(false)
+  const [notes, setNotes] = useState<string[]>([])
   const chips = chipsFrom(tabs)
   // P1-2: offline gate — keep last tabs/chips, disable network actions, say so.
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false)
@@ -64,6 +65,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const refresh = useCallback(async () => {
     const s = await getSettings()
     applyTabs(s.discoveredTabs ?? [])
+    setNotes(s.syncNotes ?? [])
     setSheetUrl(s.sheetUrl)
     setSyncUrl(s.syncUrl)
     setStatus(await readSyncStatus())
@@ -171,6 +173,14 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       {status?.lastSyncError ? (
         <div className="more-hint" style={{ color: 'var(--warn)' }}>
           {status.lastSyncError}
+        </div>
+      ) : null}
+
+      {notes.length ? (
+        <div className="more-hint sync-note" role="note">
+          {notes.map((n) => (
+            <div key={n}>{n}</div>
+          ))}
         </div>
       ) : null}
 

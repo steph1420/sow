@@ -106,6 +106,8 @@ export function parseEngTabLite(
   entries: CurrentEntry[]
   tickCols: TickCol[]
   warnings: string[]
+  /** P2-4: sheet-layout info that needs no action from the app (e.g. undated tick column). */
+  notes: string[]
 } {
   const year = Number.parseInt(nowIso.slice(0, 4), 10) || 2026
   const entries = parseCurrentEntries(rows)
@@ -114,8 +116,9 @@ export function parseEngTabLite(
   const students: Student[] = []
   const marks: Mark[] = []
   const warnings: string[] = []
+  const notes: string[] = []
   const tickCols: TickCol[] = []
-  if (start < 0) return { students, marks, current, entries, tickCols, warnings }
+  if (start < 0) return { students, marks, current, entries, tickCols, warnings, notes }
 
   const header = rows[0] ?? []
   const currentCol = findCurrentCol(rows)
@@ -152,7 +155,9 @@ export function parseEngTabLite(
   pending.forEach((col, i) => {
     const e = free[i]
     if (!e) {
-      warnings.push(`col ${String.fromCharCode(65 + col)} has ticks but no Current date`)
+      notes.push(
+        `col ${String.fromCharCode(65 + col)} has ticks but no date under Current · not imported. Add a second Current date on the sheet to bring them in.`,
+      )
       return
     }
     tickCols.push({ col, date: e.date, topic: e.topic || topicFor(e.date, col), source: 'current' })
@@ -185,5 +190,5 @@ export function parseEngTabLite(
     }
   }
 
-  return { students, marks, current, entries, tickCols, warnings }
+  return { students, marks, current, entries, tickCols, warnings, notes }
 }

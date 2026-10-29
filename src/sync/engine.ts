@@ -136,6 +136,7 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
   const errors: string[] = []
   const perTab: TabPullStat[] = []
   const engSyncState = { ...(settings.engSyncState ?? {}) }
+  const notes: string[] = []
 
   for (const tab of tabs) {
     const key = tab.classKey
@@ -192,6 +193,7 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
       pulledMarks += stat.marks
       perTab.push(stat)
       for (const w of parsed.warnings) errors.push(`${tab.name}: ${w}`)
+      for (const n of parsed.notes) notes.push(`${tab.name}: ${n}`)
     } catch (e) {
       errors.push(`${tab.name}: ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -209,6 +211,7 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
     lastSyncAt: ok ? now : settings.lastSyncAt,
     lastSyncError: ok ? (errors.length ? errors.join('; ') : undefined) : message,
     syncDirty: ok ? false : settings.syncDirty,
+    ...(ok ? { syncNotes: notes } : {}),
   })
 
   return { ok, message, mode: 'pull', pulledStudents, pulledMarks, pushed: false, perTab }
