@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.34.0'
+var BRIDGE_VERSION = '0.36.0'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -276,6 +276,46 @@ function pairClaim_(code, nowMs) {
   p.deleteProperty(PAIR_KEY)
   return { ok: true, token: token_() }
 }
+// ───────────────────────── prefs sync (v0.36.0, t52u) ─────────────────────────
+// Hidden `Prefs` tab, one row per key: key | category | value (JSON) | updatedAt | deviceId. Newer wins per key.
+// Unknown keys are kept (newer app versions add options). Token / URLs / device-only keys are never stored.
+var PREFS_TAB = 'Prefs'
+var PREFS_H = ['key', 'category', 'value', 'updatedAt', 'deviceId']
+var PREFS_DENY = /^(bridgeToken|token|syncUrl|sheetUrl|haptics\.|chrome\.reduceMotion|share\.lastUsedId)/i
+function prefsSheet_(ss) {
+  var s = ss.getSheetByName(PREFS_TAB)
+  if (!s) { s = ss.insertSheet(PREFS_TAB); header_(s, PREFS_H); s.hideSheet() }
+  return s
+}
+function prefsRead_(ss) {
+  var s = prefsSheet_(ss), last = s.getLastRow()
+  if (last < 2) return []
+  return s.getRange(2, 1, last - 1, 5).getValues().filter(function (r) { return r[0] !== '' && r[0] != null }).map(function (r) {
+    var v; try { v = JSON.parse(String(r[2])) } catch (e) { v = r[2] }
+    return { key: String(r[0]), category: String(r[1]), value: v, updatedAt: toIsoStamp_(r[3]), deviceId: String(r[4] || '') }
+  })
+}
+function prefsPush_(ss, rows, deviceId) {
+  var cur = prefsRead_(ss), byKey = {}, applied = 0, ignored = 0
+  cur.forEach(function (p, i) { byKey[p.key] = i })
+  ;(rows || []).forEach(function (r) {
+    var key = String(r && r.key || '')
+    if (!key || PREFS_DENY.test(key) || !r.updatedAt) { ignored++; return }
+    var next = { key: key, category: String(r.category || ''), value: r.value, updatedAt: String(r.updatedAt), deviceId: String(deviceId || '') }
+    var i = byKey[key]
+    if (i == null) { byKey[key] = cur.length; cur.push(next); applied++ }
+    else if (String(r.updatedAt) > cur[i].updatedAt) { cur[i] = next; applied++ }
+    else ignored++
+  })
+  if (applied) {
+    var s = prefsSheet_(ss), last = s.getLastRow()
+    ensureRows_(s, cur.length + 1)
+    if (last >= 2) s.getRange(2, 1, last - 1, 5).clearContent()
+    if (cur.length) s.getRange(2, 1, cur.length, 5).setValues(cur.map(function (p) { return [p.key, p.category, JSON.stringify(p.value), p.updatedAt, p.deviceId] }))
+  }
+  return { applied: applied, ignored: ignored }
+}
+
 function withLock_(fn) {
   var lock = LockService.getScriptLock()
   lock.waitLock(20000)
@@ -295,6 +335,11 @@ function route_(body) {
   if (body.action === 'pairCancel') return withLock_(function () { PropertiesService.getScriptProperties().deleteProperty(PAIR_KEY); return { ok: true } })
   var ss = SpreadsheetApp.getActiveSpreadsheet()
   if (body.action === 'pull') return state_(ss)
+  if (body.action === 'prefsPull') return withLock_(function () { return { ok: true, prefs: prefsRead_(ss) } })
+  if (body.action === 'prefsPush') return withLock_(function () {
+    var r = prefsPush_(ss, body.rows, body.deviceId)
+    return { ok: true, applied: r.applied, ignored: r.ignored, prefs: prefsRead_(ss) }
+  })
   if (body.action === 'push') {
     var lock = LockService.getScriptLock()
     lock.waitLock(20000)

@@ -607,3 +607,4 @@ html[data-reduce-motion='1'] .sync-cta {
 .palette-name { flex: 1; }
 .palette-check { color: var(--ok); font-weight: 700; }
 :root[data-palette] .sp-btn.pri { background: var(--primary); color: var(--on-primary); }
+.more-row-main > .toggle, .more-row-main > .meta { margin-left: auto; }

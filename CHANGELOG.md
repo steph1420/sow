@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.36.0 — 2026-10-30 (Asia/Calcutta)
+
+Settings sync across paired devices (Steve t49u; plan docs/PREFS_SYNC_PLAN.md; locks t52u). Rollback: tag `v0.35.1` / `ba27194`. **Needs Code.js re-paste + New version** for the sync itself; until then the app says "Update bridge script" and changes nothing.
+
+- Settings › Sync › **Sync settings across devices**: master toggle; Appearance (colour theme, Follow system), **Night / Day** (own toggle), Checklist feel, Gestures, Share templates, **Academic year — Always synced** (fixed row, no toggle), Developer options (default **off**). "Sync settings now", last-synced time. Toggles are per device.
+- Never synced: bridge token, sheet/bridge URLs, haptics, reduce motion (card "Never synced · this device only"). The bridge also refuses those keys.
+- Whole-category newer-wins: changing one setting stamps its whole category. Sheet rows are per key (key, category, value, updatedAt, deviceId) in a hidden **Prefs** tab; keys this version doesn't know are kept (on the sheet and locally) and picked up by later versions.
+- First join: "Paired ✓ · Which settings?" — **Use synced settings** (default) / Use this device's settings / Not now (sync off). The first device seeds the sheet. Quiet settings sync on app open and after Sync now.
+- Apps Script v0.36.0: `prefsPull`, `prefsPush` under LockService; older actions unchanged.
+- Tests: unit 198 (+19: `src/sync/prefsSync.test.ts` 7, `src/sync/prefsRunner.test.ts` 5, `apps-script/test/prefs.test.ts` 7). New `prefsync-probe` (22 checks, Night+Day, old + new bridge). All probes green at 412×915.
+
 ## 0.35.1 — 2026-10-29 (Asia/Calcutta)
 
 Install as app (Steve t52u: "8. Settings › App", "10. Once"; mock prefsync-mj1-c, moved from More to Settings › App). Rollback: tag `v0.35.0` / `b06e12e`.

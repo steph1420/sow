@@ -5,6 +5,8 @@ import { readSyncStatus } from '../data/persistWorkspace'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
+import { PrefsSyncCard } from './PrefsSyncCard'
+import { runPrefsSync } from '../sync/prefsRunner'
 import { usePrefs } from '../prefs/PrefsContext'
 import './more.css'
 import { haptic } from '../lib/haptics'
@@ -314,11 +316,13 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         />
       ) : null}
 
+      <PrefsSyncCard online={online} refreshKey={status} />
+
       <button
         type="button"
         className="sync-cta"
         disabled={busy || !online || !selected.length}
-        onClick={() => void run(() => syncNow(selected))}
+        onClick={() => void run(async () => { const r = await syncNow(selected); void runPrefsSync('auto'); return r })}
       >
         <span className="spin" aria-hidden>
           ⟳

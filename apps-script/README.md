@@ -21,3 +21,9 @@ After editing Code.js later: **Deploy › Manage deployments › ✎ › Version
 ## v0.34.0 update (pairing)
 1. Extensions › Apps Script › `Code.gs`: select all, delete, paste the new `Code.js`, Save. Do **not** run setup again.
 2. Deploy › Manage deployments › ✎ (edit) › Version: **New version** › Deploy. The `/exec` URL stays the same.
+
+## v0.36.0 update (settings sync)
+1. Open the copy sheet › Extensions › Apps Script › `Code.gs` → select all, paste the new `apps-script/Code.js`, Save.
+2. Deploy › Manage deployments › ✎ (edit) › Version: **New version** › Deploy. Do **not** make a New deployment (the built-in `/exec` URL must stay the same).
+3. Nothing to run: the hidden **Prefs** tab is created on the first settings sync. Columns: key · category · value · updatedAt · deviceId. Don't edit it by hand.
+New actions: `prefsPull`, `prefsPush` (token). All older actions unchanged; replies say `version: "0.36.0"`.

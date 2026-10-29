@@ -70,6 +70,8 @@ export class MockSheet {
   clear() { this.cells.clear(); return this }
   clearContents() { this.cells.clear(); return this }
   setFrozenRows() { return this }
+  hideSheet() { this.isHidden = true; return this }
+  isHidden = false
   setFrozenColumns() { return this }
   hideColumns(c: number) { this.hidden.push(c); return this }
   setColumnWidth() { return this }

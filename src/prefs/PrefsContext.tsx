@@ -18,6 +18,7 @@ import {
 import { setHapticsLevel } from '../lib/haptics'
 import { applyPalette } from '../theme/palettes'
 import { getSettings, putSettings } from '../data/api'
+import { PREFS_APPLIED_EVENT } from '../sync/prefsRunner'
 
 type PrefsValue = {
   prefs: AppPrefs
@@ -40,6 +41,15 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     let live = true
     void getSettings().then((s) => { if (live && s.palette) setPaletteState(s.palette) }).catch(() => {})
     return () => { live = false }
+  }, [])
+  // v0.36.0: prefs sync wrote new values (localStorage + IDB) — reload them.
+  useEffect(() => {
+    const f = () => {
+      setPrefs(loadPrefs())
+      void getSettings().then((s) => setPaletteState(s.palette ?? 'default')).catch(() => {})
+    }
+    window.addEventListener(PREFS_APPLIED_EVENT, f)
+    return () => window.removeEventListener(PREFS_APPLIED_EVENT, f)
   }, [])
   const setPalette = useCallback((id: string) => {
     setPaletteState(id)

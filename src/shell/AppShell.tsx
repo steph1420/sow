@@ -12,6 +12,7 @@ import { popRoute, pushRoute, topRoute, type MoreStack } from '../more/navStack'
 import { RosterPage } from '../more/RosterPage'
 import { SettingsPage } from '../more/SettingsPage'
 import { InstallNudge } from '../pwa/InstallUI'
+import { loadPrefSyncState, runPrefsSync } from '../sync/prefsRunner'
 import { SharingPage } from '../more/SharingPage'
 import { ShareProvider } from '../share/ShareContext'
 import { SubjectsPage } from '../more/SubjectsPage'
@@ -32,6 +33,12 @@ export function AppShell() {
   const [tab, setTab] = useState<TabId>(boot.tab)
   const [moreOpen, setMoreOpen] = useState(false)
   const [stack, setStack] = useState<MoreStack>(boot.stack)
+  // v0.36.0: quiet settings sync on open (only after the first-join choice was made).
+  useEffect(() => {
+    const st = loadPrefSyncState()
+    if (st.enabled && st.chosen && navigator.onLine !== false) void runPrefsSync('auto').catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (boot.classKey) setActiveClassKey(boot.classKey)
   }, [boot, setActiveClassKey])
