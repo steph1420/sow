@@ -1,3 +1,4 @@
+import { createScrollTween, type ScrollTween } from './scrollTween'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
 import { CheckMark } from '../components/CheckMark'
@@ -96,6 +97,10 @@ export function ChecklistPage({ onGoOverview }: Props) {
     return out
   }, [orderedRolls])
 
+  const tweenRef = useRef<ScrollTween | null>(null)
+  const scrubbingRef = useRef(false)
+  useEffect(() => () => tweenRef.current?.cancel(), [])
+
   /** Mid-snap to ~50% viewport; clamp(0,max) = near-top exception (no empty gap). */
   const scrollToRoll = useCallback(
     (roll: number, urgent = true) => {
@@ -109,9 +114,12 @@ export function ChecklistPage({ onGoOverview }: Props) {
       const maxScroll = Math.max(0, wrap.scrollHeight - wrap.clientHeight)
       const target = Math.max(0, Math.min(wrap.scrollTop + delta, maxScroll))
       if (!urgent || reduceMotion) {
+        tweenRef.current?.cancel()
         wrap.scrollTop = target
       } else {
-        wrap.scrollTo({ top: target, behavior: 'smooth' })
+        if (!tweenRef.current) tweenRef.current = createScrollTween(wrap)
+        scrubbingRef.current = true
+        tweenRef.current.to(target)
       }
     },
     [reduceMotion],
@@ -130,6 +138,10 @@ export function ChecklistPage({ onGoOverview }: Props) {
   )
 
   const onAzScrubEnd = useCallback(() => {
+    window.setTimeout(() => {
+      scrubbingRef.current = false
+      if (listRef.current) lastScrollY.current = listRef.current.scrollTop
+    }, 220)
     window.setTimeout(() => setAzFocusRoll(null), 700)
   }, [])
 
@@ -137,6 +149,10 @@ export function ChecklistPage({ onGoOverview }: Props) {
     const wrap = listRef.current
     if (!wrap) return
     const y = wrap.scrollTop
+    if (scrubbingRef.current) {
+      lastScrollY.current = y
+      return
+    }
     const dy = y - lastScrollY.current
     if (Math.abs(dy) < 10) {
       lastScrollY.current = y

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.26.2 — 2026-10-29 (Asia/Calcutta)
+
+### A–Z scrub scroll: quick but smooth (t155u)
+- Replaced native `scrollTo({behavior:'smooth'})` with a custom rAF tween (150ms, ease-out cubic), retargeted mid-flight from the current position when the finger moves to a new letter — no queueing, no restart jank.
+- Mid-screen snap rule, near-top clamp, end-of-list clamp, first-child highlight, A–Z 42 and left-shift unchanged. `prefers-reduced-motion` → instant.
+- Auto-hide chrome is suppressed while scrubbing (scroll listener ignores tween-driven scroll; baseline resynced after scrub end).
+- Playwright 412×915: jump duration ~516–550ms → ~134ms. Probe: `tests/e2e/az-tween-probe.cjs`.
+- Rollback: tag `v0.26.1` / `d39f183`
+
 ## 0.26.1 — 2026-10-29 (Asia/Calcutta)
 
 ### Chrome seam root-fix (t154u)

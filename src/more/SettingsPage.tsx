@@ -108,7 +108,7 @@ export function SettingsPage({
           </span>
           <span className="g-body">
             <span className="g-title">About</span>
-            <span className="g-sub">v0.26.1 · Quiet Lucid</span>
+            <span className="g-sub">v0.26.2 · Quiet Lucid</span>
           </span>
           <span className="chev">›</span>
         </button>
