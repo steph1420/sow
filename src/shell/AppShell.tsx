@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
-import { useBackLayer, useExitToast } from '../nav/backStack'
+import { useCallback, useEffect, useState } from 'react'
+import { setRouteHash, useBackLayer, useExitToast } from '../nav/backStack'
+import { formatRoute, parseRoute } from '../nav/route'
 import { CheckMark } from '../components/CheckMark'
 import type { ClassKey } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
@@ -22,14 +23,15 @@ export type TabId = 'checklist' | 'overview'
  * Default landing = Overview (Steve t141u). More stays popup (t137u).
  */
 export function AppShell() {
-  const { setActiveClassKey } = useWorkspace()
-  const [tab, setTab] = useState<TabId>(() =>
-    /\/checklist\/?$/.test(window.location.pathname) || window.location.hash === '#checklist'
-      ? 'checklist'
-      : 'overview',
-  )
+  const { activeClassKey, setActiveClassKey } = useWorkspace()
+  // P1-1: boot from hash route (reload restores current screen).
+  const [boot] = useState(() => parseRoute(window.location.hash, window.location.pathname))
+  const [tab, setTab] = useState<TabId>(boot.tab)
   const [moreOpen, setMoreOpen] = useState(false)
-  const [stack, setStack] = useState<MoreStack>([])
+  const [stack, setStack] = useState<MoreStack>(boot.stack)
+  useEffect(() => {
+    if (boot.classKey) setActiveClassKey(boot.classKey)
+  }, [boot, setActiveClassKey])
 
   const openMore = useCallback(() => setMoreOpen(true), [])
   const closeMore = useCallback(() => setMoreOpen(false), [])
@@ -59,6 +61,9 @@ export function AppShell() {
   useBackLayer(tab === 'checklist' ? 1 : 0, () => setTab('overview'))
   useBackLayer(stack.length, () => setStack((s) => popRoute(s)))
   useBackLayer(moreOpen ? 1 : 0, () => setMoreOpen(false))
+  useEffect(() => {
+    setRouteHash(formatRoute({ tab, classKey: activeClassKey, stack }))
+  }, [tab, activeClassKey, stack])
   const exitToast = useExitToast()
   const toast = exitToast ? (
     <div className="exit-toast" role="status" aria-live="polite">

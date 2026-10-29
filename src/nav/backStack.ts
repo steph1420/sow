@@ -25,6 +25,7 @@ let exiting = false
 let toastUntil = 0
 let seqCounter = 0
 let idCounter = 0
+let routeHash: string | null = null // P1-1: current screen hash, mirrored onto the top history entry
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -43,8 +44,24 @@ function stateOf(s: unknown): { kind: 'base' } | { kind: 'layer'; d: number } | 
   return null
 }
 
+function urlFor(hash: string) {
+  return location.pathname + location.search + hash
+}
+
 function push(d: number) {
-  history.pushState({ ...(history.state ?? {}), [KEY]: d }, '')
+  if (routeHash == null) history.pushState({ ...(history.state ?? {}), [KEY]: d }, '')
+  else history.pushState({ ...(history.state ?? {}), [KEY]: d }, '', urlFor(routeHash))
+}
+
+function syncHash() {
+  if (routeHash == null || location.hash === routeHash) return
+  history.replaceState(history.state, '', urlFor(routeHash))
+}
+
+/** P1-1 — app reports its current screen; the top history entry carries it so reload restores. */
+export function setRouteHash(hash: string) {
+  routeHash = hash
+  queueReconcile()
 }
 
 function reconcile() {
@@ -58,7 +75,9 @@ function reconcile() {
     const k = h - t
     h = t
     history.go(-k)
+    return // hash synced after the pop lands
   }
+  syncHash()
 }
 
 function queueReconcile() {
@@ -132,7 +151,8 @@ export function installBackStack() {
       queueReconcile()
     }
   })
-  queueReconcile()
+  // P1-1: no reconcile here — on reload mid-stack the app restores its screen from the hash
+  // and registers layers first; AppShell's setRouteHash() effect triggers the first reconcile.
 }
 
 /** Register `count` back-steps while active; `close` must undo exactly one step. */

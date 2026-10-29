@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { MarksMap } from '../checklist/types'
 import type { ClassKey } from '../data/types'
+import { parseRoute } from '../nav/route'
 import {
   loadWorkspaceFromIdb,
   persistClassMarks,
@@ -53,7 +54,9 @@ const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
-  const [activeClassKey, setActiveClassKey] = useState<ClassKey>('KGA_Eng_CW')
+  const [activeClassKey, setActiveClassKey] = useState<ClassKey>(
+    () => (typeof window !== 'undefined' ? parseRoute(window.location.hash).classKey : undefined) ?? 'KGA_Eng_CW',
+  )
   const [marksByClass, setMarksByClass] = useState<MarksByClass>(() => {
     const empty = {} as MarksByClass
     for (const k of Object.keys(ROSTERS) as ClassKey[]) empty[k] = {}
