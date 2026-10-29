@@ -109,6 +109,8 @@ export interface Settings {
   sheetUrl: string
   /** Apps Script web app URL for push / ensure SoW_* tabs */
   syncUrl: string
+  /** v0.35.0: colour theme id (src/theme/palettes.ts); absent = default. */
+  palette?: string
   theme: 'night' | 'day'
   seededAt?: string
   lastSyncAt?: string

@@ -137,8 +137,8 @@
   margin-left: auto;
 }
 .toggle.on {
-  background: rgba(48, 209, 88, 0.22);
-  border-color: rgba(48, 209, 88, 0.4);
+  background: color-mix(in srgb, var(--tint) 22%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 40%, transparent);
 }
 .toggle::after {
   content: '';
@@ -434,16 +434,16 @@
 }
 .subj-pill.on {
   color: var(--ok);
-  border-color: rgba(48, 209, 88, 0.35);
-  background: rgba(48, 209, 88, 0.1);
+  border-color: color-mix(in srgb, var(--tint) 35%, transparent);
+  background: color-mix(in srgb, var(--tint) 10%, transparent);
 }
 
 .sync-cta {
   width: 100%;
   padding: 15px 18px;
   border-radius: 14px;
-  background: rgba(48, 209, 88, 0.14);
-  border: 1px solid rgba(48, 209, 88, 0.4);
+  background: color-mix(in srgb, var(--tint) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tint) 40%, transparent);
   color: var(--ok);
   font-size: 15px;
   font-weight: 700;
@@ -453,7 +453,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 0 24px rgba(48, 209, 88, 0.12);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--tint) 12%, transparent);
 }
 .sync-cta:disabled {
   opacity: 0.55;
@@ -516,8 +516,8 @@
   background: linear-gradient(180deg, #12151c 0%, #0a0b0e 70%);
 }
 .theme-phone.on {
-  border-color: rgba(48, 209, 88, 0.45);
-  box-shadow: 0 0 0 1px rgba(48, 209, 88, 0.15), 0 8px 24px rgba(48, 209, 88, 0.08);
+  border-color: color-mix(in srgb, var(--tint) 45%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tint) 15%, transparent), 0 8px 24px color-mix(in srgb, var(--tint) 8%, transparent);
 }
 .theme-phone .mini-bar {
   height: 8px;
@@ -599,3 +599,11 @@ html[data-reduce-motion='1'] .sync-cta {
 .sp-kv { padding: 10px 16px; border-top: 1px solid var(--hairline); font-size: 13px; }
 .sp-kv b { display: block; font-size: 10px; color: var(--text-ter); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
 .sp-kv code { color: var(--text); word-break: break-all; font-size: 12px; }
+
+/* v0.35.0 colour theme picker (themepicker-mj1) — 44px+ rows, 5-swatch strip */
+.palette-row { min-height: 50px; }
+.palette-sw { display: inline-flex; width: 68px; height: 22px; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px var(--hairline); flex-shrink: 0; }
+.palette-sw > span { flex: 1; }
+.palette-name { flex: 1; }
+.palette-check { color: var(--ok); font-weight: 700; }
+:root[data-palette] .sp-btn.pri { background: var(--primary); color: var(--on-primary); }

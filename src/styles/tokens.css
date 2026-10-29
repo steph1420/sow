@@ -14,7 +14,7 @@
   --sub: #8b7cf7; /* Submitted Quiet purple */
   --warn: #ff9f0a;
   --danger: #ff453a;
-  --sel: rgba(48, 209, 88, 0.09);
+  --sel: color-mix(in srgb, var(--tint) 9%, transparent);
   --fs-label: 10px;
   --fw-label: 500;
   --fs-value: 15px;
@@ -44,7 +44,12 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --chrome-bar: rgba(10, 11, 14, 0.92);
   --accent: var(--ok);
-  --accent-soft: rgba(48, 209, 88, 0.14);
+  /* v0.35.0: tint sources for the old literal greens; colour themes override them */
+  --tint: #30d158;
+  --tint2: #1a9f4b;
+  --primary: var(--ok);
+  --on-primary: #05140a;
+  --accent-soft: color-mix(in srgb, var(--tint) 14%, transparent);
   --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
   --scrim: rgba(0, 0, 0, 0.48);
 }
@@ -105,9 +110,9 @@ button {
   --sub: #5b4bd1; /* P1-5: Submitted purple, Day AA */
   --warn: #9a5800; /* P1-5: was #c77700 (3.2:1) */
   --danger: #c5221f; /* P1-5 */
-  --sel: rgba(26, 159, 75, 0.1);
+  --sel: color-mix(in srgb, var(--tint2) 10%, transparent);
   --chrome-bar: rgba(255, 255, 255, 0.94);
-  --accent-soft: rgba(26, 159, 75, 0.12);
+  --accent-soft: color-mix(in srgb, var(--tint2) 12%, transparent);
   --shadow-pop: 0 12px 36px rgba(18, 20, 26, 0.16);
   --scrim: rgba(18, 20, 26, 0.28);
 }

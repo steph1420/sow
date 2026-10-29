@@ -1,6 +1,7 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
+- v0.35.0 themes: on a cold start the Default palette shows for a moment until IndexedDB loads the saved theme. Mode keeps the existing Day/Night phone pickers (mock showed plain rows). A few secondary tints (Submitted mode, Overview bars) keep their fixed colours by design.
 - v0.34.1: the bridge address is built into the bundle; if Steve redeploys as a *new* deployment (new /exec id) the app needs a release or the Developer override. Re-deploying a New version of the same deployment keeps the URL.
 - v0.34.0 pairing/ping need Steve to re-paste Code.gs and deploy a New version; until then Pair/Join/Import say "Bridge is older · re-paste Code.gs…".
 - Pairing: one active code per bridge (a second Pair a device replaces the first). Setup file holds the token in plain text — anyone with the file can sync; reset the token to revoke.

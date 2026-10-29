@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.35.0 — 2026-10-29 (Asia/Calcutta)
+
+Colour themes (Steve "I'll take all the themes"; mocks themepicker-mj1 + theme-mj2-all; decisions LOCKED t48u "1 Yes 2 Appear 3 OK 4 YES 5 YES Yes"). Rollback: tag `v0.34.1` / `25ba398`.
+
+- More › Appearance: **Colour theme** list above Mode — Default (Quiet Lucid) first, then Tangerine Orange, Agartha theme, Sky, ExploreMiam, Minimal Forest, Vivid Sky, CuteSpringTheme, Black and pink. 5-colour Night swatch strip, ✓ on the chosen one, rows ≥44px.
+- Each theme has Night and Day and follows the Night/Day switch (and Follow system). Choice saved in IndexedDB (`settings.palette`).
+- Ticks fill with the theme primary (dark tick glyph on themes 1–4 accepted). Theme 7 Day primary deepened #ffb7c5 → #e64980 (3.6:1, ticks clearly visible). Text colours auto-nudged to AA 4.5:1 per theme.
+- System font only (theme fonts not shipped). Submitted / Warn / Left colours stay fixed.
+- Old literal greens now come from `--tint`/`--tint2` (same values in Default → no visual change).
+- Tests: unit 174 (+7 `src/theme/palettes.test.ts`). New `tests/e2e/themes-live-shots.cjs` (20 checks, Night+Day, all 8) → `sow-mockups/themes-live-*.png`. All non-sheet probes green at 412×915.
+
 ## 0.34.1 — 2026-10-29 (Asia/Calcutta)
 
 Joining a device needs only the code (Steve t47u "Why does joining ask for bridge url... beats the purpose of code", t48u "Please do it"). Rollback: tag `v0.34.0` / `dfa7e68`.

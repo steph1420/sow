@@ -260,8 +260,8 @@
 }
 
 .check.on {
-  border-color: rgba(48, 209, 88, 0.45);
-  background: rgba(48, 209, 88, 0.12);
+  border-color: color-mix(in srgb, var(--tint) 45%, transparent);
+  background: color-mix(in srgb, var(--tint) 12%, transparent);
   color: var(--ok);
 }
 

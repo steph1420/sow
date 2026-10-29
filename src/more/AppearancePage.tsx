@@ -1,5 +1,6 @@
 import { haptic, setHapticsLevel } from '../lib/haptics'
 import { usePrefs } from '../prefs/PrefsContext'
+import { PALETTES } from '../theme/palettes'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
@@ -13,7 +14,7 @@ type Props = {
  * No Soft-green toggle (dropped in triangulation).
  */
 export function AppearancePage({ onBack, onOpenAzDev }: Props) {
-  const { prefs, setTheme, setPref } = usePrefs()
+  const { prefs, setTheme, setPref, palette, setPalette } = usePrefs()
   const follow = prefs['theme.followSystem']
   const theme = prefs.theme
 
@@ -21,7 +22,29 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
     <MoreChrome title="Appearance" onBack={onBack}>
       <div className="more-hint">Night is the field default · Day for bright rooms</div>
 
-      <div className="more-sec">Theme</div>
+      {/* v0.35.0 (t48u, themepicker-mj1 LOCKED): colour theme above Mode; follows Night/Day. */}
+      <div className="more-sec">Colour theme</div>
+      <div className="more-card" role="radiogroup" aria-label="Colour theme">
+        {PALETTES.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={palette === p.id}
+            className="more-row palette-row"
+            onClick={() => { setPalette(p.id); haptic('selection') }}
+          >
+            <span className="palette-sw" aria-hidden>
+              {p.swatch.map((c, i) => <span key={i} style={{ background: c }} />)}
+            </span>
+            <span className="palette-name">{p.name}</span>
+            {palette === p.id ? <span className="palette-check" aria-hidden>✓</span> : null}
+          </button>
+        ))}
+      </div>
+      <div className="more-hint">Swatches show the Night palette · follows the Night/Day switch</div>
+
+      <div className="more-sec">Mode</div>
       <div className="more-card theme-card">
         <div className="theme-pick">
           <button

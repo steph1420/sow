@@ -102,7 +102,7 @@
 .ov-card.exp {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.025);
-  box-shadow: 0 0 0 1px rgba(48, 209, 88, 0.08);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tint) 8%, transparent);
 }
 .ov-card .top {
   display: flex;
@@ -129,7 +129,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 1.5px solid rgba(48, 209, 88, 0.4);
+  border: 1.5px solid color-mix(in srgb, var(--tint) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,7 +139,7 @@
   flex-shrink: 0;
 }
 .ov-ring.hi {
-  border-color: rgba(48, 209, 88, 0.65);
+  border-color: color-mix(in srgb, var(--tint) 65%, transparent);
 }
 .ov-ring.warn {
   border-color: rgba(255, 159, 10, 0.45);
@@ -172,8 +172,8 @@
 }
 .ov-status .s.set {
   color: var(--ok);
-  border-color: rgba(48, 209, 88, 0.3);
-  background: rgba(48, 209, 88, 0.08);
+  border-color: color-mix(in srgb, var(--tint) 30%, transparent);
+  background: color-mix(in srgb, var(--tint) 8%, transparent);
 }
 
 .ov-actions {
@@ -194,8 +194,8 @@
   color: var(--text-sec);
 }
 .ov-actions .btn.primary {
-  background: rgba(48, 209, 88, 0.12);
-  border-color: rgba(48, 209, 88, 0.35);
+  background: color-mix(in srgb, var(--tint) 12%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 35%, transparent);
   color: var(--ok);
 }
 
