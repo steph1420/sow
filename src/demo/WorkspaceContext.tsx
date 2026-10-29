@@ -148,6 +148,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return [...ks]
   }, [sheetTabs, pulledSessions])
 
+  // v0.27.0: a deep link / stale hash to a class that isn't on the sheet (e.g. demo Math) falls back.
+  useEffect(() => {
+    if (!ready) return
+    const allowed = classKeys.length ? classKeys : DEMO_SESSIONS.filter((x) => x.subject === 'Eng').map((x) => x.classKey)
+    if (allowed.length && !allowed.includes(activeClassKey)) setActiveClassKey(allowed[0]!)
+  }, [ready, classKeys, activeClassKey])
+
   const setMarksForClass = useCallback(
     (classKey: ClassKey, next: MarksMap | ((prev: MarksMap) => MarksMap)) => {
       setMarksByClass((prev) => {
