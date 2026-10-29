@@ -106,7 +106,7 @@ describe('bridge', () => {
   it('rejects a bad token', () => {
     const { ctx } = ready()
     const out = JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify({ token: 'nope', action: 'pull' }) } }).text)
-    expect(out).toEqual({ ok: false, error: 'bad token' })
+    expect(out).toMatchObject({ ok: false, error: 'bad token' })
   })
 
   it('pull returns subjects, roster, sessions, ticks with ISO dates', () => {

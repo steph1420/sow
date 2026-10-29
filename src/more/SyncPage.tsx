@@ -7,6 +7,8 @@ import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } 
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 import { haptic } from '../lib/haptics'
+import { ImportSheet, JoinPage, OtherDevicesCard, PairHostPage, exportSetup } from './SetupDevices'
+import { parseSetupFile, type SetupData } from '../sync/setupPair'
 
 type Props = {
   onBack: () => void
@@ -42,6 +44,9 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const [discovering, setDiscovering] = useState(false)
   const [notes, setNotes] = useState<string[]>([])
   const chips = chipsFrom(tabs)
+  const [view, setView] = useState<'main' | 'pair' | 'join'>('main')
+  const [importing, setImporting] = useState<SetupData | null>(null)
+  const [devMsg, setDevMsg] = useState<{ ok: boolean; text: string } | null>(null)
   // P1-2: offline gate — keep last tabs/chips, disable network actions, say so.
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false)
   useEffect(() => {
@@ -134,6 +139,24 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       })
     : 'Never'
 
+  if (view === 'pair') return <PairHostPage url={syncUrl.trim()} token={token.trim()} onBack={() => setView('main')} />
+  if (view === 'join')
+    return (
+      <JoinPage
+        initialUrl={syncUrl}
+        onBack={() => setView('main')}
+        onPaired={async (url, tok) => {
+          await putSettings({ syncUrl: url, bridgeToken: tok })
+          await refresh()
+          const r = await syncNow(selected)
+          haptic(r.ok ? 'success' : 'error')
+          if (r.ok) await reloadFromIdb()
+          await refresh()
+          return r.message
+        }}
+      />
+    )
+
   return (
     <MoreChrome title="Sync" onBack={onBack}>
       <div className="more-hint">
@@ -223,6 +246,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
             name="sow-bridge-token"
             type="password"
           />
+          <span className="more-row-sub" style={{ textTransform: 'none', letterSpacing: 0 }}>Hidden · saved on this device only</span>
         </label>
         <div className="pill-row">
           {chips.length === 0 ? (
@@ -253,6 +277,39 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
           </button>
         </div>
       </div>
+
+      <OtherDevicesCard
+        canHost={!!syncUrl.trim() && !!token.trim()}
+        onPair={() => { void saveUrls(); setDevMsg(null); setView('pair') }}
+        onJoin={() => { setDevMsg(null); setView('join') }}
+        onExport={() => {
+          void (async () => {
+            await saveUrls()
+            const t = await exportSetup({ syncUrl: syncUrl.trim(), token: token.trim(), sheetUrl: sheetUrl.trim() })
+            if (t) setDevMsg({ ok: true, text: t })
+          })()
+        }}
+        onImportFile={(text) => {
+          const r = parseSetupFile(text)
+          if (r.ok) { setDevMsg(null); setImporting(r.setup) } else setDevMsg({ ok: false, text: r.error })
+        }}
+      />
+      {devMsg ? (
+        <div className="more-hint" role="status" style={{ color: devMsg.ok ? undefined : 'var(--warn)' }}>{devMsg.text}</div>
+      ) : null}
+      {importing ? (
+        <ImportSheet
+          setup={importing}
+          onCancel={() => setImporting(null)}
+          onApply={async (su) => {
+            await putSettings({ syncUrl: su.syncUrl, bridgeToken: su.token, ...(su.sheetUrl && !sheetUrl.trim() ? { sheetUrl: su.sheetUrl } : {}) })
+            setImporting(null)
+            await refresh()
+            haptic('success')
+            setDevMsg({ ok: true, text: 'Setup imported · tap Sync now' })
+          }}
+        />
+      ) : null}
 
       <button
         type="button"

@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'node:crypto'
 /** Minimal in-memory SpreadsheetApp mock — enough for apps-script/Code.js logic tests. */
 type Cell = { v: unknown; f: string }
 
@@ -117,9 +118,14 @@ export function makeGlobals(ss: MockSpreadsheet) {
       getUi: () => ({ alert: () => {}, prompt: () => ({ getSelectedButton: () => 'OK', getResponseText: () => '' }), createMenu: () => { const m = { addItem: () => m, addSeparator: () => m, addToUi: () => {} }; return m }, Button: { OK: 'OK' }, ButtonSet: { OK: 1, OK_CANCEL: 2 } }),
       flush: () => {},
     },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: (k: string) => props.get(k) ?? null, setProperty: (k: string, v: string) => { props.set(k, v) } }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (k: string) => props.get(k) ?? null, setProperty: (k: string, v: string) => { props.set(k, v) }, deleteProperty: (k: string) => { props.delete(k) } }) },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, tryLock: () => true, releaseLock: () => {} }) },
-    Utilities: { getUuid: () => `uuid-${++uuid}` },
+    Utilities: {
+      getUuid: () => { ++uuid; return randomUUID() },
+      DigestAlgorithm: { SHA_256: 'sha256' },
+      Charset: { UTF_8: 'utf8' },
+      computeDigest: (_alg: string, s: string) => Array.from(createHash('sha256').update(s, 'utf8').digest()).map((b) => (b > 127 ? b - 256 : b)),
+    },
     ContentService: { MimeType: { JSON: 'json' }, createTextOutput: (s: string) => ({ text: s, setMimeType() { return this } }) },
     console,
   }

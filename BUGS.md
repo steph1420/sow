@@ -1,7 +1,8 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
-- Bridge token field shipped in v0.33.1 without its Night/Day mock (Steve approved "mock the token field later") — mock + lock pending.
+- v0.34.0 pairing/ping need Steve to re-paste Code.gs and deploy a New version; until then Pair/Join/Import say "Bridge is older · re-paste Code.gs…".
+- Pairing: one active code per bridge (a second Pair a device replaces the first). Setup file holds the token in plain text — anyone with the file can sync; reset the token to revoke.
 - Swipe pending cue: blue ring still default (Steve t170u "too shouty"); 5 alternatives in Developer → Swipe confirm (v0.30.0) — awaiting Steve's pick.
 - v0.33.0 bridge built but **not verified live** (needs Steve to deploy the web app on the copy). Phone and Apps Script clocks decide newer-wins; a phone clock far off could win/lose wrongly.
 - Bridge: subjects on the sheet that the app does not model yet (anything outside KGA/KGB Eng/Math CW/HW keys) are skipped with a note — dynamic subjects in the app are a follow-up.
@@ -16,6 +17,7 @@
 - **Hide SoW_* tabs:** Sheets MCP has no `hidden` sheet-properties tool. Tabs exist (SoW_Sessions 1728577063, SoW_RosterMeta 1479427997, SoW_Marks 1921268674) — School Bot / Apps Script `hideSheet()` needed.
 
 ## Fixed / mitigated
+- v0.34.0 (t39u): Bridge token field mock + lock done (setuppair-mj1-a-sync) · second device needed URL + token retyped (now Pair / Join / Setup file).
 - v0.31.0 (t4u): Settings/About version hardcoded at 0.29.0 · installed PWA resumed from background never picked up new builds (no update check, no clientsClaim).
 - v0.29.2: class-wide "local newer" merge (now per tick, migrated without loss) · Dec→Jan year (academic year Apr–Mar) · "Pushed" claimed for a placeholder push · v0.29.1 regression: every pull set Local dirty = Yes.
 - v0.29.1: failed tab load could purge a class incl. Submitted ticks (now source-confirmed only, Submitted kept) · undo survived a pull · pull cleared Local dirty · delayed save dropped another class / lost on close · two e2e probes reset the wrong IDB · Checklist Tools rows 42px tall (< 44px), `tap-probe` failing since v0.29.0 · `share-shots` helper tapped the removed `.share-manage`.

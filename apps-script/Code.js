@@ -7,6 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
+var BRIDGE_VERSION = '0.34.0'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -244,8 +245,54 @@ function applyPush_(ss, ops, by) {
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON) }
 
+// ───────────────────────── device pairing (v0.34.0, docs/SETUP_PAIRING_PLAN.md) ─────────────────────────
+var PAIR_KEY = 'SOW_PAIR', PAIR_TTL_MS = 300000, PAIR_TRIES = 5
+function sha256Hex_(s) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8)
+    .map(function (b) { var h = ((b + 256) % 256).toString(16); return h.length < 2 ? '0' + h : h }).join('')
+}
+function randHex_() { return Utilities.getUuid().replace(/-/g, '') }
+/** One active code at a time; only salt + SHA-256(salt + code) is stored. */
+function pairStart_(nowMs) {
+  var n = parseInt(randHex_().slice(0, 12), 16) % 1000000
+  var code = String(1000000 + n).slice(1), salt = randHex_()
+  PropertiesService.getScriptProperties().setProperty(PAIR_KEY, JSON.stringify({ salt: salt, hash: sha256Hex_(salt + code), exp: nowMs + PAIR_TTL_MS, tries: 0 }))
+  return { ok: true, code: code, expiresInSec: PAIR_TTL_MS / 1000, expiresAt: new Date(nowMs + PAIR_TTL_MS).toISOString() }
+}
+/** Code → token. Single use, 300 s, locked after 5 wrong tries. Caller holds the script lock. */
+function pairClaim_(code, nowMs) {
+  code = String(code == null ? '' : code)
+  if (!/^\d{6}$/.test(code)) return { ok: false, error: 'bad code' }
+  var p = PropertiesService.getScriptProperties(), raw = p.getProperty(PAIR_KEY)
+  if (!raw) return { ok: false, error: 'no code' }
+  var st = JSON.parse(raw)
+  if (nowMs > st.exp) { p.deleteProperty(PAIR_KEY); return { ok: false, error: 'expired' } }
+  if (sha256Hex_(st.salt + code) !== st.hash) {
+    st.tries = (st.tries || 0) + 1
+    if (st.tries >= PAIR_TRIES) { p.deleteProperty(PAIR_KEY); return { ok: false, error: 'locked' } }
+    p.setProperty(PAIR_KEY, JSON.stringify(st))
+    return { ok: false, error: 'wrong code', triesLeft: PAIR_TRIES - st.tries }
+  }
+  p.deleteProperty(PAIR_KEY)
+  return { ok: true, token: token_() }
+}
+function withLock_(fn) {
+  var lock = LockService.getScriptLock()
+  lock.waitLock(20000)
+  try { return fn() } finally { lock.releaseLock() }
+}
+
 function handle_(body) {
+  var out = route_(body)
+  out.version = BRIDGE_VERSION
+  return out
+}
+function route_(body) {
+  if (body && body.action === 'pairClaim') return withLock_(function () { return pairClaim_(body.code, Date.now()) })
   if (!body || body.token !== token_()) return { ok: false, error: 'bad token' }
+  if (body.action === 'ping') return { ok: true, schema: SCHEMA }
+  if (body.action === 'pairStart') return withLock_(function () { return pairStart_(Date.now()) })
+  if (body.action === 'pairCancel') return withLock_(function () { PropertiesService.getScriptProperties().deleteProperty(PAIR_KEY); return { ok: true } })
   var ss = SpreadsheetApp.getActiveSpreadsheet()
   if (body.action === 'pull') return state_(ss)
   if (body.action === 'push') {

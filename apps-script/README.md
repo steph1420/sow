@@ -17,3 +17,7 @@ After editing Code.js later: **Deploy › Manage deployments › ✎ › Version
 
 ## clasp alternative
 `npm i -g @google/clasp && clasp login` (Steve signs in), copy `.clasp.json.example` → `.clasp.json` with the Script ID from Project Settings, `clasp push`.
+
+## v0.34.0 update (pairing)
+1. Extensions › Apps Script › `Code.gs`: select all, delete, paste the new `Code.js`, Save. Do **not** run setup again.
+2. Deploy › Manage deployments › ✎ (edit) › Version: **New version** › Deploy. The `/exec` URL stays the same.

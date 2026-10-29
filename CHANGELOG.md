@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.34.0 — 2026-10-29 (Asia/Calcutta)
+
+Set up another device without retyping the URL + token (Steve t36u setup file, t38u "Add the Pairdrop style as well please!"; mocks setuppair-mj1 **LOCKED t39u "Lock all"**). Turn t39u. Rollback: tag `v0.33.1` / `386a861` (app) — the old Code.gs keeps working with v0.34.0 apart from pairing/ping.
+
+- Settings › Sync: **Other devices** card — Pair a device ›, Join with a code ›, Setup file [Export] [Import]. Bridge token field gets "Hidden · saved on this device only" (closes the token-field mock).
+- **Pair a device** (host): asks the bridge for a 6-digit code, shows it large with a 5:00 countdown + bar, "One use · expires in 5 min", Cancel (cancels the code), New code once expired.
+- **Join with a code** (new device): bridge URL + six 44px digit boxes (paste fills all), Pair → token saved on the device, then Sync now runs; wrong code shows tries left.
+- **Setup file**: Export writes `sow-setup.sowsetup` (JSON kind sow-setup v1: URL, token, sheet URL, time) via the share sheet, else a download. Import validates it, shows a confirm sheet (URL, token masked to its last 4, export time); Apply pings the bridge first and changes nothing if the token is refused.
+- Apps Script (needs re-paste + New version): `ping`, `pairStart` (token), `pairClaim` (code → token; salted SHA-256 in Script Properties `SOW_PAIR`, 300 s, single use, 5 wrong tries → locked, script lock), `pairCancel` (token). Every reply carries `version: "0.34.0"`.
+- Plan: `docs/SETUP_PAIRING_PLAN.md`. Triangulation: `docs/CODE_TRIANGULATION_v0340.md`.
+- Tests: unit 162 (+14: `apps-script/test/pair.test.ts` 7, `src/sync/setupPair.test.ts` 7). New real-touch `setup-pair-probe` (21 checks, routed fake bridge). 24/24 probes green at 412×915.
+
 ## 0.33.1 — 2026-10-29 (Asia/Calcutta)
 
 Apps Script fix found reading the live copy after Steve's setup (t23u). Rollback: tag `v0.33.0` / `dc73c54`. Not deployed to Pages.

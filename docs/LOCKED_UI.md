@@ -23,3 +23,5 @@ Build continues via `JOB_BUNDLES_REDESIGN.md` (JB-R1 docs → JB-R2+ app).
 - Developer → Sync → **Academic year starts** row (native month picker, default April) (v0.29.2, Q-FIX-6). Mocks: `/workspace/sow-mockups/yearstart-mj1-dev-row-{night,day}.png`.
 
 - **LOCKED (Steve, 2026-10-29 3:13 PM IST, t11s1 "Lock the proposed push hints"):** Sync top hint "…Push not set up yet." · under Sync now "Pulls selected tabs · marks save on this device · push not set up." · About "…push not set up yet." Mocks: `/workspace/sow-mockups/pushhints-mj1-*`.
+
+- **LOCKED (Steve, 2026-10-29 ~11:00 PM IST, t39u "Lock all"):** Settings › Sync device setup — (a) Other devices card (Pair a device ›, Join with a code ›, Setup file Export/Import) + masked Bridge token "Hidden · saved on this device only"; (b) Pair a device: large 6-digit code, 5:00 countdown + bar, "One use · expires in 5 min", Cancel; (c) Join with a code: bridge URL + 6 digit boxes, Pair, "✓ Paired, syncing…"; (d) Import setup? confirm sheet: URL, token masked to last 4, Exported time, Cancel / Apply. Mocks: `/workspace/sow-mockups/setuppair-mj1-{a-sync,b-pair-code,c-join,d-import}-{night,day}.png`. Shipped v0.34.0.
