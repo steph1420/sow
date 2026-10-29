@@ -8,8 +8,21 @@ function gvizUrl(sheetId: string, tabName: string): string {
   return u.toString()
 }
 
+/** P1-2: network-level failure (offline, DNS, CORS-less abort) — distinct from HTTP/tab errors. */
+export class OfflineError extends Error {
+  constructor(message = 'You’re offline') {
+    super(message)
+    this.name = 'OfflineError'
+  }
+}
+
 export async function fetchSheetText(sheetId: string, tabName: string): Promise<string> {
-  const res = await fetch(gvizUrl(sheetId, tabName))
+  let res: Response
+  try {
+    res = await fetch(gvizUrl(sheetId, tabName))
+  } catch (e) {
+    throw new OfflineError(e instanceof Error ? e.message : String(e))
+  }
   if (!res.ok) throw new Error(`Sheet fetch failed (${res.status}) for “${tabName}”`)
   const text = await res.text()
   if (text.trimStart().startsWith('<!') || text.includes('google.visualization.Query.setResponse')) {
@@ -52,9 +65,15 @@ export type Discovery = {
  * except the real first tab.
  */
 export async function discoverTabs(sheetId: string): Promise<Discovery> {
+  let netFails = 0
+  let attempts = 0
   const missing = await fetchSheetText(sheetId, `__sow_missing_${Date.now().toString(36)}__`).catch(
-    () => '',
+    (e) => {
+      if (e instanceof OfflineError) netFails++
+      return ''
+    },
   )
+  attempts++
   const listed = await fetchTabNames(sheetId)
   const firstTab = listed?.[0] ?? DEFAULT_FIRST_TAB
   const candidates = listed
@@ -69,9 +88,11 @@ export async function discoverTabs(sheetId: string): Promise<Discovery> {
     const key = classKeyForTab(name)
     if (!key) continue
     let text: string
+    attempts++
     try {
       text = await fetchSheetText(sheetId, name)
-    } catch {
+    } catch (e) {
+      if (e instanceof OfflineError) netFails++
       rejected.push(name)
       continue
     }
@@ -89,6 +110,8 @@ export async function discoverTabs(sheetId: string): Promise<Discovery> {
     csv.set(name, text)
     tabs.push({ name, classKey: key, subject: subjectOf(key) })
   }
+  // P1-2: every request failed at network level → offline, not "no tabs".
+  if (!tabs.length && netFails > 0 && netFails === attempts) throw new OfflineError()
   return { tabs, rejected, source: listed ? 'tab-list' : 'probe', csv }
 }
 

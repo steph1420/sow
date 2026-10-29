@@ -1,6 +1,8 @@
 export { extractSheetId } from './sheetId'
 export { parseCsv } from './csv'
 export {
+  isOffline,
+  OFFLINE_MESSAGE,
   discoverAndStore,
   probeSheet,
   pullEng,

@@ -39,6 +39,18 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const [tabs, setTabs] = useState<DiscoveredTab[]>([])
   const [discovering, setDiscovering] = useState(false)
   const chips = chipsFrom(tabs)
+  // P1-2: offline gate — keep last tabs/chips, disable network actions, say so.
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false)
+  useEffect(() => {
+    const up = () => setOnline(true)
+    const down = () => setOnline(false)
+    window.addEventListener('online', up)
+    window.addEventListener('offline', down)
+    return () => {
+      window.removeEventListener('online', up)
+      window.removeEventListener('offline', down)
+    }
+  }, [])
 
   const applyTabs = useCallback((next: DiscoveredTab[]) => {
     setTabs(next)
@@ -66,7 +78,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     let cancelled = false
     ;(async () => {
       const s = await getSettings()
-      if (!s.sheetUrl) return
+      if (!s.sheetUrl || !online) return
       setDiscovering(true)
       try {
         const r = await discoverAndStore()
@@ -78,7 +90,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     return () => {
       cancelled = true
     }
-  }, [applyTabs])
+  }, [applyTabs, online])
 
   const saveUrls = async () => {
     await putSettings({ sheetUrl: sheetUrl.trim(), syncUrl: syncUrl.trim() })
@@ -150,6 +162,12 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         </div>
       </div>
 
+      {!online ? (
+        <div className="sync-offline" role="status">
+          You’re offline · last sheet tabs kept · marks save on this device. Sync when back online.
+        </div>
+      ) : null}
+
       {status?.lastSyncError ? (
         <div className="more-hint" style={{ color: 'var(--warn)' }}>
           {status.lastSyncError}
@@ -183,7 +201,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         <div className="pill-row">
           {chips.length === 0 ? (
             <span className="more-hint" style={{ margin: 0 }}>
-              {discovering ? 'Reading sheet tabs…' : 'No tabs found · Test sheet'}
+              {!online ? 'Offline · tabs load when back online' : discovering ? 'Reading sheet tabs…' : 'No tabs found · Test sheet'}
             </span>
           ) : null}
           {chips.map((c) => (
@@ -213,7 +231,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       <button
         type="button"
         className="sync-cta"
-        disabled={busy || !selected.length}
+        disabled={busy || !online || !selected.length}
         onClick={() => void run(() => syncNow(selected))}
       >
         <span className="spin" aria-hidden>
@@ -229,7 +247,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         <button
           type="button"
           className="ghost"
-          disabled={busy}
+          disabled={busy || !online}
           onClick={() => void run(probeSheet)}
         >
           Test sheet
@@ -237,7 +255,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         <button
           type="button"
           className="ghost"
-          disabled={busy || !selected.length}
+          disabled={busy || !online || !selected.length}
           onClick={() => void run(() => pullSubjects(selected))}
         >
           Pull only

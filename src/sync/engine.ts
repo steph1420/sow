@@ -21,7 +21,7 @@ import type { DiscoveredTab } from '../data/types'
 import { bridgePush } from './bridge'
 import { getDb } from '../data/db'
 import { parseCsv } from './csv'
-import { discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
+import { OfflineError, discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
 import { parseEngTabLite, sheetDateToIso } from './parseEngLite'
 import { extractSheetId } from './sheetId'
 
@@ -50,22 +50,38 @@ const emptyReport = (mode: SyncReport['mode'], message: string, ok = false): Syn
   pushed: false,
 })
 
+export const OFFLINE_MESSAGE = 'You’re offline · last sheet tabs kept · marks stay on this device. Sync when back online.'
+
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
 /** Discover real tabs and cache them in settings (chips + Subjects read this). */
-export async function discoverAndStore(): Promise<{ tabs: DiscoveredTab[]; discovery?: Discovery; error?: string }> {
+export async function discoverAndStore(): Promise<{
+  tabs: DiscoveredTab[]
+  discovery?: Discovery
+  error?: string
+  offline?: boolean
+}> {
   const settings = await getSettings()
   const id = extractSheetId(settings.sheetUrl)
   if (!id) return { tabs: [], error: 'No Sheet URL in settings · local IDB only.' }
+  const prev = settings.discoveredTabs ?? []
+  // P1-2: offline / network failure never wipes the last discovered tabs.
+  if (isOffline()) return { tabs: prev, error: OFFLINE_MESSAGE, offline: true }
   try {
     const d = await discoverTabs(id)
     await putSettings({ discoveredTabs: d.tabs, discoveredAt: new Date().toISOString() })
     return { tabs: d.tabs, discovery: d }
   } catch (e) {
-    return { tabs: settings.discoveredTabs ?? [], error: e instanceof Error ? e.message : String(e) }
+    if (e instanceof OfflineError) return { tabs: prev, error: OFFLINE_MESSAGE, offline: true }
+    return { tabs: prev, error: e instanceof Error ? e.message : String(e) }
   }
 }
 
 export async function probeSheet(): Promise<SyncReport> {
   const r = await discoverAndStore()
+  if (r.offline) return emptyReport('probe', r.error!)
   if (r.error && !r.discovery) {
     await putSettings({ lastSyncError: r.error })
     return emptyReport('probe', r.error)
@@ -286,11 +302,13 @@ export async function pushLocal(): Promise<SyncReport> {
  * otherwise Quiet “saved on device”.
  */
 export async function syncNow(subjects: SubjectId[]): Promise<SyncReport> {
+  if (isOffline()) return emptyReport('sync', OFFLINE_MESSAGE)
   const settings = await getSettings()
   const bridgeReady = Boolean(settings.syncUrl && /script\.google\.com/i.test(settings.syncUrl))
   const dirty = Boolean(settings.syncDirty)
 
   const pull = await pullSubjects(subjects)
+  if (pull.message === OFFLINE_MESSAGE) return { ...pull, mode: 'sync' } // P1-2: no push, no state change
 
   if (bridgeReady && dirty) {
     const push = await pushLocal()

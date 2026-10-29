@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getMark, getSession, getSettings, listMarks, listStudents, putMark, putSettings } from '../data/api'
 import { resetDbForTests } from '../data/db'
 import { seedIfEmpty } from '../data/seed'
-import { probeSheet, pullSubjects } from './engine'
+import { probeSheet, pullSubjects, syncNow } from './engine'
 import kgaCw from './__fixtures__/kga_eng_cw.csv?raw'
 import kgaHw from './__fixtures__/kga_eng_hw.csv?raw'
 import kgbHw from './__fixtures__/kgb_eng_hw.csv?raw'
@@ -84,5 +84,33 @@ describe('P0-1 first pull: sheet wins over demo seed', () => {
     // roll 1 is FALSE on sheet for 28/10 → not set, not submitted
     const r1 = await getMark('KGA_Eng_CW', 1, '2026-10-28')
     expect(r1?.submitted ?? false).toBe(false)
+  })
+})
+
+describe('P1-2 offline sync keeps last tabs', () => {
+  it('network failure does not wipe discovered tabs or flip dirty', async () => {
+    await probeSheet()
+    const before = (await getSettings()).discoveredTabs
+    expect(before?.length).toBe(4)
+    await putSettings({ syncDirty: false })
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    const r = await syncNow(['Eng'])
+    expect(r.ok).toBe(false)
+    expect(r.message).toMatch(/offline/i)
+    const s = await getSettings()
+    expect(s.discoveredTabs).toEqual(before)
+    expect(s.syncDirty).toBe(false)
+  })
+  it('navigator offline short-circuits without fetching', async () => {
+    await probeSheet()
+    const f = vi.fn()
+    vi.stubGlobal('fetch', f)
+    vi.stubGlobal('navigator', { onLine: false })
+    const r = await pullSubjects(['Eng'])
+    expect(f).not.toHaveBeenCalled()
+    expect(r.message).toMatch(/offline/i)
+    expect((await getSettings()).discoveredTabs?.length).toBe(4)
   })
 })

@@ -558,3 +558,14 @@ html[data-reduce-motion='1'] .sync-cta {
   transition: none;
   box-shadow: none;
 }
+
+/* P1-2 offline notice (v0.27.0) */
+.sync-offline {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
