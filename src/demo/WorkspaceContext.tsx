@@ -116,9 +116,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'hidden') flush()
     }
     window.addEventListener('pagehide', flush)
+    window.addEventListener('sow:flush', flush) // v0.30.1: before an update reload
     document.addEventListener('visibilitychange', onVis)
     return () => {
       window.removeEventListener('pagehide', flush)
+      window.removeEventListener('sow:flush', flush)
       document.removeEventListener('visibilitychange', onVis)
     }
   }, [])

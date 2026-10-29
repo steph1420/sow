@@ -1,3 +1,4 @@
+import { NAME_SWIPE_OPTIONS, normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle } from '../checklist/gestures/swipeConfirm'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
@@ -52,6 +53,23 @@ export function DevPage({ onBack }: Props) {
           Swipe ticks one row only
           <span className={`toggle${prefs['gestures.swipeSingleRow'] ? ' on' : ''}`} aria-hidden />
         </button>
+        {/* v0.31.0 (t5u): a swipe can start from the right part of the name row; boxes respond only when crossed. */}
+        <label className="more-row dev-name-swipe" style={{ position: 'relative' }}>
+          Swipe from name
+          <span className="meta">{NAME_SWIPE_OPTIONS.find((o) => o.value === normalizeNameSwipe(prefs['gestures.nameSwipeFrom']))!.label}</span>
+          <select
+            aria-label="Swipe from name"
+            value={String(normalizeNameSwipe(prefs['gestures.nameSwipeFrom']))}
+            onChange={(e) => setPref('gestures.nameSwipeFrom', normalizeNameSwipe(Number(e.target.value)))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {NAME_SWIPE_OPTIONS.map((o) => (
+              <option key={o.value} value={String(o.value)}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {/* v0.30.0 (t175u): pick the swipe pending cue; blue until Steve chooses. */}
         <label className="more-row dev-swipe-confirm" style={{ position: 'relative' }}>
           Swipe confirm

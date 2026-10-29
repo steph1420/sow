@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.31.0 — 2026-10-29 (Asia/Calcutta)
+
+Version label + app updates (Steve t4u "Stuck in 0.29.0") and swipe from the name row (Steve t5u "Make the swipe recognised from about half the length of the name row. But checkboxes only respond when I cross over them."). Rollback: tag `v0.30.0` / `2db49a2`.
+
+- **Fix: version shown.** Settings and About now read the version from `package.json` at build time (`__APP_VERSION__`); they had `0.29.0` hardcoded. Build fails if a version literal comes back (`scripts/check-version.mjs`).
+- **Fix: installed app stuck on an old build.** The service worker now takes over at once (`clientsClaim`, `skipWaiting`, old caches cleaned) and the app checks for a new build every time it comes to the foreground or gains focus. When one arrives it saves pending ticks and reloads, never mid-touch.
+- **Swipe from the name row.** A swipe can now start from the right half of the student's name. Nothing ticks until your finger crosses a box; only the boxes you cross change (same tick/clear rule as before). Vertical drags still scroll; long-press on the name still opens Select. Developer → **Swipe from name**: Off / 30% / 50% (default) / 70%.
+- Swipe-confirm cues now show only on the boxes that will change.
+- Tests: unit 128 (+`nameSwipe.test.ts`, `appVersion.test.ts`, `updateFlow.test.ts`); new real-touch `name-swipe-probe` (21 checks, all 6 cue styles × Set/Submitted) and `sw-update-probe` (old SW → new build on resume, no navigation). 22/22 probes green.
+- Release plan shift: privacy & config → v0.32.0, push + Left → v0.33.0.
+
 ## 0.30.0 — 2026-10-29 (Asia/Calcutta)
 
 Swipe-confirm styles as a Developer option. Steve t175u ("build ALL proposed swipe confirmations as Developer options"), t3s5 2:15 PM "Lock both. Do the swipe-confirm styles next." Rollback: tag `v0.29.2` / `36c4d5a`.

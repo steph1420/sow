@@ -3,6 +3,7 @@
  * Safety floors (A–Z idle 42, letter ≥11, hideEmpty default off) are not undercut.
  */
 
+import { normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { normalizeSwipeStyle, type SwipeConfirmStyle } from '../checklist/gestures/swipeConfirm'
 import { migrateLegacyShare, SEED_TEMPLATES, type ShareTemplate } from '../share/shareTemplates'
 
@@ -26,6 +27,8 @@ export type AppPrefs = {
   'gestures.swipeSingleRow': boolean
   /** v0.30.0 (t175u): swipe pending cue — Dev selector; blue until Steve picks. */
   'gestures.swipeConfirmStyle': SwipeConfirmStyle
+  /** v0.31.0 (t5u): a swipe can start from this fraction of the name row (0 = off). Dev option. */
+  'gestures.nameSwipeFrom': number
   /** t169u: vibration ticks (A–Z scrub, ticks). No-op where unsupported (iOS). */
   'haptics.enabled': boolean
   /** v0.29 (t170u): Off / Light / Normal / Strong — scales pulse lengths. */
@@ -50,6 +53,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'az.showHud': true,
   'gestures.swipeSingleRow': false,
   'gestures.swipeConfirmStyle': 'blue',
+  'gestures.nameSwipeFrom': 0.5,
   'haptics.enabled': true,
   'haptics.level': 'normal',
   'share.templates': SEED_TEMPLATES.map((t) => ({ ...t })),
@@ -94,6 +98,7 @@ export function loadPrefs(): AppPrefs {
     const parsed = raw ? (JSON.parse(raw) as Partial<AppPrefs>) : {}
     const hasShare = Array.isArray(parsed['share.templates']) && parsed['share.templates'].length > 0
     const merged = { ...freshDefaults(), ...parsed }
+    merged['gestures.nameSwipeFrom'] = normalizeNameSwipe(merged['gestures.nameSwipeFrom'])
     merged['gestures.swipeConfirmStyle'] = normalizeSwipeStyle(merged['gestures.swipeConfirmStyle'])
     if (parsed['haptics.level'] == null && parsed['haptics.enabled'] === false) merged['haptics.level'] = 'off'
     return withShareMigration(merged, hasShare)

@@ -28,6 +28,7 @@ import {
   type SelectModel,
 } from './gestures/selectPhysics'
 import { normalizeSwipeStyle, pendingRowClass, washPercent } from './gestures/swipeConfirm'
+import { crossedColumns, nameArmed, normalizeNameSwipe } from './gestures/nameSwipe'
 import { useChecklistModel } from './state/useChecklistModel'
 import { useShare } from '../share/ShareContext'
 import { haptic } from '../lib/haptics'
@@ -66,6 +67,9 @@ export function ChecklistPage(_props: Props) {
   const reduceMotion = prefs['chrome.reduceMotion']
   const swipeStyle = normalizeSwipeStyle(prefs['gestures.swipeConfirmStyle'])
   const [glowValue, setGlowValue] = useState(true)
+  /** v0.31.0: visible column indexes the cue targets (null = all visible, the ✓-cell swipe). */
+  const [glowCols, setGlowCols] = useState<number[] | null>(null)
+  const nameSwipeFrom = normalizeNameSwipe(prefs['gestures.nameSwipeFrom'])
 
   const paintRef = useRef<{
     session: PaintSession | null
@@ -79,6 +83,11 @@ export function ChecklistPage(_props: Props) {
     startDate: string
     /** t170u: multi-row extension armed (hesitancy passed) */
     armed: boolean
+    /** v0.31.0 (t5u): swipe started on the name row → only crossed boxes respond */
+    fromName?: boolean
+    crossed?: Set<number>
+    lastX?: number
+    cols?: { left: number; right: number }[]
   } | null>(null)
 
   const nameHoldRef = useRef<{
@@ -215,14 +224,36 @@ export function ChecklistPage(_props: Props) {
 
     if (!st.engaged) {
       if (!shouldEngagePaint({ dx, dy })) return
-      // t165u: swipe value = toggle of the start row across all visible dates
-      const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
-      st.session = startPaintSession(st.startCol, value, st.startRoll)
-      if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
-      haptic('selection')
-      setGlowValue(value)
-      setGlowRolls(new Set([st.startRoll]))
+      if (st.fromName) clearNameHold()
+      else {
+        // t165u: swipe value = toggle of the start row across all visible dates
+        const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
+        st.session = startPaintSession(st.startCol, value, st.startRoll)
+        if (!m.showTwoCol) st.session.targetCol = st.startCol
+        haptic('selection')
+        setGlowValue(value)
+        setGlowCols(null)
+        setGlowRolls(new Set([st.startRoll]))
+      }
+    }
+
+    // v0.31.0 (t5u): from the name row, boxes respond only once the finger crosses them.
+    if (st.fromName) {
+      const hit = crossedColumns(st.lastX ?? st.startX, e.clientX, st.cols ?? [])
+      st.lastX = e.clientX
+      const before = st.crossed!.size
+      for (const i of hit) st.crossed!.add(i)
+      if (!st.crossed!.size) return
+      if (!st.session) {
+        // same rule as the ✓-cell swipe (t165u): any unticked box in the row → tick, else clear
+        const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
+        st.session = startPaintSession(st.startCol, value, st.startRoll)
+        haptic('selection')
+        setGlowValue(value)
+        setGlowRolls(new Set([st.startRoll]))
+      } else if (st.crossed!.size !== before) haptic('selection')
+      if (st.crossed!.size !== before) setGlowCols([...st.crossed!].sort())
     }
 
     if (!st.session) return
@@ -258,8 +289,9 @@ export function ChecklistPage(_props: Props) {
       // t165u: commit every covered row × every visible date in one undo step
       const rolls = [...st.session.paintedRolls]
       const value = st.session.paintValue
+      const dates = st.fromName ? m.visibleDates.filter((_, i) => st.crossed!.has(i)) : m.visibleDates
       m.setCellsValue(
-        rolls.flatMap((roll) => m.visibleDates.map((d) => ({ roll, date: d.date }))),
+        rolls.flatMap((roll) => dates.map((d) => ({ roll, date: d.date }))),
         value,
       )
       haptic('medium')
@@ -267,6 +299,7 @@ export function ChecklistPage(_props: Props) {
       return
     }
     setGlowRolls((g) => (g.size ? new Set() : g))
+    if (st.fromName) return // a name touch never toggles a box by itself
 
     if (didTap) {
       haptic('light')
@@ -305,6 +338,17 @@ export function ChecklistPage(_props: Props) {
       nameHoldRef.current = null
     }, SELECT_HOLD_MS)
     nameHoldRef.current = { roll, startX, startY, timer, pointerId }
+    // v0.31.0 (t5u): right part of the name row arms a swipe (no preventDefault → native scroll + long-press stay)
+    const nr = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    if (nameArmed(e.clientX, nr.left, nr.width, nameSwipeFrom)) {
+      const row = rowRefs.current.get(roll)
+      const cols = row ? [...row.querySelectorAll('.sw-check-hit')].map((c) => { const r = c.getBoundingClientRect(); return { left: r.left, right: r.right } }) : []
+      paintRef.current = {
+        session: null, startX, startY, startRoll: roll, startCol: m.activeDateIndex, engaged: false, pointerId,
+        startValue: false, startDate: '', armed: false, fromName: true, crossed: new Set(), lastX: startX, cols,
+      }
+      ;(e.currentTarget as HTMLElement).setPointerCapture(pointerId)
+    }
   }
 
   const onNamePointerMove = (e: ReactPointerEvent) => {
@@ -544,15 +588,16 @@ export function ChecklistPage(_props: Props) {
                   <div
                     className="sw-name"
                     onPointerDown={(e) => onNamePointerDown(e, r.roll)}
-                    onPointerMove={onNamePointerMove}
-                    onPointerUp={onNamePointerUp}
-                    onPointerCancel={clearNameHold}
+                    onPointerMove={(e) => { onNamePointerMove(e); onCheckPointerMove(e) }}
+                    onPointerUp={(e) => { onNamePointerUp(e); onCheckPointerUp(e) }}
+                    onPointerCancel={(e) => { clearNameHold(); finishPaint(e, false) }}
                     onContextMenu={(e) => e.preventDefault()}
                   >
                     {r.name}
                   </div>
                   {m.visibleDates.map((d, colIndex) => {
                     const on = m.isOn(r.roll, d.date)
+                    const tgt = glow && (glowCols == null || glowCols.includes(colIndex))
                     return (
                       <div
                         key={d.date}
@@ -563,7 +608,7 @@ export function ChecklistPage(_props: Props) {
                         onPointerCancel={(e) => finishPaint(e, false)}
                         onContextMenu={(e) => e.preventDefault()}
                       >
-                        <div className={`sw-check${on ? ' on' : ''}${glow && swipeStyle === 'blue' ? ' pending' : ''}`}>
+                        <div className={`sw-check${on ? ' on' : ''}${tgt ? ' tgt' : ''}${tgt && swipeStyle === 'blue' ? ' pending' : ''}`}>
                           {on ? <CheckMark size={12} /> : null}
                         </div>
                       </div>

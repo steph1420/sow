@@ -1,3 +1,4 @@
+import { versionLabel } from '../lib/appVersion'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
@@ -120,7 +121,7 @@ export function SettingsPage({
           </span>
           <span className="g-body">
             <span className="g-title">About</span>
-            <span className="g-sub">v0.29.0 · Quiet Lucid</span>
+            <span className="g-sub">{versionLabel()}</span>
           </span>
           <span className="chev">›</span>
         </button>
