@@ -5,7 +5,7 @@ const [url, tag] = process.argv.slice(2);
   const p = await b.newPage({ viewport:{width:412,height:915}, deviceScaleFactor:2.625, isMobile:true, hasTouch:true });
   await p.goto(url, { waitUntil:'networkidle' });
   if (!(await p.$('.sw-list-wrap'))) {
-    await p.getByText('Open Checklist').first().click();
+    await p.locator('.ov-act-open').first().click();
     await p.waitForTimeout(800);
   }
   if (!(await p.$('.sw-list-wrap'))) { await p.screenshot({path:`/workspace/shots-v0261/${tag}-nolist.png`}); console.log('no list'); await b.close(); return; }

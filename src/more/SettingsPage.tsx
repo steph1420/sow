@@ -10,6 +10,7 @@ type Props = {
   onOpenRoster: () => void
   onOpenHistory: () => void
   onOpenAbout: () => void
+  onOpenSharing: () => void
 }
 
 /**
@@ -25,6 +26,7 @@ export function SettingsPage({
   onOpenRoster,
   onOpenHistory,
   onOpenAbout,
+  onOpenSharing,
 }: Props) {
   return (
     <MoreChrome title="Settings" onBack={onBack}>
@@ -88,6 +90,16 @@ export function SettingsPage({
           </span>
           <span className="chev">›</span>
         </button>
+        <button type="button" className="more-row g-row-like sharing" onClick={onOpenSharing}>
+          <span className="g-ico green" aria-hidden>
+            ↗
+          </span>
+          <span className="g-body">
+            <span className="g-title">Sharing</span>
+            <span className="g-sub">Templates · Copy · WhatsApp</span>
+          </span>
+          <span className="chev">›</span>
+        </button>
       </div>
 
       <div className="more-sec">System</div>
@@ -108,7 +120,7 @@ export function SettingsPage({
           </span>
           <span className="g-body">
             <span className="g-title">About</span>
-            <span className="g-sub">v0.27.0 · Quiet Lucid</span>
+            <span className="g-sub">v0.28.0 · Quiet Lucid</span>
           </span>
           <span className="chev">›</span>
         </button>

@@ -4,7 +4,7 @@ const [url] = process.argv.slice(2);
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
   const p = await b.newPage({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
   await p.goto(url, { waitUntil:'networkidle' });
-  if (!(await p.$('.sw-list-wrap'))) { await p.getByText('Open Checklist').first().click(); await p.waitForTimeout(800); }
+  if (!(await p.$('.sw-list-wrap'))) { await p.locator('.ov-act-open').first().click(); await p.waitForTimeout(800); }
   const az = await (await p.$('.sw-az')).boundingBox();
   const run = async (frac, label) => {
     await p.evaluate(() => { const w=document.querySelector('.sw-list-wrap'); window.__s=[]; const t0=performance.now(); let last=w.scrollTop, still=0;

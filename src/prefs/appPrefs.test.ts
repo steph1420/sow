@@ -60,4 +60,7 @@ describe('appPrefs', () => {
     mem.set('sow.prefs.v1', JSON.stringify({ 'share.template': 'again' }))
     expect(loadPrefs()['share.templates'][0]!.body).toBe('edited')
   })
+  it('t167u: swipe-single-row dev option defaults OFF', () => {
+    expect(loadPrefs()['gestures.swipeSingleRow']).toBe(false)
+  })
 })

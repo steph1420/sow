@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.28.0 — 2026-10-29 (Asia/Calcutta)
+
+Share is back as named templates, built to the locked mocks share-mj1..mj5 (Steve t164u "Beautiful"). Rollback: tag `v0.27.0` / `45778d3`.
+
+### Share (t162u/t164u)
+- **One word, two places.** Every Overview card has a quiet `Open · Share` row (the big "Open Checklist" button became `Open`). Checklist Tools has `Share ›` for the current class and the date on screen.
+- **Chooser sheet.** Shows the context (class · date · topic), template pills with the last used one preselected (then the default), `＋ New`, a live preview truncated to "…N more" with a names count, a KGA/KGB prefix toggle for this share only, **Copy** (proper icon; Clipboard API with a textarea fallback; "Copied" toast) and **WhatsApp** (`wa.me/?text=`). Long-press a pill to edit it. A warning appears over 1500 encoded chars, and an empty template disables both targets.
+- **Seeded templates:** Pending (default, the exact old `{class} • {date} • not set/found ({count}):\n{names}`), Completed, Submitted, Not submitted.
+- **Settings → Sharing** (`#settings/sharing`): drag-to-reorder by handle (touch), Default badge, Rename / Duplicate / Default / Delete (two-tap; the last template can't be deleted), a token editor with green highlights (unknown tokens shown amber and wavy), chips that insert at the caret (`{count.*}` expands), a live preview on the real latest session, the default prefix, and Restore default templates. Names are unique and capped at 24 chars.
+- **Migration:** if a customised legacy `share.template` exists in `sow.prefs.v1`, it becomes Pending's text, the prefix setting carries over, and the old key is dropped. This runs once.
+- **Back** closes the sheet first, and Day and Night both use tokens.
+
+### Checklist
+- **A–Z strip:** the top • is gone (t166u). The strip no longer filters, so there's nothing to reset, and names that don't start with a letter sit under A.
+- **Dev → "Swipe ticks one row only"** (t167u, default OFF): when it's on, a horizontal swipe ticks only the row it started on, even if the finger drifts down. Long-press select and roll-drag aren't affected.
+
+- **Blue pending highlight** (t168u): while you hold a swipe or roll-drag, every covered row's ✓ boxes and the row ring turn blue, which is distinct from Set green and Submitted purple and tuned for Day and Night. The blue clears the moment you release and the ticks commit. This respects the one-row option.
+- **Haptics** (t169u): a central `haptic()` helper with a Settings → Appearance → Haptics toggle (default ON). The A–Z strip gives an 8ms tick per letter change; tapping a tick gives 10ms; swipe commit gives 15ms. iOS stays silent. The full candidate plan is in `HAPTICS_PLAN.md`.
+
+### Tests
+- Unit 80 (share core 19, prefs/migration, route, A–Z). New real-touch e2e: `share-probe` (49 checks), `swipe-single-probe` (incl. blue pending hold/release), `haptics-probe`. Seam, back, az-tween and the v0.27 probe set re-run.
+
 ## 0.27.0 — 2026-10-29 (Asia/Calcutta)
 
 Systematic fix pass on the v0.26.3 dogfood (Steve t163u "B") + real-phone gesture regression (t165u). Share restore is not in this release (mocked separately). Rollback: tag `v0.26.3` / `f289eb8`.

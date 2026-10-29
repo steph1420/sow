@@ -128,6 +128,17 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
             aria-hidden
           />
         </button>
+        <button
+          type="button"
+          className="more-row g-row-like haptics-row"
+          onClick={() => setPref('haptics.enabled', !prefs['haptics.enabled'])}
+        >
+          <span className="g-body">
+            <span className="g-title">Haptics</span>
+            <span className="g-sub">Tick on A–Z letters and on ticks · Android</span>
+          </span>
+          <span className={`toggle${prefs['haptics.enabled'] ? ' on' : ''}`} aria-hidden />
+        </button>
       </div>
     </MoreChrome>
   )

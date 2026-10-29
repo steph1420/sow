@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { onExternalRoute, setRouteHash, useBackLayer, useExitToast } from '../nav/backStack'
 import { formatRoute, parseRoute } from '../nav/route'
 import { CheckMark } from '../components/CheckMark'
@@ -11,6 +11,8 @@ import { HistoryPage } from '../more/HistoryPage'
 import { popRoute, pushRoute, topRoute, type MoreStack } from '../more/navStack'
 import { RosterPage } from '../more/RosterPage'
 import { SettingsPage } from '../more/SettingsPage'
+import { SharingPage } from '../more/SharingPage'
+import { ShareProvider } from '../share/ShareContext'
 import { SubjectsPage } from '../more/SubjectsPage'
 import { SyncPage } from '../more/SyncPage'
 import { ChecklistScreen } from '../screens/ChecklistScreen'
@@ -32,6 +34,15 @@ export function AppShell() {
   useEffect(() => {
     if (boot.classKey) setActiveClassKey(boot.classKey)
   }, [boot, setActiveClassKey])
+
+  // v0.28 Share: chooser → Settings → Sharing (edit a template / create one)
+  const [sharingIntent, setSharingIntent] = useState<{ id?: string; create?: boolean } | null>(null)
+  const openSharing = useCallback((id?: string, create?: boolean) => {
+    setMoreOpen(false)
+    setSharingIntent({ id, create })
+    setStack(['settings', 'sharing'])
+  }, [])
+  const wrap = (node: ReactNode) => <ShareProvider onManage={openSharing}>{node}</ShareProvider>
 
   const openMore = useCallback(() => setMoreOpen(true), [])
   const closeMore = useCallback(() => setMoreOpen(false), [])
@@ -86,7 +97,7 @@ export function AppShell() {
 
   if (top) {
     if (top === 'roster') {
-      return (
+      return wrap(
         <div className="app-shell">
           <RosterPage onBack={onBack} />
           {toast}
@@ -94,7 +105,7 @@ export function AppShell() {
       )
     }
     if (top === 'history') {
-      return (
+      return wrap(
         <div className="app-shell">
           <HistoryPage
             onBack={onBack}
@@ -109,7 +120,7 @@ export function AppShell() {
       )
     }
     if (top === 'settings') {
-      return (
+      return wrap(
         <div className="app-shell">
           <SettingsPage
             onBack={onBack}
@@ -120,13 +131,17 @@ export function AppShell() {
             onOpenRoster={() => setStack((s) => pushRoute(s, 'roster'))}
             onOpenHistory={() => setStack((s) => pushRoute(s, 'history'))}
             onOpenAbout={() => setStack((s) => pushRoute(s, 'about'))}
+            onOpenSharing={() => {
+              setSharingIntent(null)
+              setStack((s) => pushRoute(s, 'sharing'))
+            }}
           />
           {toast}
         </div>
       )
     }
     if (top === 'dev') {
-      return (
+      return wrap(
         <div className="app-shell">
           <DevPage onBack={onBack} />
           {toast}
@@ -134,7 +149,7 @@ export function AppShell() {
       )
     }
     if (top === 'sync') {
-      return (
+      return wrap(
         <div className="app-shell">
           <SyncPage
             onBack={onBack}
@@ -145,7 +160,7 @@ export function AppShell() {
       )
     }
     if (top === 'appearance') {
-      return (
+      return wrap(
         <div className="app-shell">
           <AppearancePage
             onBack={onBack}
@@ -156,15 +171,28 @@ export function AppShell() {
       )
     }
     if (top === 'subjects') {
-      return (
+      return wrap(
         <div className="app-shell">
           <SubjectsPage onBack={onBack} />
           {toast}
         </div>
       )
     }
+    if (top === 'sharing') {
+      return wrap(
+        <div className="app-shell">
+          <SharingPage
+            onBack={onBack}
+            initialId={sharingIntent?.id}
+            createOnOpen={sharingIntent?.create}
+            onConsumedIntent={() => setSharingIntent(null)}
+          />
+          {toast}
+        </div>
+      )
+    }
     if (top === 'about') {
-      return (
+      return wrap(
         <div className="app-shell">
           <AboutPage onBack={onBack} />
           {toast}
@@ -173,7 +201,7 @@ export function AppShell() {
     }
   }
 
-  return (
+  return wrap(
     <div className="app-shell">
       <main className="app-main">
         {tab === 'overview' ? (

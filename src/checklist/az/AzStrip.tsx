@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { usePrefs } from '../../prefs/PrefsContext'
+import { haptic } from '../../lib/haptics'
 import {
   AZ_LETTERS,
   azSlotTopPercent,
@@ -27,6 +28,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
   const [hud, setHud] = useState<AzLetter | null>(null)
   const [hudDim, setHudDim] = useState(false)
   const [hi, setHi] = useState<AzLetter | null>(null)
+  const lastLetter = useRef<AzLetter | null>(null)
   const left = prefs['az.leftSide']
   const hideEmpty = prefs['az.hideEmpty']
   const showHud = prefs['az.showHud']
@@ -47,6 +49,11 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
         setHud(letter)
         setHudDim(empty)
       }
+      // t169u: one short tick per letter change (never on the same letter)
+      if (lastLetter.current !== letter) {
+        lastLetter.current = letter
+        haptic('az')
+      }
       setHi(letter)
       const roll = jumpLetterToRoll(letter, rows)
       onJump(letter, roll)
@@ -55,6 +62,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
   )
 
   const end = () => {
+    lastLetter.current = null
     setHud(null)
     setHudDim(false)
     window.setTimeout(() => setHi(null), 600)

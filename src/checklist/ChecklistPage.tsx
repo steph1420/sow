@@ -26,6 +26,8 @@ import {
   type SelectModel,
 } from './gestures/selectPhysics'
 import { useChecklistModel } from './state/useChecklistModel'
+import { useShare } from '../share/ShareContext'
+import { haptic } from '../lib/haptics'
 import './checklist.css'
 
 type RowGeom = { roll: number; top: number; bottom: number }
@@ -41,6 +43,7 @@ type Props = {
  */
 export function ChecklistPage(_props: Props) {
   const m = useChecklistModel()
+  const { openShare } = useShare()
   const { prefs } = usePrefs()
   const showFab = prefs['chrome.showFab']
   const azLeft = prefs['az.leftSide']
@@ -209,11 +212,13 @@ export function ChecklistPage(_props: Props) {
       st.session = startPaintSession(st.startCol, value, st.startRoll)
       if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
-      navigator.vibrate?.(8)
+      haptic('engage')
       setGlowRolls(new Set([st.startRoll]))
     }
 
     if (!st.session) return
+    // t167u dev option: a swipe commits only the row it started on (ignores vertical drift)
+    if (prefs['gestures.swipeSingleRow']) return
     const roll = rollAtY(e.clientY, measureRows())
     if (roll == null) return
     if (paintRoll(st.session, roll)) {
@@ -234,13 +239,14 @@ export function ChecklistPage(_props: Props) {
         rolls.flatMap((roll) => m.visibleDates.map((d) => ({ roll, date: d.date }))),
         value,
       )
-      navigator.vibrate?.(12)
-      window.setTimeout(() => setGlowRolls(new Set()), 280)
+      haptic('commit')
+      setGlowRolls(new Set()) // t168u: pending blue clears instantly on release
       return
     }
     setGlowRolls((g) => (g.size ? new Set() : g))
 
     if (didTap) {
+      haptic('tick')
       m.toggleCell(st.startRoll, st.startDate)
     }
   }
@@ -525,7 +531,7 @@ export function ChecklistPage(_props: Props) {
                         onPointerCancel={(e) => finishPaint(e, false)}
                         onContextMenu={(e) => e.preventDefault()}
                       >
-                        <div className={`sw-check${on ? ' on' : ''}${glow && on ? ' trail' : ''}`}>
+                        <div className={`sw-check${on ? ' on' : ''}${glow ? ' pending' : ''}`}>
                           {on ? <CheckMark size={12} /> : null}
                         </div>
                       </div>
@@ -603,6 +609,18 @@ export function ChecklistPage(_props: Props) {
                 <span className="chev">›</span>
               </button>
             ) : null}
+            {/* v0.28 (mock share-mj2): one-word Share — current class + shown date */}
+            <button
+              type="button"
+              className="sw-tools-row share"
+              onClick={() => {
+                setToolsOpen(false)
+                openShare({ classKey: m.classKey, date: echoDate })
+              }}
+            >
+              Share
+              <span className="chev">›</span>
+            </button>
             <button type="button" className="sw-tools-row mute" onClick={() => setToolsOpen(false)}>
               Done
             </button>

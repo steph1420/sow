@@ -15,11 +15,14 @@ import {
   type AppPrefs,
   type ThemeId,
 } from './appPrefs'
+import { setHapticsEnabled } from '../lib/haptics'
 
 type PrefsValue = {
   prefs: AppPrefs
   setPref: <K extends keyof AppPrefs>(key: K, value: AppPrefs[K]) => void
   setTheme: (theme: ThemeId) => void
+  /** Atomic multi-key update (Share CRUD touches templates + default + lastUsed together). */
+  patchPrefs: (patch: Partial<AppPrefs> | ((p: AppPrefs) => Partial<AppPrefs>)) => void
 }
 
 const PrefsContext = createContext<PrefsValue | null>(null)
@@ -29,6 +32,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyTheme(resolveTheme(prefs))
+    setHapticsEnabled(prefs['haptics.enabled'])
     document.documentElement.dataset.reduceMotion = prefs['chrome.reduceMotion']
       ? '1'
       : '0'
@@ -54,7 +58,11 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     setPrefs((p) => ({ ...p, theme, 'theme.followSystem': false }))
   }, [])
 
-  const value = useMemo(() => ({ prefs, setPref, setTheme }), [prefs, setPref, setTheme])
+  const patchPrefs = useCallback((patch: Partial<AppPrefs> | ((p: AppPrefs) => Partial<AppPrefs>)) => {
+    setPrefs((p) => ({ ...p, ...(typeof patch === 'function' ? patch(p) : patch) }))
+  }, [])
+
+  const value = useMemo(() => ({ prefs, setPref, setTheme, patchPrefs }), [prefs, setPref, setTheme, patchPrefs])
 
   return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>
 }

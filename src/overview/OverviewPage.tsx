@@ -3,6 +3,7 @@ import type { SubjectId } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { progressForSession } from '../demo/workspaceData'
 import { SessionCard } from './SessionCard'
+import { useShare } from '../share/ShareContext'
 import './overview.css'
 
 type GroupFilter = 'All' | 'KGA' | 'KGB'
@@ -19,6 +20,7 @@ type Props = {
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
   const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
+  const { openShare } = useShare()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [subject, setSubject] = useState<SubjectFilter>('All')
   // Filter chips derive from real sessions (t158u) — no hardcoded Math.
@@ -153,6 +155,7 @@ export function OverviewPage({ onOpenChecklist }: Props) {
                   setExpandedId(s.id)
                   onOpenChecklist()
                 }}
+                onShare={() => openShare({ classKey: s.classKey, date: s.date })}
               />
             )
           })}

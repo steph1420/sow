@@ -452,7 +452,8 @@
   border-color: rgba(48, 209, 88, 0.28);
 }
 .sw-row.paint-glow {
-  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.35), 0 0 18px rgba(48, 209, 88, 0.12);
+  /* t168u: swipe pending = blue (distinct from Set green / Submitted purple) */
+  box-shadow: inset 0 0 0 1.5px var(--pend), 0 0 18px var(--pend-soft);
 }
 .sw-row.az-focus {
   background: rgba(48, 209, 88, 0.1);
@@ -530,6 +531,16 @@
 }
 .sw-page.mode-sub .sw-check.trail {
   box-shadow: 0 0 10px rgba(139, 124, 247, 0.45);
+}
+
+:root { --pend: #4c9bff; --pend-soft: rgba(76, 155, 255, 0.2); }
+:root[data-theme='day'] { --pend: #1f6fd6; --pend-soft: rgba(31, 111, 214, 0.14); }
+.sw-check.pending,
+.sw-page.mode-sub .sw-check.pending {
+  border-color: var(--pend) !important;
+  background: var(--pend-soft) !important;
+  color: var(--pend) !important;
+  box-shadow: 0 0 0 1px var(--pend);
 }
 
 /* A–Z strip — absolute % slots, idle 42, letter ≥11px */

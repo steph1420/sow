@@ -6,6 +6,8 @@ type Props = {
   expanded: boolean
   onExpand: () => void
   onOpenChecklist: () => void
+  /** v0.28 Share chooser for this class × date. */
+  onShare: () => void
 }
 
 export function SessionCard({
@@ -14,6 +16,7 @@ export function SessionCard({
   expanded,
   onExpand,
   onOpenChecklist,
+  onShare,
 }: Props) {
   const topicBit =
     !expanded && session.topics[0]
@@ -65,13 +68,18 @@ export function SessionCard({
             <div className="s set">Set {progress.set}</div>
             <div className="s">Submitted {progress.submitted}</div>
           </div>
-          <div className="ov-actions">
-            <button type="button" className="btn primary" onClick={onOpenChecklist}>
-              Open Checklist
-            </button>
-          </div>
         </>
       ) : null}
+
+      {/* v0.28 (mock share-mj1): quiet one-word action row on every card */}
+      <div className="ov-act">
+        <button type="button" className={`ov-act-open${expanded ? ' hl' : ''}`} onClick={onOpenChecklist}>
+          Open
+        </button>
+        <button type="button" className="ov-act-share" onClick={onShare}>
+          Share
+        </button>
+      </div>
     </div>
   )
 }

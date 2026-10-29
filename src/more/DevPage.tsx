@@ -41,6 +41,14 @@ export function DevPage({ onBack }: Props) {
           Show scrub HUD
           <span className={`toggle${prefs['az.showHud'] ? ' on' : ''}`} aria-hidden />
         </button>
+        <button
+          type="button"
+          className="more-row dev-swipe-single"
+          onClick={() => setPref('gestures.swipeSingleRow', !prefs['gestures.swipeSingleRow'])}
+        >
+          Swipe ticks one row only
+          <span className={`toggle${prefs['gestures.swipeSingleRow'] ? ' on' : ''}`} aria-hidden />
+        </button>
       </div>
 
       <div className="more-sec">Chrome</div>
