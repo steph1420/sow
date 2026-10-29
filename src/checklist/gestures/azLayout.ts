@@ -21,7 +21,7 @@ export function firstLetterOfName(name: string): string {
 }
 
 /** Strip letter a name belongs to — non-letter names ('*') fold into A (top of the strip). */
-function stripLetterOf(name: string): string {
+export function stripLetterOf(name: string): string {
   const L = firstLetterOfName(name)
   return L === '*' ? 'A' : L
 }

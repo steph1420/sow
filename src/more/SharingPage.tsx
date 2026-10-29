@@ -391,7 +391,7 @@ export function SharingPage({ onBack, initialId, createOnOpen, onConsumedIntent 
           type="button"
           className="more-row g-row-like shr-prefix-row"
           onClick={() => setShare((s) => ({ ...s, includeClassPrefix: !s.includeClassPrefix }))}
-        >
+         role="switch" aria-checked={Boolean(share.includeClassPrefix)}>
           <span className="g-body">
             <span className="g-title">Include KGA/KGB prefix</span>
             <span className="g-sub">Default for Share · the sheet can flip it per message</span>

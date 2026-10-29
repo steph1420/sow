@@ -29,6 +29,8 @@ export type AppPrefs = {
   'gestures.swipeConfirmStyle': SwipeConfirmStyle
   /** v0.31.0 (t5u): a swipe can start from this fraction of the name row (0 = off). Dev option. */
   'gestures.nameSwipeFrom': number
+  /** v0.37.0 (t66u dogfood): keyboard Space/Enter tick moves focus to the next pupil. Dev option. */
+  'kbd.autoAdvance': boolean
   /** t169u: vibration ticks (A–Z scrub, ticks). No-op where unsupported (iOS). */
   'haptics.enabled': boolean
   /** v0.29 (t170u): Off / Light / Normal / Strong — scales pulse lengths. */
@@ -56,6 +58,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'gestures.swipeSingleRow': false,
   'gestures.swipeConfirmStyle': 'blue',
   'gestures.nameSwipeFrom': 0.5,
+  'kbd.autoAdvance': true,
   'haptics.enabled': true,
   'haptics.level': 'normal',
   'share.templates': SEED_TEMPLATES.map((t) => ({ ...t })),

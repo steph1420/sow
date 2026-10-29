@@ -14,7 +14,7 @@ export const CATEGORIES: Category[] = [
   { id: 'gestures', label: 'Gestures', sub: 'Swipe from name · confirm style · one row only', keys: ['gestures.nameSwipeFrom', 'gestures.swipeConfirmStyle', 'gestures.swipeSingleRow'], defaultOn: true },
   { id: 'share', label: 'Share templates', sub: 'Message templates · default · class prefix', keys: ['share.templates', 'share.defaultId', 'share.includeClassPrefix'], defaultOn: true },
   { id: 'year', label: 'Academic year', sub: 'Always synced', keys: ['sync.yearStartMonth'], always: true, defaultOn: true },
-  { id: 'dev', label: 'Developer options', sub: 'A–Z side + HUD · bridge override', keys: ['az.leftSide', 'az.showHud', 'sync.joinUrlOverride'], defaultOn: false },
+  { id: 'dev', label: 'Developer options', sub: 'A–Z side + HUD · bridge override · keyboard advance', keys: ['az.leftSide', 'az.showHud', 'sync.joinUrlOverride', 'kbd.autoAdvance'], defaultOn: false },
 ]
 const KEY_CAT: Record<string, CatId> = Object.fromEntries(CATEGORIES.flatMap((c) => c.keys.map((k) => [k, c.id])))
 export const SYNC_KEYS = Object.keys(KEY_CAT)

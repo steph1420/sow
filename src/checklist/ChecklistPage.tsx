@@ -1,9 +1,10 @@
 import { useBackLayer } from '../nav/backStack'
 import { createScrollTween, type ScrollTween } from './scrollTween'
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
 import { CheckMark, DashMark } from '../components/CheckMark'
-import { AzStrip } from './az/AzStrip'
+import { AzStrip, type AzStripHandle } from './az/AzStrip'
+import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
@@ -30,6 +31,7 @@ import {
 import { normalizeSwipeStyle, pendingRowClass, washPercent } from './gestures/swipeConfirm'
 import { crossedColumns, nameArmed, normalizeNameSwipe } from './gestures/nameSwipe'
 import { useChecklistModel } from './state/useChecklistModel'
+import { useWorkspace } from '../demo/WorkspaceContext'
 import { useShare } from '../share/ShareContext'
 import { haptic } from '../lib/haptics'
 import './checklist.css'
@@ -431,17 +433,134 @@ export function ChecklistPage(_props: Props) {
     return 'partial'
   }
 
+  // ── v0.37.0 keyboard (docs/KEYBOARD_WIDESCREEN_PLAN.md) ─────────────────
+  const azRef = useRef<AzStripHandle>(null)
+  const [kb, setKb] = useState<[number, number]>([0, 0])
+  const [live, setLive] = useState('')
+  const { setPupilLeft, activeClassKey } = useWorkspace()
+  const lastLeft = useRef<{ roll: number; name: string; ri: number } | null>(null)
+  const autoAdvance = prefs['kbd.autoAdvance']
+  const nRows = m.filteredRoster.length
+  const nCols = m.visibleDates.length
+  const kbRow = Math.min(kb[0], Math.max(0, nRows - 1))
+  const kbCol = Math.min(kb[1], Math.max(0, nCols - 1))
+  const focusCell = useCallback((ri: number, ci: number) => {
+    setKb([ri, ci])
+    requestAnimationFrame(() => {
+      const el = listRef.current?.querySelector<HTMLElement>(`[data-cell="${ri}-${ci}"]`)
+      el?.focus({ preventScroll: true })
+      el?.scrollIntoView({ block: 'nearest' })
+    })
+  }, [])
+  const focusRoll = useCallback((roll: number | null) => {
+    const ri = roll == null ? kbRow : m.filteredRoster.findIndex((r) => r.roll === roll)
+    focusCell(Math.max(0, ri), kbCol)
+  }, [focusCell, kbCol, kbRow, m.filteredRoster])
+
+  const onCellKey = (e: ReactKeyboardEvent, ri: number, ci: number, roll: number, date: string) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    const name = m.filteredRoster[ri]?.name ?? ''
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      if (e.shiftKey) {
+        const value = !m.visibleDates.every((d) => m.isOn(roll, d.date))
+        m.setCellsValue(m.visibleDates.map((d) => ({ roll, date: d.date })), value)
+        setLive(`${name}: ${value ? 'ticked' : 'unticked'} ${m.visibleDates.length === 2 ? 'both dates' : ''}`)
+      } else {
+        const was = m.isOn(roll, date)
+        m.toggleCell(roll, date)
+        setLive(`${name}: ${was ? 'unticked' : 'ticked'}`)
+      }
+      lastLeft.current = null
+      haptic('light')
+      if (autoAdvance && ri < nRows - 1) focusCell(ri + 1, ci)
+      return
+    }
+    if (e.key === 'l' || e.key === 'L') {
+      e.preventDefault()
+      lastLeft.current = { roll, name, ri }
+      setPupilLeft(activeClassKey, roll, true)
+      setLive(`${name} marked Left — ${navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Z to undo`)
+      focusCell(Math.max(0, Math.min(ri, nRows - 2)), ci)
+      return
+    }
+    if (e.key === 'm' || e.key === 'M') {
+      e.preventDefault()
+      const next = m.mode === 'set' ? 'submitted' : 'set'
+      m.setMode(next)
+      setLive(`${next === 'set' ? 'Set' : 'Submitted'} mode`)
+      return
+    }
+    if (e.key === 'p' || e.key === 'P') {
+      e.preventDefault()
+      m.setPendingOnly((v) => { setLive(v ? 'Showing all pupils' : 'Pending only'); return !v })
+      return
+    }
+    const mv = gridMove(e.key, ri, ci, nRows, nCols)
+    if (!mv) return
+    e.preventDefault()
+    if (e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      const nextRoll = m.filteredRoster[mv[0]]?.roll
+      setSelect((s) => {
+        const base = s.active ? s : enterSelect(createSelectModel(), roll)
+        const sel = new Set(base.selected)
+        sel.add(roll)
+        if (nextRoll != null) sel.add(nextRoll)
+        setLive(`${sel.size} selected`)
+        return { ...base, selected: sel }
+      })
+    }
+    focusCell(mv[0], mv[1])
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      const typing = isTypingTarget(e.target as HTMLElement)
       if (e.key === 'Escape') {
+        if (select.active || copyOpen || toolsOpen) e.preventDefault()
         setSelect(exitSelect())
         setCopyOpen(false)
         setToolsOpen(false)
+        if (m.searchOpen) {
+          m.setSearchOpen(false)
+          m.setQuery('')
+          focusCell(kbRow, kbCol)
+          e.preventDefault()
+        }
+        return
+      }
+      if (isMod(e) && !e.altKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault()
+        m.setSearchOpen(true)
+        requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.sw-search input')?.focus())
+        return
+      }
+      if (typing) return
+      if (isMod(e) && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault()
+        if (!e.shiftKey && lastLeft.current) {
+          const l = lastLeft.current
+          lastLeft.current = null
+          setPupilLeft(activeClassKey, l.roll, false)
+          setLive(`${l.name} back to Active`)
+          focusCell(l.ri, kbCol)
+          return
+        }
+        if (e.shiftKey) m.redo(); else m.undo()
+        return
+      }
+      if (isMod(e) && !e.altKey && !e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault(); m.redo(); return
+      }
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        azRef.current?.focus()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [activeClassKey, copyOpen, focusCell, kbCol, kbRow, m, select.active, setPupilLeft, toolsOpen])
 
   return (
     <div
@@ -567,8 +686,9 @@ export function ChecklistPage(_props: Props) {
           ref={listRef}
           onScroll={onListScroll}
         >
-          <div className={`sw-rows${select.active ? ' selecting' : ''}`}>
-            {m.filteredRoster.map((r) => {
+          <div className="sr-only" aria-live="polite">{live}</div>
+          <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts">
+            {m.filteredRoster.map((r, rowIndex) => {
               const selected = select.selected.has(r.roll)
               const glow = glowRolls.has(r.roll)
               return (
@@ -605,6 +725,13 @@ export function ChecklistPage(_props: Props) {
                     return (
                       <div
                         key={d.date}
+                        role="checkbox"
+                        aria-checked={on}
+                        aria-label={`${r.name}, roll ${r.roll}, ${d.dayLabel}`}
+                        tabIndex={rowIndex === kbRow && colIndex === kbCol ? 0 : -1}
+                        data-cell={`${rowIndex}-${colIndex}`}
+                        onKeyDown={(e) => onCellKey(e, rowIndex, colIndex, r.roll, d.date)}
+                        onFocus={() => { if (kb[0] !== rowIndex || kb[1] !== colIndex) setKb([rowIndex, colIndex]) }}
                         className="sw-check-hit"
                         onPointerDown={(e) => onCheckPointerDown(e, r.roll, colIndex, d.date)}
                         onPointerMove={onCheckPointerMove}
@@ -627,7 +754,10 @@ export function ChecklistPage(_props: Props) {
         <AzStrip
           names={m.filteredRoster.map((r) => r.name)}
           rows={m.filteredRoster}
+          ref={azRef}
           onJump={onAzJump}
+          onEnterGrid={(roll) => { onAzScrubEnd(); focusRoll(roll) }}
+          onLeave={() => { onAzScrubEnd(); focusCell(kbRow, kbCol) }}
           onScrubEnd={onAzScrubEnd}
           modeSub={m.mode === 'submitted'}
         />

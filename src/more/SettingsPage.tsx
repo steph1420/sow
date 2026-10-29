@@ -119,6 +119,16 @@ export function SettingsPage({
           </span>
           <span className="chev">›</span>
         </button>
+        <button type="button" className="more-row g-row-like" onClick={() => window.dispatchEvent(new Event('sow:shortcuts'))}>
+          <span className="g-ico soft" aria-hidden>
+            ⌨
+          </span>
+          <span className="g-body">
+            <span className="g-title">Keyboard shortcuts</span>
+            <span className="g-sub">Press ? anywhere</span>
+          </span>
+          <span className="chev">›</span>
+        </button>
         <button type="button" className="more-row g-row-like" onClick={onOpenAbout}>
           <span className="g-ico soft" aria-hidden>
             ?

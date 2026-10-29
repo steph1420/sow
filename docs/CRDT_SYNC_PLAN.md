@@ -43,7 +43,7 @@ Failure cases:
 
 ## 4. Migration (no data loss)
 - One-time bridge `migrateOplog_`: copies **every** Ticks row and Roster Left state into a **base snapshot** (`Base` hidden tab, plus a Drive backup .xlsx as for Remove subject). Each base row = op from device `base` with `lamport 0` and the old `updatedAt` as `wallAt`. Any later op beats base.
-- App: on first v0.37 sync, local marks/Left that differ from the sheet baseline (`sheetSet`, `bridge.ts:76` logic) become local ops `seq 1…n` with vv `{}` → treated as concurrent with base → Set-wins/sheet-wins rules apply; a conflict row records each.
+- App: on first v0.38 sync, local marks/Left that differ from the sheet baseline (`sheetSet`, `bridge.ts:76` logic) become local ops `seq 1…n` with vv `{}` → treated as concurrent with base → Set-wins/sheet-wins rules apply; a conflict row records each.
 - Old `updatedAt` columns stay (read by old apps, see §8).
 
 ## 5. Entry tab / hand edits
@@ -75,8 +75,8 @@ Copy-sheet e2e (`tests/e2e/crdt-skew-e2e.cjs`, sheet `1vGXltIwxto-KGZr1ygSDk9EEM
 - two browser contexts = 2 devices; device B with `Date` faked to +1 day (`addInitScript`); both go offline (`context.setOffline(true)`); A ticks rolls 1–3, B un-ticks roll 2 and marks roll 7 Left; Entry tab ticks roll 4 via the Sheets connector; both come online and sync twice. Expect: rolls 1,3,4 Set; roll 2 per rule (Set-wins → Set) with 1 conflict row; roll 7 Left; both devices and the Ticks tab identical; then revert the test ops on the copy.
 
 ## 10. Size and phasing
-- **v0.37.0** bridge: Ops/Base/Conflicts tabs, opsPush/opsPull, migration, legacy adapter (~350 lines Apps Script) + app op log, vv, fold, conflicts UI, dev option (~600–800 lines) + ~40 unit tests + skew e2e. Two evenings. Needs Code.js re-paste + New version + one-time "SoW › Migrate to op log" (backup first).
-- **v0.37.1**: prefs on versions; compaction job (time trigger).
+- **v0.38.0** bridge: Ops/Base/Conflicts tabs, opsPush/opsPull, migration, legacy adapter (~350 lines Apps Script) + app op log, vv, fold, conflicts UI, dev option (~600–800 lines) + ~40 unit tests + skew e2e. Two evenings. Needs Code.js re-paste + New version + one-time "SoW › Migrate to op log" (backup first).
+- **v0.38.1**: prefs on versions; compaction job (time trigger).
 - Phase 0 (can ship first, small, v0.36.1): stop the worst damage now — bridge rejects stamps > server now + 10 min (clamps to recvAt) and app warns "Phone clock is off by X". ~60 lines.
 
 ## 11. Open questions (Q-CRDT)

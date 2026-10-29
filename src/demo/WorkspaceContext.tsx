@@ -20,7 +20,7 @@ import {
 import type { DateSlot } from '../checklist/types'
 import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
-import { getSettings, listSessions } from '../data/api'
+import { getSettings, listSessions, setLeft } from '../data/api'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
@@ -52,6 +52,8 @@ type WorkspaceValue = {
   lastSyncAt?: string
   /** Reload marks/rosters from IDB (after sync pull). */
   reloadFromIdb: () => Promise<void>
+  /** v0.38.0: mark a pupil Left / Active (IDB rosterMeta → pushed by Sync). */
+  setPupilLeft: (k: ClassKey, roll: number, left: boolean) => void
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
@@ -143,6 +145,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const datesForRef = useRef(datesFor)
   datesForRef.current = datesFor
 
+  const setPupilLeft = useCallback((k: ClassKey, roll: number, left: boolean) => {
+    let name = ''
+    setRosters((prev) => {
+      const base = prev[k]?.length ? prev[k] : ROSTERS[k]
+      return { ...prev, [k]: base.map((r) => (r.roll === roll ? ((name = r.name), { ...r, left }) : r)) }
+    })
+    void setLeft(k, roll, left, name).catch(() => {})
+  }, [])
+
   const rosterFor = useCallback(
     (k: ClassKey) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
     [rosters],
@@ -203,8 +214,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       datesFor,
       rosterFor,
       reloadFromIdb,
+      setPupilLeft,
     }),
-    [classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
+    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

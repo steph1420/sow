@@ -327,6 +327,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       <button
         type="button"
         className="sync-cta"
+        data-sync-now
         disabled={busy || !online || !selected.length}
         onClick={() => void run(async () => { const r = await syncNow(selected); void runPrefsSync('auto'); return r })}
       >

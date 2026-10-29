@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { azKeyJump } from '../../lib/keyboard'
 import { usePrefs } from '../../prefs/PrefsContext'
 import { haptic } from '../../lib/haptics'
 import {
@@ -19,9 +20,14 @@ type Props = {
   /** Scrub ended — clear focus glow after hold. */
   onScrubEnd?: () => void
   modeSub?: boolean
+  /** Keyboard: Enter → into the grid at roll; Esc → back to the grid. */
+  onEnterGrid?: (roll: number | null) => void
+  onLeave?: () => void
 }
 
-export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
+export type AzStripHandle = { focus: () => void }
+
+export const AzStrip = forwardRef<AzStripHandle, Props>(function AzStrip({ names, rows, onJump, onScrubEnd, modeSub, onEnterGrid, onLeave }, handle) {
   const { prefs } = usePrefs()
   const ref = useRef<HTMLDivElement>(null)
   const present = useMemo(() => presentLetters(names), [names])
@@ -61,6 +67,39 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
     [letters, names, onJump, rows, showHud],
   )
 
+  const kbRoll = useRef<number | null>(null)
+  useImperativeHandle(handle, () => ({ focus: () => ref.current?.focus() }), [])
+  const kbJump = (L: AzLetter, roll: number | null) => {
+    kbRoll.current = roll
+    setHi(L)
+    if (showHud) { setHud(L); setHudDim(roll == null) }
+    onJump(L, roll)
+  }
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (/^[a-zA-Z]$/.test(e.key)) {
+      const hit = azKeyJump(e.key, rows, kbRoll.current)
+      if (hit) kbJump(hit.letter as AzLetter, hit.roll)
+      e.preventDefault()
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const withPupils = letters.filter((L) => present.has(L))
+      if (!withPupils.length) return
+      const i = hi ? withPupils.indexOf(hi) : -1
+      const n = e.key === 'ArrowDown' ? Math.min(withPupils.length - 1, i + 1) : Math.max(0, i < 0 ? 0 : i - 1)
+      const L = withPupils[n]!
+      kbJump(L, jumpLetterToRoll(L, rows))
+      e.preventDefault()
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); e.stopPropagation()
+      setHud(null)
+      onEnterGrid?.(kbRoll.current)
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); e.stopPropagation()
+      setHud(null); setHi(null)
+      onLeave?.()
+    }
+  }
+
   const end = () => {
     lastLetter.current = null
     setHud(null)
@@ -81,6 +120,18 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
       <div
         className={`sw-az${left ? ' left' : ''}${modeSub ? ' mode-sub' : ''}`}
         ref={ref}
+        tabIndex={0}
+        role="slider"
+        aria-label="A to Z strip — type a letter to jump"
+        aria-orientation="vertical"
+        aria-valuemin={1}
+        aria-valuemax={26}
+        aria-valuenow={hi ? AZ_LETTERS.indexOf(hi) + 1 : 1}
+        aria-valuetext={hi ? `Letter ${hi}` : 'No letter'}
+        aria-keyshortcuts="/"
+        data-az-strip
+        onKeyDown={onKeyDown}
+        onBlur={() => { setHud(null); window.setTimeout(() => setHi(null), 300) }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId)
           scrub(e.clientY)
@@ -111,6 +162,6 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
       </div>
     </>
   )
-}
+})
 
 export { jumpLetterToRoll }

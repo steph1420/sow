@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.37.0 — 2026-10-30 (Asia/Calcutta)
+
+Full keyboard + desktop widescreen (Steve t62u, t64u "go all the way till push", t65u thorough, t66u dogfood; plan docs/KEYBOARD_WIDESCREEN_PLAN.md). Rollback: tag `v0.36.1` / `9b90dc3`. **No Code.js change.** CRDT op log renumbered to v0.38.0.
+
+- Press **?** anywhere (or Settings › Keyboard shortcuts) for the full list. Cmd on Mac, Ctrl elsewhere; never Cmd/Ctrl+W/T/N/Q.
+- Anywhere: Mod+1/2/3 and Alt+1/2/3 (Overview · Checklist · More), [ / ] previous/next tab, Mod+, Settings, Mod+S Sync now, Mod+Shift+L Night/Day, Esc closes, Alt+← / Backspace back, PgUp/PgDn/Home/End/Space/Shift+Space scroll pages.
+- Checklist: one Tab stop into the ticks; arrows, PgUp/PgDn (10 rows), Home/End; Space/Enter tick then move to next pupil (Developer option); Shift+Space = row swipe; Shift+↑/↓ select; M Set⇄Submitted; P pending only; **L marks a pupil Left** (Mod+Z undoes); Mod+F search; Mod+Z / Mod+Shift+Z / Mod+Y undo/redo. Screen reader hears each tick.
+- A–Z strip: **/** focuses it, a letter jumps (again = next pupil with that letter), ↑/↓ letters, Enter into the grid, Esc back. Letters do nothing outside the strip.
+- Overview: ↑/↓ between class cards. Focus always lands somewhere useful after a screen change.
+- Every sheet: focus moves in, Tab is trapped, Esc closes, focus returns. Toggles are real switches for screen readers.
+- Visible focus ring (3 px accent + halo) in Night and Day.
+- Widescreen: the same phone UI scaled to the window (up to 1.6×), e.g. ×1.18 at 1920×1080.
+- Tests: `keyboard-probe` (66 checks, Ctrl and Mac/Cmd runs) exercises every shortcut; `kbd-dogfood` workflows at 1920×1080 and 412×915 with keyboard; unit `keyboard.test.ts`.
+
 ## 0.36.1 — 2026-10-30 (Asia/Calcutta)
 
 Clock guard (Steve t54u "I'm mainly concerned for data - ticks and all"; Q-CRDT-1 LOCKED t55u "Ship v0.36.1 first"). Rollback: tag `v0.36.0` / `f5010e4`. **One combined Code.js (prefs actions + clock guard) — re-paste once + New version.**

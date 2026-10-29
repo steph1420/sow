@@ -317,3 +317,22 @@
   from { opacity: 0; transform: translate(-50%, 6px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* v0.37.0 keyboard shortcuts sheet */
+.kb-sheet-scrim { position: fixed; inset: 0; background: var(--scrim); border: 0; z-index: 90; }
+.kb-sheet {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: min(560px, 100%); max-height: 86%; overflow: auto; z-index: 91;
+  background: var(--surface, var(--bg)); color: var(--text, inherit);
+  border-radius: 18px 18px 0 0; padding: 14px 16px calc(16px + var(--safe-bottom));
+  border-top: 1px solid var(--hairline);
+}
+.kb-head { display: flex; align-items: center; justify-content: space-between; }
+.kb-head h2 { font-size: 17px; margin: 0; }
+.kb-close { background: none; border: 0; color: inherit; font-size: 16px; padding: 8px; }
+.kb-body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; opacity: .65; margin: 14px 0 6px; }
+.kb-body dl { margin: 0; }
+.kb-row { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
+.kb-row dt { display: flex; flex-wrap: wrap; gap: 4px; flex: 0 0 48%; }
+.kb-row dd { margin: 0; font-size: 13px; opacity: .85; text-align: right; }
+.kb-row kbd { font: 12px/1.4 ui-monospace, monospace; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--accent) 10%, transparent); }

@@ -85,13 +85,26 @@ button {
   cursor: pointer;
 }
 
-/* No blue focus rings — Quiet / Lucid lock */
+/* Pointer focus stays quiet; keyboard focus is always visible (v0.37.0, WCAG 2.4.7 / 2.4.11 / 1.4.11). */
 :focus {
   outline: none;
 }
 :focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.22);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 10px;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+/* v0.37.0 widescreen: the same phone UI, scaled to the viewport (--wide-scale from installWideScale). */
+html.wide #root {
+  zoom: var(--wide-scale, 1);
+  width: calc(100vw / var(--wide-scale, 1));
+  height: calc(100vh / var(--wide-scale, 1));
 }
 
 /* Day theme — Quiet Lucid */

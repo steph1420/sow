@@ -82,7 +82,7 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           type="button"
           className="more-row g-row-like"
           onClick={() => setPref('theme.followSystem', !follow)}
-        >
+         role="switch" aria-checked={Boolean(follow)}>
           <span className="g-body">
             <span className="g-title">Follow system</span>
             <span className="g-sub">Match phone dark/light</span>
@@ -97,7 +97,7 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           type="button"
           className="more-row g-row-like"
           onClick={() => setPref('chrome.showFab', !prefs['chrome.showFab'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['chrome.showFab'])}>
           <span className="g-ico soft" aria-hidden>
             ✦
           </span>
@@ -121,7 +121,7 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           type="button"
           className="more-row g-row-like"
           onClick={() => setPref('az.hideEmpty', !prefs['az.hideEmpty'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['az.hideEmpty'])}>
           <span className="g-ico soft" aria-hidden>
             ∅
           </span>
@@ -139,7 +139,7 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
           type="button"
           className="more-row g-row-like"
           onClick={() => setPref('chrome.reduceMotion', !prefs['chrome.reduceMotion'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['chrome.reduceMotion'])}>
           <span className="g-ico teal" aria-hidden>
             ◎
           </span>

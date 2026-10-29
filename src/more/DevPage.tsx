@@ -25,7 +25,7 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row"
           onClick={() => setPref('az.leftSide', !prefs['az.leftSide'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['az.leftSide'])}>
           Left-side A–Z
           <span className={`toggle${prefs['az.leftSide'] ? ' on' : ''}`} aria-hidden />
         </button>
@@ -33,7 +33,7 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row"
           onClick={() => setPref('az.hideEmpty', !prefs['az.hideEmpty'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['az.hideEmpty'])}>
           Hide dimmed letters
           <span className={`toggle${prefs['az.hideEmpty'] ? ' on' : ''}`} aria-hidden />
         </button>
@@ -41,7 +41,7 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row"
           onClick={() => setPref('az.showHud', !prefs['az.showHud'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['az.showHud'])}>
           Show scrub HUD
           <span className={`toggle${prefs['az.showHud'] ? ' on' : ''}`} aria-hidden />
         </button>
@@ -49,9 +49,19 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row dev-swipe-single"
           onClick={() => setPref('gestures.swipeSingleRow', !prefs['gestures.swipeSingleRow'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['gestures.swipeSingleRow'])}>
           Swipe ticks one row only
           <span className={`toggle${prefs['gestures.swipeSingleRow'] ? ' on' : ''}`} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="more-row dev-kbd-advance"
+          role="switch"
+          aria-checked={Boolean(prefs['kbd.autoAdvance'])}
+          onClick={() => setPref('kbd.autoAdvance', !prefs['kbd.autoAdvance'])}
+        >
+          Keyboard tick moves to next pupil
+          <span className={`toggle${prefs['kbd.autoAdvance'] ? ' on' : ''}`} aria-hidden />
         </button>
         {/* v0.31.0 (t5u): a swipe can start from the right part of the name row; boxes respond only when crossed. */}
         <label className="more-row dev-name-swipe" style={{ position: 'relative' }}>
@@ -113,7 +123,7 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row dev-join-url"
           onClick={() => setPref('sync.joinUrlOverride', !prefs['sync.joinUrlOverride'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['sync.joinUrlOverride'])}>
           Bridge URL override on Join
           <span className={`toggle${prefs['sync.joinUrlOverride'] ? ' on' : ''}`} aria-hidden />
         </button>
@@ -125,7 +135,7 @@ export function DevPage({ onBack }: Props) {
           type="button"
           className="more-row"
           onClick={() => setPref('chrome.showFab', !prefs['chrome.showFab'])}
-        >
+         role="switch" aria-checked={Boolean(prefs['chrome.showFab'])}>
           Sort/Filters FAB
           <span className={`toggle${prefs['chrome.showFab'] ? ' on' : ''}`} aria-hidden />
         </button>
