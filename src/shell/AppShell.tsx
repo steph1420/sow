@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { setRouteHash, useBackLayer, useExitToast } from '../nav/backStack'
+import { onExternalRoute, setRouteHash, useBackLayer, useExitToast } from '../nav/backStack'
 import { formatRoute, parseRoute } from '../nav/route'
 import { CheckMark } from '../components/CheckMark'
 import type { ClassKey } from '../data/types'
@@ -61,6 +61,17 @@ export function AppShell() {
   useBackLayer(tab === 'checklist' ? 1 : 0, () => setTab('overview'))
   useBackLayer(stack.length, () => setStack((s) => popRoute(s)))
   useBackLayer(moreOpen ? 1 : 0, () => setMoreOpen(false))
+  useEffect(
+    () =>
+      onExternalRoute((hash) => {
+        const r = parseRoute(hash)
+        setMoreOpen(false)
+        if (r.classKey) setActiveClassKey(r.classKey)
+        setStack(r.stack)
+        setTab(r.tab)
+      }),
+    [setActiveClassKey],
+  )
   useEffect(() => {
     setRouteHash(formatRoute({ tab, classKey: activeClassKey, stack }))
   }, [tab, activeClassKey, stack])

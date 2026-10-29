@@ -110,3 +110,55 @@ button {
   --shadow-pop: 0 12px 36px rgba(18, 20, 26, 0.16);
   --scrim: rgba(18, 20, 26, 0.28);
 }
+
+/* P1-4 (v0.27.0) — ≥44×44 hit areas, visual size unchanged (invisible hit slop). */
+.ov-f,
+.sw-chip,
+.sw-icon-btn,
+.sw-search-btn,
+.sw-allbox,
+.more-back,
+.subj-pill {
+  position: relative;
+}
+.ov-f::after,
+.sw-chip::after,
+.sw-icon-btn::after,
+.sw-search-btn::after,
+.more-back::after,
+.subj-pill::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+/* tick-all: 44×44 biased upward so it never steals taps from row 1 */
+.sw-allbox::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 25px);
+  width: 44px;
+  height: 44px;
+  transform: translateX(-50%);
+}
+.sw-icon-btn {
+  margin-inline: 5px; /* centres ≥44 apart so neighbours' hit areas don't overlap */
+}
+/* overflow-x containers clip vertical slop → give them room */
+.ov-filters {
+  padding-block: 8px;
+  margin-block: -8px;
+}
+/* checklist tool row: bias slop upward so the colhead tick-all keeps its own 44px below */
+.sw-lean-tools .sw-chip::after,
+.sw-lean-tools .sw-icon-btn::after,
+.sw-lean-tools .sw-search-btn::after,
+.sw-search-btn::after {
+  top: auto;
+  bottom: -2px;
+  transform: translateX(-50%);
+}

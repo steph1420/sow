@@ -86,8 +86,28 @@ function queueReconcile() {
   queueMicrotask(reconcile)
 }
 
+const routeListeners = new Set<(hash: string) => void>()
+/** P1-1: in-page fragment navigation (typed/linked #route) → app applies it as a deep link. */
+export function onExternalRoute(fn: (hash: string) => void) {
+  routeListeners.add(fn)
+  return () => {
+    routeListeners.delete(fn)
+  }
+}
+
 function onPop(e: PopStateEvent) {
   const st = stateOf(e.state)
+  if (!st && expectPop === 0 && routeHash != null && location.hash !== routeHash) {
+    // Fragment navigation (not a back step): re-root history here and let the app follow.
+    history.replaceState({ ...(history.state ?? {}), [KEY]: 'base' }, '')
+    history.pushState({ ...(history.state ?? {}), [KEY]: 0 }, '')
+    h = 0
+    const hash = location.hash
+    routeHash = hash
+    routeListeners.forEach((l) => l(hash))
+    queueReconcile()
+    return
+  }
   if (expectPop > 0) {
     expectPop--
     if (st?.kind === 'layer') h = st.d

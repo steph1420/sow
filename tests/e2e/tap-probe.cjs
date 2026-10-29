@@ -1,0 +1,38 @@
+// P1-4 (v0.27.0): every control has a ≥44×44 hit area (elementFromPoint at ±21px around centre hits it).
+const { chromium } = require('playwright-core');
+const url = process.argv[2] || 'http://localhost:4179/sow/';
+const W = +(process.argv[3] || 412), H = W === 360 ? 780 : 915;
+const R = 21;
+(async () => {
+  const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
+  const p = await b.newPage({ viewport:{width:W,height:H}, isMobile:true, hasTouch:true });
+  let fails = 0;
+  const audit = async (screen, sel) => {
+    await p.waitForTimeout(400);
+    const bad = await p.evaluate(({ sel, R }) => {
+      const out = [];
+      const els = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(e).visibility !== 'hidden'; });
+      const hit = (e,x,y) => { if (x<0||y<0||x>=innerWidth||y>=innerHeight) return false; const h = document.elementFromPoint(x,y); return !!h && (h===e || e.contains(h)); };
+      for (const e of els) {
+        const r = e.getBoundingClientRect(); const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        // measure contiguous hit span through the centre (pseudo-element hit slop counts)
+        let l=0,rr=0,u=0,d=0;
+        while (l<60 && hit(e,cx-l-1,cy)) l++; while (rr<60 && hit(e,cx+rr+1,cy)) rr++;
+        while (u<60 && hit(e,cx,cy-u-1)) u++; while (d<60 && hit(e,cx,cy+d+1)) d++;
+        const hw = l+rr+1, hh = u+d+1;
+        if (hw < 44 || hh < 44) out.push(`${e.className || e.tagName}「${(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,18)}」 box ${Math.round(r.width)}×${Math.round(r.height)} hit ${hw}×${hh}`);
+      }
+      return out;
+    }, { sel, R });
+    console.log((bad.length ? 'FAIL ' : 'PASS ') + screen + (bad.length ? '\n   ' + bad.join('\n   ') : ''));
+    fails += bad.length ? 1 : 0;
+  };
+  const CTRL = 'button:not(.scrim):not(.sw-copy-scrim), input, select, [role=button]';
+  await p.goto(url, { waitUntil:'networkidle' }); await audit('Overview', CTRL);
+  await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await audit('Checklist', CTRL + ', .sw-allbox');
+  await p.locator('.sw-tools-chip').click(); await audit('Checklist Tools sheet', '.sw-tools-row, .sw-tools-row button');
+  await p.goto(url); await p.reload({ waitUntil:'networkidle' }); await p.locator('.tabbar .tab').nth(2).click(); await audit('More popup', '.more-item');
+  await p.goto(url+'#settings'); await p.reload({ waitUntil:'networkidle' }); await audit('Settings', CTRL);
+  await p.goto(url+'#settings/sync'); await p.reload({ waitUntil:'networkidle' }); await audit('Sync', CTRL);
+  console.log('RESULT', fails, 'fails'); await b.close(); process.exit(fails?1:0);
+})();
