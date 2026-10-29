@@ -21,3 +21,5 @@ Build continues via `JOB_BUNDLES_REDESIGN.md` (JB-R1 docs → JB-R2+ app).
 ## LOCKED — Steve 2026-10-29 2:15 PM IST (answer t3s5): "Lock both. Do the swipe-confirm styles next."
 - Sync status line after Sync now: `… · Saved on this device · push not set up` (v0.29.2, Q-FIX-7). Never "Pushed" unless a real push succeeded. Mocks: `/workspace/sow-mockups/pushstatus-mj1-sync-{night,day}.png`.
 - Developer → Sync → **Academic year starts** row (native month picker, default April) (v0.29.2, Q-FIX-6). Mocks: `/workspace/sow-mockups/yearstart-mj1-dev-row-{night,day}.png`.
+
+- **LOCKED (Steve, 2026-10-29 3:13 PM IST, t11s1 "Lock the proposed push hints"):** Sync top hint "…Push not set up yet." · under Sync now "Pulls selected tabs · marks save on this device · push not set up." · About "…push not set up yet." Mocks: `/workspace/sow-mockups/pushhints-mj1-*`.

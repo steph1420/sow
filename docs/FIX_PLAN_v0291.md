@@ -73,3 +73,5 @@ Status: Q-FIX-5 shipped in v0.29.1 with R4/R5a/R6/R10/docs. Q-FIX-2, 6, 7 shippe
 
 ## Release renumbering (v0.30.0 = t175u swipe-confirm styles, a minor feature)
 Privacy & config (Q-FIX-1/3/4) moves to **v0.31.0**; push + Left (Q-FIX-8/9) to **v0.32.0**. v0.29.3 a11y + tidy unchanged.
+
+- **LOCKED (Steve, 2026-10-29 3:13 PM IST, t11s1 "Lock the proposed push hints"):** Sync top hint "…Push not set up yet." · under Sync now "Pulls selected tabs · marks save on this device · push not set up." · About "…push not set up yet." Mocks: `/workspace/sow-mockups/pushhints-mj1-*`.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.32.1 — 2026-10-29 (Asia/Calcutta)
+
+Push hints rewording (Steve t11s1). Rollback: tag `v0.32.0` / `3153c17`.
+
+- **LOCKED (Steve, 2026-10-29 3:13 PM IST, t11s1 "Lock the proposed push hints"):** Sync top hint "…Push not set up yet." · under Sync now "Pulls selected tabs · marks save on this device · push not set up." · About "…push not set up yet." Mocks: `/workspace/sow-mockups/pushhints-mj1-*`.
+- Text only; no behaviour change.
+
 ## 0.32.0 — 2026-10-29 (Asia/Calcutta)
 
 Config/privacy, Q-FIX-4B LOCKED (t3u "4. B"): workbook URL blank by default, entered in Settings > Sync. Steve t6u "Also continue to other fixes or plans you had". Rollback: tag `v0.31.1` / `8c5cf8c`.

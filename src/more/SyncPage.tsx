@@ -136,7 +136,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     <MoreChrome title="Sync" onBack={onBack}>
       <div className="more-hint">
         Offline-first · marks save on this device. Pull any readable subject tabs from the Sheet.
-        Push needs an Apps Script URL — leave blank until connected.
+        Push not set up yet.
       </div>
 
       <div className="more-sec">Status</div>
@@ -252,7 +252,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         Sync now
       </button>
       <div className="more-hint" style={{ marginTop: -6 }}>
-        Pulls selected tabs · pushes when bridge ready. Marks always save on this device.
+        Pulls selected tabs · marks save on this device · push not set up.
       </div>
 
       <div className="sync-secondary">

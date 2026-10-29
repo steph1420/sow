@@ -23,7 +23,7 @@ export function AboutPage({ onBack }: Props) {
       </div>
       <div className="more-hint">
         Offline-first marking for the field. Marks save on this device; Sheet pull when readable;
-        push when an Apps Script bridge is set.
+        push not set up yet.
       </div>
     </MoreChrome>
   )

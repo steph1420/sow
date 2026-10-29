@@ -2,7 +2,7 @@
 
 ## Open
 - Swipe pending cue: blue ring still default (Steve t170u "too shouty"); 5 alternatives in Developer → Swipe confirm (v0.30.0) — awaiting Steve's pick.
-- Push not built; real push + Apps Script token Q-FIX-9 (later). Sync page/About hints still say "pushes when bridge ready" (wording change needs a mock).
+- Push not built; real push + Apps Script token Q-FIX-9 (later).
 - Left students not read back (`persistWorkspace.ts`), Q-FIX-8 A+B timestamped (later, mock toggle first).
 - Swipe reversal un-paint + FAB Sort stub: Q-FIX-10 deferred (t3u "We'll tackle this later").
 - **iOS install:** no `beforeinstallprompt`; user must Share → Add to Home Screen (hint shown once).
