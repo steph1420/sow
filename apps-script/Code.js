@@ -44,8 +44,14 @@ function read_(ss, name, n) {
   return s.getRange(2, 1, last - 1, n).getValues().filter(function (r) { return r[0] !== '' && r[0] != null })
 }
 /** Overwrite data rows (columns 1..n only) — formula columns to the right are untouched. */
+/** New tabs start with 1000 rows; grow before writing past the end (with headroom). */
+function ensureRows_(s, lastRowNeeded) {
+  var max = s.getMaxRows()
+  if (lastRowNeeded > max) s.insertRowsAfter(max, lastRowNeeded - max + 500)
+}
 function write_(ss, name, n, rows) {
   var s = sheet_(ss, name), last = s.getLastRow()
+  ensureRows_(s, rows.length + 1)
   if (last >= 2) s.getRange(2, 1, last - 1, n).clearContent()
   if (rows.length) s.getRange(2, 1, rows.length, n).setValues(rows)
 }
@@ -309,6 +315,7 @@ function renderEntry_(ss, s, key, d) {
     .sort(function (a, b) { return Number(a[1]) - Number(b[1]) })
     .map(function (r) { return [Number(r[1]), r[2], set[Number(r[1])] === true] })
   if (!rows.length) return
+  ensureRows_(s, ENTRY_FIRST_ROW + rows.length)
   var rg = s.getRange(ENTRY_FIRST_ROW, 1, rows.length, 3)
   rg.setValues(rows)
   s.getRange(ENTRY_FIRST_ROW, 3, rows.length, 1).insertCheckboxes()
@@ -325,6 +332,7 @@ function removeSubject_(ss, key, nowIso) {
   var put = function (name, head, rows) {
     var sh = b.insertSheet(name)
     sh.getRange(1, 1, 1, head.length).setValues([head])
+    ensureRows_(sh, rows.length + 1)
     if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows)
   }
   put('Subjects', H.subjects, subj)

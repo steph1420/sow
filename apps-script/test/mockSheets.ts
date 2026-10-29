@@ -42,9 +42,11 @@ export class MockRange {
 export class MockSheet {
   cells = new Map<string, Cell>()
   hidden: number[] = []
+  maxRows = 1000
   constructor(public name: string) {}
   cell(r: number, c: number): Cell { return this.cells.get(`${r},${c}`) ?? { v: '', f: '' } }
   put(r: number, c: number, cell: Cell) {
+    if (r > this.maxRows) throw new Error('outside the dimensions of the sheet')
     if (cell.v === '' && !cell.f) this.cells.delete(`${r},${c}`)
     else this.cells.set(`${r},${c}`, cell)
   }
@@ -52,13 +54,15 @@ export class MockSheet {
   setName(n: string) { this.name = n; return this }
   getLastRow() { let m = 0; for (const k of this.cells.keys()) m = Math.max(m, Number(k.split(',')[0])); return m }
   getLastColumn() { let m = 0; for (const k of this.cells.keys()) m = Math.max(m, Number(k.split(',')[1])); return m }
-  getMaxRows() { return Math.max(1000, this.getLastRow()) }
+  getMaxRows() { return this.maxRows }
+  insertRowsAfter(_after: number, n: number) { this.maxRows += n; return this }
   getRange(a: number | string, b?: number, nr = 1, nc = 1) {
     if (typeof a === 'string') {
       const m = a.match(/^([A-Z]+)(\d+)/)!
       const col = m[1]!.split('').reduce((s, ch) => s * 26 + ch.charCodeAt(0) - 64, 0)
       return new MockRange(this, Number(m[2]), col, 1, 1)
     }
+    if (a + nr - 1 > this.maxRows) throw new Error('The coordinates of the range are outside the dimensions of the sheet.')
     return new MockRange(this, a, b!, nr, nc)
   }
   getDataRange() { return new MockRange(this, 1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn())) }

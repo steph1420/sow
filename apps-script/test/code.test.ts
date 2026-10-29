@@ -142,6 +142,16 @@ describe('bridge', () => {
     expect(ss.getSheetByName('Ticks')!.getRange(2, 9).getFormula()).toMatch(/VLOOKUP/)
   })
 
+  it('push grows the Ticks tab past its 1000 rows instead of failing', () => {
+    const { call, ss } = ready()
+    const ticks = []
+    for (let d = 1; d <= 25; d++) for (let roll = 1; roll <= 45; roll++) ticks.push({ subjectKey: 'KGB_Eng_CW', date: `2026-12-${String(d).padStart(2, '0')}`, topic: 'T', roll, set: true, updatedAt: '2026-12-31T00:00:00.000Z' })
+    const out = call({ action: 'push', ticks })
+    expect(out.ok).toBe(true)
+    expect(out.applied).toBe(1125)
+    expect(ss.getSheetByName('Ticks')!.getLastRow()).toBe(1 + 14 + 1125)
+  })
+
   it('push roster: Left per class section, newer wins, never invents pupils', () => {
     const { call, ss } = ready()
     const out = call({ action: 'push', roster: [

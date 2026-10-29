@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.33.1 — 2026-10-29 (Asia/Calcutta)
+
+Apps Script fix found reading the live copy after Steve's setup (t23u). Rollback: tag `v0.33.0` / `dc73c54`. Not deployed to Pages.
+
+- **Fix: push would fail once Ticks passed 1000 rows** (new tabs are created with 1000 rows; about 15 more sessions). Writes, the Entry list and Remove-subject backups now add rows first. App code unchanged.
+- Live copy checked read-only: 89 pupils (KGA 44 / KGB 45), 4 subjects, 7 sessions, 311 ticks, 3 Left, Dashboard shows numbers with no formula errors, 3 swapped dates flagged in _Meta.
+- Tests: unit 148 (+1).
+
 ## 0.33.0 — 2026-10-29 (Asia/Calcutta)
 
 Push bridge + clean sheet layout (Steve t13u "finish the push bridge today", t14u goals, Q-SHEET-1…6 LOCKED t17u/t18u). Rollback: tag `v0.32.1` / `83d79f9`. **Not deployed to Pages** until the bridge is verified end-to-end on the copy.
