@@ -12,7 +12,7 @@
 - Ticks table is rewritten on each push/Entry tick (fine for a year of data; revisit past ~50k rows).
 - Left students not read back (`persistWorkspace.ts`), Q-FIX-8 A+B timestamped (later, mock toggle first).
 - Swipe reversal un-paint + FAB Sort stub: Q-FIX-10 deferred (t3u "We'll tackle this later").
-- **iOS install:** no `beforeinstallprompt`; user must Share → Add to Home Screen (hint shown once).
+- **iOS install:** no `beforeinstallprompt`; v0.35.1 adds Settings › App › Install as app (Share → Add to Home Screen steps sheet) and a one-time nudge. (Before v0.35.1 this line claimed a hint existed — it did not.)
 - **Theme-color vs OS:** status bar follows `theme-color` meta; switching Day/Night updates it, but installed PWAs may need relaunch for chrome tint.
 - **gviz pull:** needs link-view (or broader) sharing on the workbook; editor-only private sheets fail Test until shared or pushed via bot connector.
 - **Connector push:** device Sync without Apps Script URL is pull-first; create/push SoW_* is bot-side (`user-Google-sheets`) unless Sync Web App URL is set.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.35.1 — 2026-10-29 (Asia/Calcutta)
+
+Install as app (Steve t52u: "8. Settings › App", "10. Once"; mock prefsync-mj1-c, moved from More to Settings › App). Rollback: tag `v0.35.0` / `b06e12e`.
+
+- Settings › **App** › Install as app: Android / desktop Chrome & Edge open the browser's install prompt (`beforeinstallprompt`, captured at startup); iPhone/iPad open a 3-step Share › Add to Home Screen sheet. Hidden when running installed (`display-mode: standalone` / `navigator.standalone`) or after `appinstalled`, and where no install path exists.
+- One-time nudge on first open (Install / Show me how · Not now). The seen flag (`sow-app.installNudgeSeen`) is saved when it shows; it never returns.
+- BUGS.md: corrected the old claim that an iPhone install hint already existed.
+- Tests: unit 179 (+5 `src/pwa/install.test.ts`). New `install-probe` (9 checks, iOS UA, Night+Day, standalone hidden). All probes green at 412×915.
+
 ## 0.35.0 — 2026-10-29 (Asia/Calcutta)
 
 Colour themes (Steve "I'll take all the themes"; mocks themepicker-mj1 + theme-mj2-all; decisions LOCKED t48u "1 Yes 2 Appear 3 OK 4 YES 5 YES Yes"). Rollback: tag `v0.34.1` / `25ba398`.

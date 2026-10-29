@@ -11,6 +11,7 @@ import { HistoryPage } from '../more/HistoryPage'
 import { popRoute, pushRoute, topRoute, type MoreStack } from '../more/navStack'
 import { RosterPage } from '../more/RosterPage'
 import { SettingsPage } from '../more/SettingsPage'
+import { InstallNudge } from '../pwa/InstallUI'
 import { SharingPage } from '../more/SharingPage'
 import { ShareProvider } from '../share/ShareContext'
 import { SubjectsPage } from '../more/SubjectsPage'
@@ -42,7 +43,12 @@ export function AppShell() {
     setSharingIntent({ id, create })
     setStack(['settings', 'sharing'])
   }, [])
-  const wrap = (node: ReactNode) => <ShareProvider onManage={openSharing}>{node}</ShareProvider>
+  const wrap = (node: ReactNode) => (
+    <ShareProvider onManage={openSharing}>
+      {node}
+      <InstallNudge />
+    </ShareProvider>
+  )
 
   const openMore = useCallback(() => setMoreOpen(true), [])
   const closeMore = useCallback(() => setMoreOpen(false), [])

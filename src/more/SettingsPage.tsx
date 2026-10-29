@@ -1,5 +1,6 @@
 import { versionLabel } from '../lib/appVersion'
 import { MoreChrome } from './MoreChrome'
+import { InstallSection } from '../pwa/InstallUI'
 import './more.css'
 
 type Props = {
@@ -102,6 +103,9 @@ export function SettingsPage({
           <span className="chev">›</span>
         </button>
       </div>
+
+      {/* v0.35.1 (t52u): Settings › App — Install as app; hidden once installed. */}
+      <InstallSection />
 
       <div className="more-sec">System</div>
       <div className="more-card">
