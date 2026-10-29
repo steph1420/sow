@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.33.0 — 2026-10-29 (Asia/Calcutta)
+
+Push bridge + clean sheet layout (Steve t13u "finish the push bridge today", t14u goals, Q-SHEET-1…6 LOCKED t17u/t18u). Rollback: tag `v0.32.1` / `83d79f9`. **Not deployed to Pages** until the bridge is verified end-to-end on the copy.
+
+- New `apps-script/` (Code.js, appsscript.json, README with Steve's steps): one-time setup + migrate into Roster · Subjects · Sessions · Ticks · Entry · Dashboard · _Meta (formulas; locale en_IN); token bridge doPost/doGet with LockService and per-tick newer-wins; Entry checkboxes and hand edits stamp updatedAt; Remove subject backs up to Drive first and gives an .xlsx download link. Old `SoWSync.gs` kept as `apps-script/legacy/` (not deployed).
+- App: Settings › Sync gets a **Bridge token** field. With URL + token, Sync now pushes ticks/Left changed since the last bridge sync, then applies the sheet state (newer tick wins per tick; Left per section; roster from the sheet; a class is purged only when Subjects no longer lists it). Bridge unreachable → read-only gviz of the new tabs, changes stay on the phone and stay unsynced. Without a token the app behaves exactly as v0.32.1.
+- Submitted is not sent to the sheet (Q-SHEET-1: Set means submitted).
+- Tests: unit 147 (+`apps-script/test/code.test.ts` 10, `src/sync/bridge.test.ts` 9).
+
 ## 0.32.1 — 2026-10-29 (Asia/Calcutta)
 
 Push hints rewording (Steve t11s1). Rollback: tag `v0.32.0` / `3153c17`.

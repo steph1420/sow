@@ -1,0 +1,364 @@
+/**
+ * SoW sheet bridge v1 (schema 1) — see docs/SHEET_LAYOUT_PLAN.md.
+ * Bound to the workbook COPY. Paste into Extensions > Apps Script (or `clasp push`).
+ *
+ * Tabs: Roster · Subjects · Sessions · Ticks · Entry · Dashboard · _Meta
+ * The script writes data columns only; Dashboard and Ticks!I are formulas.
+ * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
+ */
+var SCHEMA = 1
+var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
+var H = {
+  roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
+  subjects: ['subjectKey', 'classKey', 'subject', 'kind', 'active', 'order', 'createdAt'],
+  sessions: ['sessionId', 'subjectKey', 'classKey', 'date', 'topic', 'status', 'createdAt', 'updatedAt'],
+  ticks: ['tickId', 'sessionId', 'subjectKey', 'classKey', 'roll', 'set', 'updatedAt', 'by'],
+}
+var ENTRY_FIRST_ROW = 5
+var OLD_TAB_RE = /^(KG[A-Z])\s+(\w+)\s+(CW|HW)$/i
+
+// ───────────────────────── helpers ─────────────────────────
+function nowIso_() { return new Date().toISOString() }
+function pad2_(n) { return (n < 10 ? '0' : '') + n }
+function isoDate_(d) { return d.getFullYear() + '-' + pad2_(d.getMonth() + 1) + '-' + pad2_(d.getDate()) }
+function dateFromIso_(s) { var m = String(s).match(/^(\d{4})-(\d\d)-(\d\d)/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null }
+function toIsoStamp_(v) { return v instanceof Date ? v.toISOString() : String(v || '') }
+function academicYear_(nowIso, startMonth) {
+  var y = +String(nowIso).slice(0, 4), mo = +String(nowIso).slice(5, 7)
+  return mo >= (startMonth || 4) ? y : y - 1
+}
+/** d/m (no year) into the academic year (April–March) that `nowIso` falls in. */
+function dateFromDm_(day, mon, nowIso) {
+  var ay = academicYear_(nowIso, 4)
+  return new Date(mon >= 4 ? ay : ay + 1, mon - 1, day)
+}
+function sessionId_(subjectKey, iso) { return subjectKey + '|' + iso }
+function tickId_(sid, roll) { return sid + '|' + roll }
+function sectionOf_(subjectKey) { return String(subjectKey).split('_')[0] }
+
+function sheet_(ss, name) { var s = ss.getSheetByName(name); if (!s) throw new Error('Missing tab ' + name + ' — run SoW > Setup first'); return s }
+/** Rows (without header) of the first n columns, as arrays. */
+function read_(ss, name, n) {
+  var s = sheet_(ss, name), last = s.getLastRow()
+  if (last < 2) return []
+  return s.getRange(2, 1, last - 1, n).getValues().filter(function (r) { return r[0] !== '' && r[0] != null })
+}
+/** Overwrite data rows (columns 1..n only) — formula columns to the right are untouched. */
+function write_(ss, name, n, rows) {
+  var s = sheet_(ss, name), last = s.getLastRow()
+  if (last >= 2) s.getRange(2, 1, last - 1, n).clearContent()
+  if (rows.length) s.getRange(2, 1, rows.length, n).setValues(rows)
+}
+function header_(s, cols) { s.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold'); s.setFrozenRows(1) }
+function meta_(ss, key, value) {
+  var s = sheet_(ss, T.meta), rows = s.getLastRow() >= 2 ? s.getRange(2, 1, s.getLastRow() - 1, 2).getValues() : []
+  for (var i = 0; i < rows.length; i++) if (rows[i][0] === key) { s.getRange(i + 2, 2).setValue(value); return }
+  s.appendRow([key, value])
+}
+function token_() {
+  var p = PropertiesService.getScriptProperties(), t = p.getProperty('SOW_TOKEN')
+  if (!t) { t = Utilities.getUuid().replace(/-/g, ''); p.setProperty('SOW_TOKEN', t) }
+  return t
+}
+
+// ───────────────────────── setup + migrate ─────────────────────────
+/** Old tick-slot date cell → {date, flag}. Text d/m is trusted; a real Date was typed under the mm/dd locale → day/month swapped back. */
+function oldSlotDate_(v, nowIso, where) {
+  if (v instanceof Date) {
+    var day = v.getMonth() + 1, mon = v.getDate()
+    if (mon > 12) return { date: v, flag: where + ': kept ' + isoDate_(v) + ' (cannot swap)' }
+    var d = dateFromDm_(day, mon, nowIso)
+    return { date: d, flag: where + ': ' + isoDate_(v) + ' swapped to ' + isoDate_(d) + ' (typed under mm/dd) — please check' }
+  }
+  var m = String(v || '').match(/(\d{1,2})\/(\d{1,2})/)
+  return m ? { date: dateFromDm_(+m[1], +m[2], nowIso), flag: '' } : null
+}
+
+function setupAndMigrate_(ss, nowIso) {
+  nowIso = nowIso || nowIso_()
+  if (ss.getSheetByName(T.ticks)) throw new Error('SoW tabs already exist — setup already done (nothing changed)')
+  ss.setSpreadsheetLocale('en_IN')
+  ss.setSpreadsheetTimeZone('Asia/Kolkata')
+  var flags = []
+
+  var roster = {}, rosterOrder = [], subjects = [], sessions = [], ticks = []
+  var olds = ss.getSheets().filter(function (s) { return OLD_TAB_RE.test(s.getName()) })
+  olds.forEach(function (s, idx) {
+    var m = s.getName().match(OLD_TAB_RE)
+    var cls = m[1].toUpperCase(), subj = m[2], kind = m[3].toUpperCase()
+    var key = cls + '_' + subj + '_' + kind
+    subjects.push([key, cls, subj, kind, true, idx + 1, nowIso])
+    var last = s.getLastRow()
+    var head = s.getRange(2, 3, 2, 2).getValues() // C2:D3 = date row, topic row
+    var slots = []
+    for (var c = 0; c < 2; c++) {
+      var od = oldSlotDate_(head[0][c], nowIso, s.getName() + ' ' + (c ? 'D' : 'C'))
+      if (!od) continue
+      if (od.flag) flags.push(od.flag)
+      var sid = sessionId_(key, isoDate_(od.date))
+      if (slots.some(function (x) { return x.sid === sid })) { flags.push(s.getName() + ': C and D share ' + isoDate_(od.date) + ' — D skipped'); continue }
+      slots.push({ col: c, sid: sid })
+      sessions.push([sid, key, cls, od.date, String(head[1][c] || ''), 'Open', nowIso, nowIso])
+    }
+    if (last < 4) return
+    s.getRange(4, 1, last - 3, 4).getValues().forEach(function (r) {
+      var roll = Number(r[0]), name = String(r[1] || '').trim()
+      if (!(roll > 0) || !name) return
+      var rk = cls + '|' + roll
+      if (!roster[rk]) { roster[rk] = [cls, roll, name, 'Active', '', '', nowIso]; rosterOrder.push(rk) }
+      slots.forEach(function (sl) {
+        var v = r[2 + sl.col]
+        if (v !== true && v !== false) return
+        ticks.push([tickId_(sl.sid, roll), sl.sid, key, cls, roll, v, nowIso, 'migrate'])
+      })
+    })
+  })
+  // Left from the app's old SoW_RosterMeta (per subject → per section)
+  var rm = ss.getSheetByName('SoW_RosterMeta')
+  if (rm && rm.getLastRow() >= 2) rm.getRange(2, 1, rm.getLastRow() - 1, 5).getValues().forEach(function (r) {
+    var rk = sectionOf_(r[0]) + '|' + Number(r[1])
+    if (r[3] === true && roster[rk]) { roster[rk][3] = 'Left'; roster[rk][6] = toIsoStamp_(r[4]) || nowIso }
+  })
+
+  buildTabs_(ss)
+  write_(ss, T.roster, 7, rosterOrder.map(function (k) { return roster[k] }))
+  write_(ss, T.subjects, 7, subjects)
+  write_(ss, T.sessions, 8, sessions)
+  write_(ss, T.ticks, 8, ticks)
+  olds.forEach(function (s) { s.setName('OLD ' + s.getName()) })
+  meta_(ss, 'schemaVersion', SCHEMA)
+  meta_(ss, 'academicYearStartMonth', 4)
+  meta_(ss, 'migratedAt', nowIso)
+  meta_(ss, 'migrationFlags', flags.join(' | ') || 'none')
+  token_()
+  return { roster: rosterOrder.length, subjects: subjects.length, sessions: sessions.length, ticks: ticks.length, flags: flags }
+}
+
+function buildTabs_(ss) {
+  var v = SpreadsheetApp.newDataValidation
+  var r = ss.insertSheet(T.roster); header_(r, H.roster)
+  r.getRange(2, 4, 999, 1).setDataValidation(v().requireValueInList(['Active', 'Left'], true).build())
+  r.getRange(2, 5, 999, 1).setNumberFormat('dd/mm/yyyy')
+  r.getRange(2, 7, 999, 1).setNumberFormat('@')
+
+  var su = ss.insertSheet(T.subjects); header_(su, H.subjects)
+  su.getRange(2, 4, 999, 1).setDataValidation(v().requireValueInList(['CW', 'HW'], true).build())
+  su.getRange(2, 5, 999, 1).insertCheckboxes()
+
+  var se = ss.insertSheet(T.sessions); header_(se, H.sessions)
+  se.getRange(2, 4, 999, 1).setNumberFormat('dd/mm/yyyy')
+  se.getRange(2, 6, 999, 1).setDataValidation(v().requireValueInList(['Open', 'Completed'], true).build())
+  se.getRange(2, 7, 999, 2).setNumberFormat('@')
+
+  var t = ss.insertSheet(T.ticks); header_(t, H.ticks)
+  t.getRange(1, 9).setValue('pupilStatus').setFontWeight('bold')
+  t.getRange(2, 9).setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(D2:D&"|"&E2:E,{Roster!A2:A&"|"&Roster!B2:B,Roster!D2:D},2,FALSE),"Missing")))')
+  t.getRange(2, 7, 999, 1).setNumberFormat('@')
+
+  var e = ss.insertSheet(T.entry)
+  e.getRange(1, 1, 4, 3).setValues([['Subject', '', 'pick a subjectKey'], ['Date', '', 'dd/mm/yyyy'], ['Topic', '', 'optional'], ['Roll', 'Name', 'Set']])
+  e.getRange(1, 2).setDataValidation(v().requireValueInRange(sheet_(ss, T.subjects).getRange('A2:A'), true).build())
+  e.getRange(2, 2).setNumberFormat('dd/mm/yyyy')
+  e.setFrozenRows(4)
+
+  var d = ss.insertSheet(T.dash)
+  d.getRange(1, 1, 1, 10).setValues([['Date', 'Subject', 'Topic', 'sessionId', 'classKey', 'Active', 'Set', 'Set %', 'Not Set', 'Names not Set']]).setFontWeight('bold')
+  d.setFrozenRows(1)
+  d.getRange(2, 1).setFormula('=IFERROR(SORT(FILTER({Sessions!D2:D,Sessions!B2:B,Sessions!E2:E,Sessions!A2:A,Sessions!C2:C},Sessions!A2:A<>""),1,FALSE,2,TRUE),"")')
+  d.getRange(2, 6).setFormula('=MAP(D2:D,E2:E,LAMBDA(s,c,IF(s="","",COUNTIFS(Roster!A2:A,c,Roster!D2:D,"Active"))))')
+  d.getRange(2, 7).setFormula('=MAP(D2:D,LAMBDA(s,IF(s="","",COUNTIFS(Ticks!B2:B,s,Ticks!F2:F,TRUE,Ticks!I2:I,"Active"))))')
+  d.getRange(2, 8).setFormula('=MAP(F2:F,G2:G,LAMBDA(a,b,IF(a="","",IFERROR(b/a,0))))')
+  d.getRange(2, 9).setFormula('=MAP(F2:F,G2:G,LAMBDA(a,b,IF(a="","",a-b)))')
+  d.getRange(2, 10).setFormula('=MAP(D2:D,E2:E,LAMBDA(s,c,IF(s="","",IFERROR(TEXTJOIN(", ",TRUE,FILTER(Roster!C2:C,Roster!A2:A=c,Roster!D2:D="Active",ISNA(MATCH(s&"|"&Roster!B2:B,FILTER(Ticks!A2:A,Ticks!F2:F=TRUE),0)))),""))))')
+  d.getRange(2, 1, 999, 1).setNumberFormat('dd/mm')
+  d.getRange(2, 8, 999, 1).setNumberFormat('0%')
+  d.getRange(2, 10, 999, 1).setWrap(true)
+  d.hideColumns(4, 2)
+
+  var m = ss.insertSheet(T.meta); header_(m, ['key', 'value'])
+}
+
+// ───────────────────────── state + push ─────────────────────────
+function state_(ss) {
+  return {
+    ok: true,
+    schema: SCHEMA,
+    serverTime: nowIso_(),
+    subjects: read_(ss, T.subjects, 7).map(function (r) { return { subjectKey: r[0], classKey: r[1], subject: r[2], kind: r[3], active: r[4] !== false, order: r[5] } }),
+    roster: read_(ss, T.roster, 7).map(function (r) { return { classKey: r[0], roll: Number(r[1]), name: String(r[2]), status: r[3] === 'Left' ? 'Left' : 'Active', updatedAt: toIsoStamp_(r[6]) } }),
+    sessions: read_(ss, T.sessions, 8).map(function (r) { return { sessionId: r[0], subjectKey: r[1], classKey: r[2], date: r[3] instanceof Date ? isoDate_(r[3]) : String(r[3]), topic: String(r[4] || ''), status: r[5] || 'Open', updatedAt: toIsoStamp_(r[7]) } }),
+    ticks: read_(ss, T.ticks, 8).map(function (r) { return { tickId: r[0], sessionId: r[1], subjectKey: r[2], classKey: r[3], roll: Number(r[4]), set: r[5] === true, updatedAt: toIsoStamp_(r[6]) } }),
+  }
+}
+
+/** ops: { ticks:[{subjectKey,date,topic,roll,set,updatedAt}], roster:[{classKey,roll,status,updatedAt}] } */
+function applyPush_(ss, ops, by) {
+  var applied = 0, ignored = 0, rejected = []
+  var subjects = {}; read_(ss, T.subjects, 7).forEach(function (r) { subjects[r[0]] = r })
+
+  if (ops.ticks && ops.ticks.length) {
+    var sessions = read_(ss, T.sessions, 8), sIdx = {}
+    sessions.forEach(function (r, i) { sIdx[r[0]] = i })
+    var ticks = read_(ss, T.ticks, 8), tIdx = {}
+    ticks.forEach(function (r, i) { tIdx[r[0]] = i })
+    ops.ticks.forEach(function (t) {
+      if (!subjects[t.subjectKey]) { rejected.push(t.subjectKey + ' is not in Subjects'); return }
+      var d = dateFromIso_(t.date), roll = Number(t.roll), at = String(t.updatedAt || '')
+      if (!d || !(roll > 0) || !at) { rejected.push('bad tick ' + JSON.stringify(t)); return }
+      var cls = sectionOf_(t.subjectKey), sid = sessionId_(t.subjectKey, isoDate_(d)), id = tickId_(sid, roll)
+      if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, String(t.topic || ''), 'Open', at, at]) }
+      var i = tIdx[id]
+      if (i != null && String(ticks[i][6]) >= at) { ignored++; return } // per-tick newer wins
+      var row = [id, sid, t.subjectKey, cls, roll, t.set === true, at, by]
+      if (i == null) { tIdx[id] = ticks.length; ticks.push(row) } else ticks[i] = row
+      applied++
+    })
+    write_(ss, T.sessions, 8, sessions)
+    write_(ss, T.ticks, 8, ticks)
+  }
+
+  if (ops.roster && ops.roster.length) {
+    var roster = read_(ss, T.roster, 7), rIdx = {}
+    roster.forEach(function (r, i) { rIdx[r[0] + '|' + Number(r[1])] = i })
+    ops.roster.forEach(function (p) {
+      var i = rIdx[p.classKey + '|' + Number(p.roll)]
+      if (i == null) { rejected.push('no pupil ' + p.classKey + ' roll ' + p.roll + ' in Roster'); return } // never invent pupils
+      if (String(roster[i][6]) >= String(p.updatedAt)) { ignored++; return }
+      var left = p.status === 'Left'
+      roster[i][3] = left ? 'Left' : 'Active'
+      roster[i][4] = left ? (roster[i][4] || dateFromIso_(String(p.updatedAt).slice(0, 10))) : ''
+      roster[i][6] = String(p.updatedAt)
+      applied++
+    })
+    write_(ss, T.roster, 7, roster)
+  }
+  meta_(ss, 'lastPush', nowIso_())
+  return { applied: applied, ignored: ignored, rejected: rejected }
+}
+
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON) }
+
+function handle_(body) {
+  if (!body || body.token !== token_()) return { ok: false, error: 'bad token' }
+  var ss = SpreadsheetApp.getActiveSpreadsheet()
+  if (body.action === 'pull') return state_(ss)
+  if (body.action === 'push') {
+    var lock = LockService.getScriptLock()
+    lock.waitLock(20000)
+    try {
+      var r = applyPush_(ss, body, 'app')
+      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, state: state_(ss) }
+    } finally { lock.releaseLock() }
+  }
+  return { ok: false, error: 'unknown action' }
+}
+
+/** App sends Content-Type text/plain (no CORS preflight). */
+function doPost(e) {
+  try { return json_(handle_(JSON.parse((e && e.postData && e.postData.contents) || '{}'))) }
+  catch (err) { return json_({ ok: false, error: String(err && err.message || err) }) }
+}
+function doGet(e) {
+  try { return json_(handle_({ token: e && e.parameter && e.parameter.token, action: 'pull' })) }
+  catch (err) { return json_({ ok: false, error: String(err && err.message || err) }) }
+}
+
+// ───────────────────────── onEdit (Entry + stamping) ─────────────────────────
+function onEdit(e) {
+  if (!e || !e.range) return
+  var s = e.range.getSheet(), name = s.getName(), row = e.range.getRow(), col = e.range.getColumn()
+  var ss = e.source || SpreadsheetApp.getActiveSpreadsheet()
+  var now = nowIso_()
+  if (name === T.entry) return entryEdit_(ss, s, row, col, e.range.getNumRows(), now)
+  if (row < 2) return
+  var n = e.range.getNumRows()
+  if (name === T.roster) {
+    for (var i = 0; i < n; i++) {
+      s.getRange(row + i, 7).setValue(now)
+      var st = s.getRange(row + i, 4).getValue()
+      if (st === 'Left' && !s.getRange(row + i, 5).getValue()) s.getRange(row + i, 5).setValue(new Date())
+      if (st === 'Active') s.getRange(row + i, 5).setValue('')
+    }
+  } else if (name === T.sessions) { for (var j = 0; j < n; j++) s.getRange(row + j, 8).setValue(now) }
+  else if (name === T.ticks) { for (var k = 0; k < n; k++) { s.getRange(row + k, 7).setValue(now); s.getRange(row + k, 8).setValue('sheet') } }
+}
+
+function entryEdit_(ss, s, row, col, n, now) {
+  var key = String(s.getRange(1, 2).getValue() || ''), d = s.getRange(2, 2).getValue()
+  if (row <= 3 && col === 2) return renderEntry_(ss, s, key, d)
+  if (row < ENTRY_FIRST_ROW || col !== 3 || !key || !(d instanceof Date)) return
+  var ops = []
+  for (var i = 0; i < n; i++) {
+    var roll = Number(s.getRange(row + i, 1).getValue())
+    if (roll > 0) ops.push({ subjectKey: key, date: isoDate_(d), topic: String(s.getRange(3, 2).getValue() || ''), roll: roll, set: s.getRange(row + i, 3).getValue() === true, updatedAt: now })
+  }
+  var lock = LockService.getScriptLock(); lock.waitLock(20000)
+  try { applyPush_(ss, { ticks: ops }, 'sheet') } finally { lock.releaseLock() }
+}
+
+/** Entry lists Active pupils of the subject's class with their current Set ticks for that date. */
+function renderEntry_(ss, s, key, d) {
+  var last = Math.max(s.getLastRow(), ENTRY_FIRST_ROW)
+  s.getRange(ENTRY_FIRST_ROW, 1, last - ENTRY_FIRST_ROW + 1, 3).clearContent().removeCheckboxes()
+  if (!key || !(d instanceof Date)) return
+  var cls = sectionOf_(key), sid = sessionId_(key, isoDate_(d)), set = {}
+  read_(ss, T.ticks, 8).forEach(function (r) { if (r[1] === sid) set[Number(r[4])] = r[5] === true })
+  var ses = read_(ss, T.sessions, 8).filter(function (r) { return r[0] === sid })[0]
+  if (ses && !s.getRange(3, 2).getValue()) s.getRange(3, 2).setValue(ses[4])
+  var rows = read_(ss, T.roster, 7).filter(function (r) { return r[0] === cls && r[3] !== 'Left' })
+    .sort(function (a, b) { return Number(a[1]) - Number(b[1]) })
+    .map(function (r) { return [Number(r[1]), r[2], set[Number(r[1])] === true] })
+  if (!rows.length) return
+  var rg = s.getRange(ENTRY_FIRST_ROW, 1, rows.length, 3)
+  rg.setValues(rows)
+  s.getRange(ENTRY_FIRST_ROW, 3, rows.length, 1).insertCheckboxes()
+}
+
+// ───────────────────────── remove subject (backup first) ─────────────────────────
+function removeSubject_(ss, key, nowIso) {
+  nowIso = nowIso || nowIso_()
+  var subj = read_(ss, T.subjects, 7).filter(function (r) { return r[0] === key })
+  if (!subj.length) throw new Error(key + ' is not in Subjects')
+  var ses = read_(ss, T.sessions, 8), tic = read_(ss, T.ticks, 8)
+  var mine = { s: ses.filter(function (r) { return r[1] === key }), t: tic.filter(function (r) { return r[2] === key }) }
+  var b = SpreadsheetApp.create('SoW backup ' + key + ' ' + String(nowIso).slice(0, 10))
+  var put = function (name, head, rows) {
+    var sh = b.insertSheet(name)
+    sh.getRange(1, 1, 1, head.length).setValues([head])
+    if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows)
+  }
+  put('Subjects', H.subjects, subj)
+  put('Sessions', H.sessions, mine.s)
+  put('Ticks', H.ticks, mine.t)
+  var first = b.getSheetByName('Sheet1'); if (first) b.deleteSheet(first)
+  SpreadsheetApp.flush()
+  // backup exists → now remove
+  write_(ss, T.subjects, 7, read_(ss, T.subjects, 7).filter(function (r) { return r[0] !== key }))
+  write_(ss, T.sessions, 8, ses.filter(function (r) { return r[1] !== key }))
+  write_(ss, T.ticks, 8, tic.filter(function (r) { return r[2] !== key }))
+  var out = { key: key, url: b.getUrl(), downloadUrl: 'https://docs.google.com/spreadsheets/d/' + b.getId() + '/export?format=xlsx', sessions: mine.s.length, ticks: mine.t.length }
+  meta_(ss, 'removed ' + key, nowIso + ' backup ' + out.url)
+  return out
+}
+
+// ───────────────────────── menu ─────────────────────────
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('SoW')
+    .addItem('1. Setup + migrate (once)', 'menuSetup')
+    .addItem('Show app token', 'menuToken')
+    .addSeparator()
+    .addItem('Remove a subject (backup first)…', 'menuRemoveSubject')
+    .addToUi()
+}
+function menuSetup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), r = setupAndMigrate_(ss)
+  SpreadsheetApp.getUi().alert('SoW setup done', 'Pupils ' + r.roster + ' · subjects ' + r.subjects + ' · sessions ' + r.sessions + ' · ticks ' + r.ticks +
+    (r.flags.length ? '\n\nPlease check:\n' + r.flags.join('\n') : '') + '\n\nApp token: ' + token_(), SpreadsheetApp.getUi().ButtonSet.OK)
+}
+function menuToken() { SpreadsheetApp.getUi().alert('SoW app token', token_(), SpreadsheetApp.getUi().ButtonSet.OK) }
+function menuRemoveSubject() {
+  var ui = SpreadsheetApp.getUi(), r = ui.prompt('Remove subject', 'Type the subjectKey exactly (e.g. KGA_Eng_HW). A backup copy is made first.', ui.ButtonSet.OK_CANCEL)
+  if (r.getSelectedButton() !== ui.Button.OK) return
+  var out = removeSubject_(SpreadsheetApp.getActiveSpreadsheet(), r.getResponseText().trim())
+  ui.alert('Removed ' + out.key, 'Backup: ' + out.url + '\nDownload (.xlsx): ' + out.downloadUrl, ui.ButtonSet.OK)
+}

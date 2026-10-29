@@ -121,6 +121,10 @@ export interface Settings {
   /** Real readable teaching tabs discovered on the workbook (v0.26 · t152u). */
   discoveredTabs?: DiscoveredTab[]
   discoveredAt?: string
+  /** v0.33.0: token for the Apps Script bridge (SoW > Show app token on the sheet). */
+  bridgeToken?: string
+  /** v0.33.0: start time of the last successful bridge sync — marks/Left newer than this get pushed. */
+  bridgeSyncAt?: string
   /** v0.29.2: one-time per-tick baseline migration done at (ISO). */
   mergeV2At?: string
 }

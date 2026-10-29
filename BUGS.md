@@ -2,7 +2,10 @@
 
 ## Open
 - Swipe pending cue: blue ring still default (Steve t170u "too shouty"); 5 alternatives in Developer → Swipe confirm (v0.30.0) — awaiting Steve's pick.
-- Push not built; real push + Apps Script token Q-FIX-9 (later).
+- v0.33.0 bridge built but **not verified live** (needs Steve to deploy the web app on the copy). Phone and Apps Script clocks decide newer-wins; a phone clock far off could win/lose wrongly.
+- Bridge: subjects on the sheet that the app does not model yet (anything outside KGA/KGB Eng/Math CW/HW keys) are skipped with a note — dynamic subjects in the app are a follow-up.
+- Submitted column still shown in the app though the sheet has no Submitted (Q-SHEET-1); UI removal needs a mock + lock.
+- Ticks table is rewritten on each push/Entry tick (fine for a year of data; revisit past ~50k rows).
 - Left students not read back (`persistWorkspace.ts`), Q-FIX-8 A+B timestamped (later, mock toggle first).
 - Swipe reversal un-paint + FAB Sort stub: Q-FIX-10 deferred (t3u "We'll tackle this later").
 - **iOS install:** no `beforeinstallprompt`; user must Share → Add to Home Screen (hint shown once).

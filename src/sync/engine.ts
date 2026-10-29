@@ -25,6 +25,8 @@ import { OfflineError, discoverTabs, fetchSheetCsv, type Discovery } from './gvi
 import { parseEngTabLite, sheetDateToIsoAcademic } from './parseEngLite'
 import { loadPrefs } from '../prefs/appPrefs'
 import { extractSheetId } from './sheetId'
+import { BridgeError, bridgeCall, buildPushPayload, gvizState, stateToApp, type BridgeState, type PushResult } from './bridge'
+import { listRosterMeta } from '../data'
 
 export type SyncReport = {
   ok: boolean
@@ -310,6 +312,7 @@ export async function pushLocal(): Promise<SyncReport> {
 export async function syncNow(subjects: SubjectId[]): Promise<SyncReport> {
   if (isOffline()) return emptyReport('sync', OFFLINE_MESSAGE)
   const settings = await getSettings()
+  if (settings.syncUrl.trim() && settings.bridgeToken?.trim()) return syncViaBridge(settings)
   const pull = await pullSubjects(subjects)
   if (pull.message === OFFLINE_MESSAGE) return { ...pull, mode: 'sync' } // P1-2: no push, no state change
   const push = await pushLocal()
@@ -325,3 +328,93 @@ export async function syncNow(subjects: SubjectId[]): Promise<SyncReport> {
 
 /** Re-export for callers that still map all keys. */
 export { CLASS_KEYS }
+
+/** Apply sheet state: per tick, a local tick newer than the sheet's survives (and is pushed next); else the sheet wins. */
+async function applyBridgeState(state: BridgeState): Promise<{ students: number; marks: number; kept: number; skipped: string[] }> {
+  const a = stateToApp(state)
+  const db = await getDb()
+  // Roster is the sheet's: a pupil row gone from Roster is gone from the class (ticks kept).
+  const keep = new Set(a.students.map((st) => st.id))
+  for (const t of a.tabs) {
+    for (const id of await db.getAllKeysFromIndex('students', 'by-class', t.classKey)) if (!keep.has(String(id))) await db.delete('students', id)
+  }
+  for (const st of a.students) await putStudent(st)
+  for (const l of a.left) {
+    const id = `${l.classKey}|${l.roll}`
+    const cur = await db.get('rosterMeta', id)
+    if (cur && cur.updatedAt > l.updatedAt) continue
+    await db.put('rosterMeta', { ...l, id })
+  }
+  let kept = 0
+  for (const m of a.marks) {
+    const cur = await getMark(m.classKey, m.roll, m.date)
+    if (cur && cur.updatedAt > m.updatedAt && cur.set !== m.set) {
+      kept++
+      continue
+    }
+    await putMark({ ...m, name: m.name || cur?.name || '', submitted: cur?.submitted ?? false }, { fromSheet: true })
+  }
+  for (const se of a.sessions) await putSession(se, { fromSheet: true, keepUpdatedAt: true })
+  const pulled = new Set(Object.keys((await getSettings()).engSyncState ?? {}) as ClassKey[])
+  const onSheet = new Set(a.tabs.map((t) => t.classKey))
+  // Q-FIX-5: Subjects is the sheet's own list → a class absent from it is confirmed gone.
+  await purgeClassesNotOnSheet(a.tabs, {
+    confirmedMissing: CLASS_KEYS.filter((k) => !onSheet.has(k)).map((k) => CLASS_LABELS[k]),
+    pulled,
+  })
+  return { students: a.students.length, marks: a.marks.length, kept, skipped: a.skipped }
+}
+
+/** v0.33.0 — push changed ticks/Left to the bridge, then apply the sheet state it returns. Falls back to a gviz read. */
+export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
+  const started = new Date().toISOString()
+  const payload = buildPushPayload(await (await getDb()).getAll('marks'), await listRosterMeta(), settings.bridgeSyncAt)
+  const count = payload.ticks.length + payload.roster.length
+  let state: BridgeState
+  let res: PushResult | null = null
+  try {
+    if (count) {
+      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload })
+      state = res.state
+    } else {
+      state = await bridgeCall<BridgeState>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'pull' })
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    const id = extractSheetId(settings.sheetUrl)
+    if (e instanceof BridgeError && e.network && id) {
+      try {
+        const a = await applyBridgeState(await gvizState(id))
+        await putSettings({ lastSyncAt: started, lastSyncError: `Bridge unreachable: ${msg}` })
+        return { ok: true, message: `Bridge unreachable · read ${a.marks} marks from the sheet · your changes stay on this device`, mode: 'pull', pulledStudents: a.students, pulledMarks: a.marks, pushed: false }
+      } catch {
+        /* fall through */
+      }
+    }
+    await putSettings({ lastSyncError: msg })
+    return { ...emptyReport('sync', `${msg} · marks stay on this device`), pushed: false }
+  }
+  const a = await applyBridgeState(state)
+  const tabs = stateToApp(state).tabs
+  const engSyncState = { ...(settings.engSyncState ?? {}) }
+  for (const t of tabs) engSyncState[t.classKey] = { hash: 'bridge', sheetSeenAt: started, lastSyncAt: started }
+  clearUndoStacks()
+  const rejected = res?.rejected ?? []
+  await putSettings({
+    bridgeSyncAt: started,
+    syncDirty: false,
+    lastSyncAt: started,
+    lastSyncError: rejected.length ? rejected.join('; ') : undefined,
+    discoveredTabs: tabs,
+    discoveredAt: started,
+    engSyncState,
+    syncNotes: a.skipped.length ? [`Not in the app yet: ${a.skipped.join(', ')}`] : [],
+  })
+  const parts = [
+    res ? `Pushed ${res.applied}${res.ignored ? ` (${res.ignored} older than sheet)` : ''}` : 'Nothing to push',
+    `pulled ${a.students} students · ${a.marks} marks`,
+  ]
+  if (a.kept) parts.push(`${a.kept} newer on phone kept`)
+  if (rejected.length) parts.push(`${rejected.length} refused`)
+  return { ok: true, message: parts.join(' · '), mode: 'sync', pulledStudents: a.students, pulledMarks: a.marks, pushed: !!res }
+}

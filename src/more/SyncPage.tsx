@@ -32,6 +32,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const { reloadFromIdb } = useWorkspace()
   const [sheetUrl, setSheetUrl] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
+  const [token, setToken] = useState('')
   const [status, setStatus] = useState<Awaited<ReturnType<typeof readSyncStatus>> | null>(null)
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<SyncReport | null>(null)
@@ -69,6 +70,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     setNotes(s.syncNotes ?? [])
     setSheetUrl(s.sheetUrl)
     setSyncUrl(s.syncUrl)
+    setToken(s.bridgeToken ?? '')
     setStatus(await readSyncStatus())
   }, [])
 
@@ -96,7 +98,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   }, [applyTabs, online])
 
   const saveUrls = async () => {
-    await putSettings({ sheetUrl: sheetUrl.trim(), syncUrl: syncUrl.trim() })
+    await putSettings({ sheetUrl: sheetUrl.trim(), syncUrl: syncUrl.trim(), bridgeToken: token.trim() })
     await refresh()
   }
 
@@ -136,7 +138,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     <MoreChrome title="Sync" onBack={onBack}>
       <div className="more-hint">
         Offline-first · marks save on this device. Pull any readable subject tabs from the Sheet.
-        Push not set up yet.
+        {syncUrl && token ? ' Push via the sheet bridge.' : ' Push not set up yet.'}
       </div>
 
       <div className="more-sec">Status</div>
@@ -208,6 +210,18 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
             placeholder="Not connected — optional"
             autoComplete="off"
             name="sow-sync-url"
+          />
+        </label>
+        <label className="sync-field">
+          Bridge token
+          <input
+            className="sync-input"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="From the sheet: SoW › Show app token"
+            autoComplete="off"
+            name="sow-bridge-token"
+            type="password"
           />
         </label>
         <div className="pill-row">
