@@ -12,7 +12,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await go(true);
   await scrub();
   let v = await p.evaluate(() => window.__vib);
-  ok(v.length >= 8 && v.length <= 14 && v.every((x) => x === 8), `A–Z scrub A→~M: ${v.length} ticks of 8ms (one per letter change)`);
+  ok(v.length >= 8 && v.length <= 14 && v.every((x) => x === 7), `A–Z scrub A→~M: ${v.length} ticks of 7ms (v0.29 selection) (one per letter change)`);
   await p.evaluate(() => { window.__vib = []; });
   const c = await p.$$eval('.sw-check-hit', (els) => { const e = els.find((x) => { const r = x.getBoundingClientRect(); return r.top > 300 && r.bottom < 700; }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await touch('touchStart', ...c); await p.waitForTimeout(40); await touch('touchEnd'); await p.waitForTimeout(200);

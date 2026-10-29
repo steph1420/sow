@@ -1,3 +1,4 @@
+import { haptic, setHapticsLevel } from '../lib/haptics'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
@@ -128,17 +129,32 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
             aria-hidden
           />
         </button>
-        <button
-          type="button"
-          className="more-row g-row-like haptics-row"
-          onClick={() => setPref('haptics.enabled', !prefs['haptics.enabled'])}
-        >
+        <div className="more-row g-row-like haptics-row">
           <span className="g-body">
             <span className="g-title">Haptics</span>
-            <span className="g-sub">Tick on A–Z letters and on ticks · Android</span>
+            <span className="g-sub">Vibration strength · Android (iPhone can't vibrate from web)</span>
           </span>
-          <span className={`toggle${prefs['haptics.enabled'] ? ' on' : ''}`} aria-hidden />
-        </button>
+        </div>
+        <div className="haptics-seg" role="radiogroup" aria-label="Haptics intensity">
+          {(['off', 'light', 'normal', 'strong'] as const).map((lv) => (
+            <button
+              key={lv}
+              type="button"
+              role="radio"
+              aria-checked={prefs['haptics.level'] === lv}
+              className={`haptics-opt${prefs['haptics.level'] === lv ? ' on' : ''}`}
+              data-level={lv}
+              onClick={() => {
+                setPref('haptics.level', lv)
+                setPref('haptics.enabled', lv !== 'off')
+                setHapticsLevel(lv)
+                haptic('medium')
+              }}
+            >
+              {lv[0].toUpperCase() + lv.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
     </MoreChrome>
   )

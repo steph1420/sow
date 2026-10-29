@@ -6,6 +6,7 @@ import { useWorkspace } from '../demo/WorkspaceContext'
 import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
+import { haptic } from '../lib/haptics'
 
 type Props = {
   onBack: () => void
@@ -106,6 +107,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       await saveUrls()
       const r = await fn()
       setReport(r)
+      haptic(r.ok ? 'success' : 'error')
       if (r.ok && (r.mode === 'pull' || r.mode === 'sync')) await reloadFromIdb()
       await refresh()
     } finally {

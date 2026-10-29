@@ -40,28 +40,25 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   ok(/KGA Eng CW · \d+\/\d+/.test(ctxLine || ''), 'context line: ' + ctxLine);
   const pills = await p.$$eval('.share-pill:not(.add)', (els) => els.map((e) => e.textContent.trim()));
   ok(JSON.stringify(pills) === JSON.stringify(['Pending', 'Completed', 'Submitted', 'Not submitted']), 'seeded pills (no Parents note): ' + pills.join(', '));
-  ok((await txt('.share-pill.add'))?.includes('New'), '＋ New pill');
+  ok(!(await has('.share-pill.add')), 'v0.29: no ＋ New pill in sheet');
   ok((await txt('.share-pill.on')) === 'Pending', 'Pending preselected (default)');
   let pv = await txt('.share-pv');
   ok(pv && pv.startsWith(`Legacy Eng CW `) && pv.includes(`(${notSet})`), 'legacy template migrated into Pending, prefix off: ' + (pv || '').split('\n')[0]);
   ok((await raw('.share-count')) === `${notSet} names`, `count badge "${await raw('.share-count')}" = ${notSet} names`);
   ok(notSet <= 8 || /…\d+ more/.test(pv), 'long list truncated with “…N more”');
-  await tap('.share-prefix');
-  pv = await txt('.share-pv');
-  ok(pv.startsWith('Legacy KGA Eng CW'), 'prefix toggle adds KGA');
+  ok(!(await has('.share-prefix')), 'v0.29: prefix toggle only in Settings');
   await tap('.share-pill', 1);
   pv = await txt('.share-pv');
-  ok(/^KGA Eng CW • \d+\/\d+ • set \(\d+\/\d+\):/.test(pv), 'Completed preview: ' + pv.split('\n')[0]);
+  ok(/^Eng CW • \d+\/\d+ • set \(\d+\/\d+\):/.test(pv), 'Completed preview: ' + pv.split('\n')[0]);
   await tap('.share-copy');
   const clip = await p.evaluate(() => navigator.clipboard.readText());
-  ok(/^KGA Eng CW • .* • set \(/.test(clip) && !clip.includes('more'), 'Copy → clipboard has full message (' + clip.split('\n').length + ' lines)');
+  ok(/^Eng CW • .* • set \(/.test(clip) && !clip.includes('more'), 'Copy → clipboard has full message (' + clip.split('\n').length + ' lines)');
   ok((await txt('.share-toast')) === 'Copied', 'toast “Copied”');
   ok(!(await has('.share-sheet')), 'sheet closes after Copy');
 
   // 3 last used + WhatsApp + prefix is per-share (Settings default off)
   await tap('.ov-act-share', 1);
   ok((await txt('.share-pill.on')) === 'Completed', 'last-used template preselected');
-  ok(!(await p.$eval('.share-prefix', (e) => e.getAttribute('aria-checked') === 'true')), 'prefix override did not persist (Settings default off)');
   const msg = await p.$eval('.share-sheet', (e) => e.dataset.message);
   await tap('.share-wa');
   const opened = await p.evaluate(() => window.__opened);

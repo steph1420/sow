@@ -15,7 +15,7 @@ import {
   type AppPrefs,
   type ThemeId,
 } from './appPrefs'
-import { setHapticsEnabled } from '../lib/haptics'
+import { setHapticsLevel } from '../lib/haptics'
 
 type PrefsValue = {
   prefs: AppPrefs
@@ -32,7 +32,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyTheme(resolveTheme(prefs))
-    setHapticsEnabled(prefs['haptics.enabled'])
+    setHapticsLevel(prefs['haptics.level'])
     document.documentElement.dataset.reduceMotion = prefs['chrome.reduceMotion']
       ? '1'
       : '0'

@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
+import type React from 'react'
 import { CLASS_LABELS } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
+import { shouldDismissSheet, sheetOffset } from './sheetDrag'
 import { useBackLayer } from '../nav/backStack'
 import { haptic } from '../lib/haptics'
 import { copyText, openExternal } from './clipboard'
@@ -43,16 +45,54 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
   const { marksByClass, rosterFor } = useWorkspace()
   const [share, setShare] = useShareState()
   const [selId, setSelId] = useState(() => pickInitial(share)?.id ?? '')
-  const [prefix, setPrefix] = useState(share.includeClassPrefix)
+  const prefix = share.includeClassPrefix // t170u: set only in Settings → Sharing
+  // t170u: two-date Checklist → pick which date the message is for (defaults to the first/focused one)
+  const dateOpts = target.dates && target.dates.length > 1 ? target.dates : [target.date]
+  const [dateIdx, setDateIdx] = useState(() => Math.max(0, dateOpts.findIndex((d) => d.date === target.date.date)))
+  const date = dateOpts[dateIdx] ?? target.date
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ id: number; y0: number; t0: number; lastY: number; lastT: number; moved: boolean } | null>(null)
+  const [dragY, setDragY] = useState(0)
+  const [settling, setSettling] = useState(false)
+  const onGrabDown = (e: React.PointerEvent) => {
+    e.preventDefault()
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    const now = performance.now()
+    drag.current = { id: e.pointerId, y0: e.clientY, t0: now, lastY: e.clientY, lastT: now, moved: false }
+    setSettling(false)
+  }
+  const onGrabMove = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    const dy = e.clientY - d.y0
+    if (Math.abs(dy) > 6) d.moved = true
+    d.lastY = e.clientY
+    d.lastT = performance.now()
+    setDragY(sheetOffset(dy))
+  }
+  const onGrabUp = (e: React.PointerEvent) => {
+    const d = drag.current
+    drag.current = null
+    if (!d || d.id !== e.pointerId) return
+    if (!d.moved) return onClose() // tap the handle = close
+    const dy = e.clientY - d.y0
+    const v = (e.clientY - d.y0) / Math.max(1, performance.now() - d.t0)
+    const h = sheetRef.current?.offsetHeight ?? 600
+    setSettling(true)
+    if (shouldDismissSheet(dy, h, v)) {
+      setDragY(h)
+      window.setTimeout(onClose, 160)
+    } else setDragY(0)
+  }
   const tpl = share.templates.find((t) => t.id === selId) ?? share.templates[0]
   const hold = useRef<{ id: string; timer: number; x: number; y: number } | null>(null)
 
   const classLabel = CLASS_LABELS[target.classKey]
   const lists = useMemo(
-    () => buildShareLists(rosterFor(target.classKey), marksByClass[target.classKey] ?? {}, target.date.date),
-    [rosterFor, marksByClass, target],
+    () => buildShareLists(rosterFor(target.classKey), marksByClass[target.classKey] ?? {}, date.date),
+    [rosterFor, marksByClass, target.classKey, date.date],
   )
-  const base = { classLabel, date: target.date.dayNum, topic: target.date.topic, lists, includeClassPrefix: prefix }
+  const base = { classLabel, date: date.dayNum, topic: date.topic, lists, includeClassPrefix: prefix }
   const body = tpl?.body ?? ''
   const message = buildShareMessage({ ...base, body })
   const pv = previewLines(buildShareMessage({ ...base, body, emptyNames: '(none)' }))
@@ -66,11 +106,13 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
     const ok = await copyText(message)
     used()
     onToast(ok ? 'Copied' : "Couldn't copy")
+    if (ok) haptic('light')
     if (ok) onClose()
   }
   const onWhatsApp = () => {
     if (blank) return
     used()
+    haptic('light')
     onClose()
     openExternal(waMeUrl(message))
   }
@@ -80,15 +122,58 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
     hold.current = null
   }
 
-  const ctx = [classLabel, target.date.dayNum, target.date.topic].filter(Boolean).join(' · ')
+  const ctx = [classLabel, date.dayNum, date.topic].filter(Boolean).join(' · ')
 
   return (
     <>
       <button type="button" className="share-scrim" aria-label="Dismiss Share" onClick={onClose} />
-      <div className="share-sheet" role="dialog" aria-label="Share" data-message={message}>
-        <div className="share-grab" aria-hidden />
-        <div className="share-h">Share</div>
-        <div className="share-ctx">{ctx}</div>
+      <div
+        ref={sheetRef}
+        className={`share-sheet${settling ? ' settling' : ''}${dragY ? ' dragging' : ''}`}
+        role="dialog"
+        aria-label="Share"
+        data-message={message}
+        data-date={date.date}
+        style={dragY ? { transform: `translateY(${dragY}px)` } : undefined}
+      >
+        <button
+          type="button"
+          className="share-grab-hit"
+          aria-label="Close Share (tap or drag down)"
+          onPointerDown={onGrabDown}
+          onPointerMove={onGrabMove}
+          onPointerUp={onGrabUp}
+          onPointerCancel={() => { drag.current = null; setSettling(true); setDragY(0) }}
+        >
+          <span className="share-grab" aria-hidden />
+        </button>
+        <div className="share-head">
+          <div className="share-head-txt">
+            <div className="share-h">Share</div>
+            <div className="share-ctx">{ctx}</div>
+          </div>
+          <button type="button" className="share-x" aria-label="Close" onClick={onClose}>
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        {dateOpts.length > 1 ? (
+          <div className="share-dates" role="radiogroup" aria-label="Share for date">
+            {dateOpts.map((d, i) => (
+              <button
+                key={d.date}
+                type="button"
+                role="radio"
+                aria-checked={i === dateIdx}
+                className={`share-date${i === dateIdx ? ' on' : ''}`}
+                onClick={() => setDateIdx(i)}
+              >
+                {d.dayNum}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <div className="share-pills" role="radiogroup" aria-label="Templates">
           {share.templates.map((t) => (
@@ -108,7 +193,7 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
                   y: e.clientY,
                   timer: window.setTimeout(() => {
                     hold.current = null
-                    haptic('hold')
+                    haptic('light')
                     onManage(id)
                   }, HOLD_MS),
                 }
@@ -124,9 +209,6 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
               {t.name}
             </button>
           ))}
-          <button type="button" className="share-pill add" onClick={() => onManage(undefined, true)}>
-            ＋ New
-          </button>
         </div>
 
         <div className="share-pvh">
@@ -140,32 +222,12 @@ export function ShareSheet({ target, onClose, onManage, onToast }: Props) {
         {blank ? <div className="share-warn">This template is empty — edit it in Settings → Sharing.</div> : null}
         {long && !blank ? <div className="share-warn">Long message — WhatsApp may cut it. Copy is safer.</div> : null}
 
-        <button
-          type="button"
-          className="share-prefix-row"
-          onClick={() => setPrefix((v) => !v)}
-        >
-          <span>Include KGA/KGB prefix</span>
-          <span
-            className={`toggle share-prefix${prefix ? ' on' : ''}`}
-            role="switch"
-            aria-checked={prefix}
-            aria-label="Include KGA/KGB prefix"
-          />
-        </button>
-
         <div className="share-targets">
           <button type="button" className="share-btn share-copy" disabled={blank} onClick={onCopy}>
             <CopyIcon /> Copy
           </button>
           <button type="button" className="share-btn share-wa" disabled={blank} onClick={onWhatsApp}>
             WhatsApp
-          </button>
-        </div>
-        <div className="share-foot">
-          Long-press a template to edit ·{' '}
-          <button type="button" className="share-manage" onClick={() => onManage(tpl?.id)}>
-            Manage in Settings → Sharing
           </button>
         </div>
       </div>

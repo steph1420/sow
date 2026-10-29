@@ -52,7 +52,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
       // t169u: one short tick per letter change (never on the same letter)
       if (lastLetter.current !== letter) {
         lastLetter.current = letter
-        haptic('az')
+        haptic('selection')
       }
       setHi(letter)
       const roll = jumpLetterToRoll(letter, rows)

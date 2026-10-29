@@ -25,6 +25,8 @@ export type AppPrefs = {
   'gestures.swipeSingleRow': boolean
   /** t169u: vibration ticks (A–Z scrub, ticks). No-op where unsupported (iOS). */
   'haptics.enabled': boolean
+  /** v0.29 (t170u): Off / Light / Normal / Strong — scales pulse lengths. */
+  'haptics.level': 'off' | 'light' | 'normal' | 'strong'
   /** v0.28 Share (t164u) — named templates, order = display order. */
   'share.templates': ShareTemplate[]
   'share.defaultId': string
@@ -43,6 +45,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'az.showHud': true,
   'gestures.swipeSingleRow': false,
   'haptics.enabled': true,
+  'haptics.level': 'normal',
   'share.templates': SEED_TEMPLATES.map((t) => ({ ...t })),
   'share.defaultId': 'pending',
   'share.lastUsedId': '',
@@ -83,7 +86,9 @@ export function loadPrefs(): AppPrefs {
     const raw = localStorage.getItem(STORE_KEY)
     const parsed = raw ? (JSON.parse(raw) as Partial<AppPrefs>) : {}
     const hasShare = Array.isArray(parsed['share.templates']) && parsed['share.templates'].length > 0
-    return withShareMigration({ ...freshDefaults(), ...parsed }, hasShare)
+    const merged = { ...freshDefaults(), ...parsed }
+    if (parsed['haptics.level'] == null && parsed['haptics.enabled'] === false) merged['haptics.level'] = 'off'
+    return withShareMigration(merged, hasShare)
   } catch {
     return freshDefaults()
   }

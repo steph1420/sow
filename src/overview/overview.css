@@ -253,3 +253,12 @@
   -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
   mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
 }
+
+/* v0.29 (t170u leftover): ov-page is a flex column, so the chip scroller was shrinking to 31px and
+   clipping each chip's 44px hit slop to ~32px. Never shrink it; padding-block (tokens.css) holds the slop. */
+.ov-filters {
+  flex-shrink: 0;
+  padding-block: 6px;
+  margin-block: -6px;
+}
+.ov-f::after { height: 44px; }

@@ -570,3 +570,8 @@ html[data-reduce-motion='1'] .sync-cta {
   font-size: 13px;
   line-height: 1.4;
 }
+
+/* v0.29 haptics intensity (t170u) */
+.haptics-seg { display: flex; gap: 6px; padding: 0 16px 12px; }
+.haptics-opt { flex: 1; min-height: 44px; border-radius: var(--soft-r, 12px); border: 1px solid var(--hairline); background: transparent; color: var(--text-sec, var(--text)); font-size: 13px; font-weight: 600; }
+.haptics-opt.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: color-mix(in srgb, var(--ok) 12%, transparent); }

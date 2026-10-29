@@ -87,3 +87,42 @@ export function rollAtY(
 export function rowSwipeValue(startRowOn: boolean[]): boolean {
   return !(startRowOn.length > 0 && startRowOn.every(Boolean))
 }
+
+/**
+ * t170u — multi-row swipe hesitancy. Before extension is "armed", the finger must travel
+ * ≥ minBeyondPx past the start row's edge AND ≥ fraction of the way into the neighbouring row.
+ * Once armed it stays armed for the gesture (hysteresis) and plain hit-testing applies.
+ */
+export function extendTarget(
+  clientY: number,
+  rows: { roll: number; top: number; bottom: number }[],
+  startRoll: number,
+  armed: boolean,
+  opts: { minBeyondPx?: number; fraction?: number } = {},
+): { roll: number | null; armed: boolean } {
+  if (armed) return { roll: rollAtY(clientY, rows, 0), armed }
+  const minBeyond = opts.minBeyondPx ?? 28
+  const frac = opts.fraction ?? 0.6
+  const i = rows.findIndex((r) => r.roll === startRoll)
+  if (i < 0) return { roll: null, armed: false }
+  const s = rows[i]
+  if (clientY > s.bottom) {
+    const n = rows[i + 1]
+    if (!n) return { roll: null, armed: false }
+    const into = clientY - n.top
+    if (clientY - s.bottom >= minBeyond && into >= (n.bottom - n.top) * frac) return { roll: rollAtY(clientY, rows, 0), armed: true }
+  } else if (clientY < s.top) {
+    const n = rows[i - 1]
+    if (!n) return { roll: null, armed: false }
+    const into = n.bottom - clientY
+    if (s.top - clientY >= minBeyond && into >= (n.bottom - n.top) * frac) return { roll: rollAtY(clientY, rows, 0), armed: true }
+  }
+  return { roll: null, armed: false }
+}
+
+/** Rolls from a to b inclusive in display order (fills rows skipped by a fast move). */
+export function rollsBetween(order: number[], a: number, b: number): number[] {
+  const i = order.indexOf(a), j = order.indexOf(b)
+  if (i < 0 || j < 0) return []
+  return order.slice(Math.min(i, j), Math.max(i, j) + 1)
+}

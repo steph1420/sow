@@ -8,8 +8,10 @@ import { SearchBar } from './chrome/SearchBar'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
+  extendTarget,
   paintRoll,
   rollAtY,
+  rollsBetween,
   shouldEngagePaint,
   rowSwipeValue,
   startPaintSession,
@@ -72,6 +74,8 @@ export function ChecklistPage(_props: Props) {
     pointerId: number | null
     startValue: boolean
     startDate: string
+    /** t170u: multi-row extension armed (hesitancy passed) */
+    armed: boolean
   } | null>(null)
 
   const nameHoldRef = useRef<{
@@ -195,6 +199,7 @@ export function ChecklistPage(_props: Props) {
       pointerId: e.pointerId,
       startValue: value,
       startDate: date,
+      armed: false,
     }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
@@ -212,16 +217,21 @@ export function ChecklistPage(_props: Props) {
       st.session = startPaintSession(st.startCol, value, st.startRoll)
       if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
-      haptic('engage')
+      haptic('selection')
       setGlowRolls(new Set([st.startRoll]))
     }
 
     if (!st.session) return
     // t167u dev option: a swipe commits only the row it started on (ignores vertical drift)
     if (prefs['gestures.swipeSingleRow']) return
-    const roll = rollAtY(e.clientY, measureRows())
-    if (roll == null) return
-    if (paintRoll(st.session, roll)) {
+    // t170u: hesitant — must travel well into the next row before extending
+    const t = extendTarget(e.clientY, measureRows(), st.startRoll, st.armed)
+    st.armed = t.armed
+    if (t.roll == null) return
+    let added = false
+    for (const roll of rollsBetween(orderedRolls, st.startRoll, t.roll)) added = paintRoll(st.session, roll) || added
+    if (added) {
+      haptic('selection')
       setGlowRolls(new Set(st.session.paintedRolls))
     }
   }
@@ -239,14 +249,14 @@ export function ChecklistPage(_props: Props) {
         rolls.flatMap((roll) => m.visibleDates.map((d) => ({ roll, date: d.date }))),
         value,
       )
-      haptic('commit')
+      haptic('medium')
       setGlowRolls(new Set()) // t168u: pending blue clears instantly on release
       return
     }
     setGlowRolls((g) => (g.size ? new Set() : g))
 
     if (didTap) {
-      haptic('tick')
+      haptic('light')
       m.toggleCell(st.startRoll, st.startDate)
     }
   }
@@ -278,6 +288,7 @@ export function ChecklistPage(_props: Props) {
       const h = nameHoldRef.current
       if (!h || h.pointerId !== pointerId) return
       setSelect(enterSelect(createSelectModel(), roll))
+      haptic('heavy')
       nameHoldRef.current = null
     }, SELECT_HOLD_MS)
     nameHoldRef.current = { roll, startX, startY, timer, pointerId }
@@ -309,7 +320,11 @@ export function ChecklistPage(_props: Props) {
     if (!rd?.active || rd.pointerId !== e.pointerId) return
     const roll = rollAtY(e.clientY, measureRows())
     if (roll == null) return
-    setSelect((s) => applyRollDrag(s, orderedRolls, roll))
+    setSelect((s) => {
+      const n = applyRollDrag(s, orderedRolls, roll)
+      if (n.selected.size !== s.selected.size) haptic('selection')
+      return n
+    })
   }
 
   const onRollPointerUp = (e: ReactPointerEvent) => {
@@ -323,6 +338,7 @@ export function ChecklistPage(_props: Props) {
       m.visibleDates.map((d) => ({ roll, date: d.date })),
     )
     m.setCellsValue(targets, true)
+    haptic('medium')
   }
   const onSelectClear = () => {
     if (!selectedRolls.length) return
@@ -330,10 +346,12 @@ export function ChecklistPage(_props: Props) {
       m.visibleDates.map((d) => ({ roll, date: d.date })),
     )
     m.setCellsValue(targets, false)
+    haptic('medium')
   }
 
   const copyDate = (from: 0 | 1, to: 0 | 1) => {
     m.copyField(m.dates[from]!.date, m.dates[to]!.date)
+    haptic('medium')
     setCopyOpen(false)
     setToolsOpen(false)
   }
@@ -343,6 +361,7 @@ export function ChecklistPage(_props: Props) {
       m.filteredRoster.map((r) => ({ roll: r.roll, date })),
       value,
     )
+    haptic('success')
   }
 
   const allState = (date: string): 'on' | 'off' | 'partial' => {
@@ -419,10 +438,10 @@ export function ChecklistPage(_props: Props) {
           >
             {m.dates[1].dayNum}
           </button>
-          <button type="button" className="sw-icon-btn" disabled={!m.canUndo} onClick={m.undo}>
+          <button type="button" className="sw-icon-btn" disabled={!m.canUndo} onClick={() => { m.undo(); haptic('light') }}>
             ↶
           </button>
-          <button type="button" className="sw-icon-btn" disabled={!m.canRedo} onClick={m.redo}>
+          <button type="button" className="sw-icon-btn" disabled={!m.canRedo} onClick={() => { m.redo(); haptic('light') }}>
             ↷
           </button>
           <span className="sw-lean-spacer" />
@@ -576,14 +595,14 @@ export function ChecklistPage(_props: Props) {
               <button
                 type="button"
                 className={m.mode === 'set' ? 'on' : ''}
-                onClick={() => m.setMode('set')}
+                onClick={() => { if (m.mode !== 'set') haptic('medium'); m.setMode('set') }}
               >
                 Set
               </button>
               <button
                 type="button"
                 className={m.mode === 'submitted' ? 'on' : ''}
-                onClick={() => m.setMode('submitted')}
+                onClick={() => { if (m.mode !== 'submitted') haptic('medium'); m.setMode('submitted') }}
               >
                 Submitted
               </button>
@@ -615,7 +634,7 @@ export function ChecklistPage(_props: Props) {
               className="sw-tools-row share"
               onClick={() => {
                 setToolsOpen(false)
-                openShare({ classKey: m.classKey, date: echoDate })
+                openShare({ classKey: m.classKey, date: echoDate, dates: m.showTwoCol ? m.visibleDates : undefined })
               }}
             >
               Share

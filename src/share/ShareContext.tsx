@@ -4,7 +4,8 @@ import type { ClassKey } from '../data/types'
 import { ShareSheet } from './ShareSheet'
 import './share.css'
 
-export type ShareTarget = { classKey: ClassKey; date: DateSlot }
+/** `dates` (t170u): Checklist in two-date mode passes both → sheet shows a date toggle. */
+export type ShareTarget = { classKey: ClassKey; date: DateSlot; dates?: DateSlot[] }
 
 type ShareValue = {
   openShare: (t: ShareTarget) => void

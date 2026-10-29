@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.29.0 — 2026-10-29 (Asia/Calcutta)
+
+Steve t170u + t171u. Rollback: tag `v0.28.0` / `8833b96`.
+
+### Haptics — all points, graded strengths (t170u "All")
+- Palette: selection 7 ms · light 10 · medium 18 · heavy 30 · success [12,40,12] · error [30,60,30]. Assigned per `HAPTICS_PLAN.md` (A–Z, ticks, swipe engage/extend/commit, roll-drag rows, Select start, Mark/Clear, tick-all, undo/redo, Set↔Submitted, Copy marks, Sync done/failed, back-to-exit toast, Copied/WhatsApp).
+- Settings → Appearance → Haptics is now **Off / Light / Normal / Strong** (scales pulse lengths). An old "off" toggle migrates to Off.
+
+### Share sheet (t170u #2, t171u)
+- Removed the bottom instructions, the `＋ New` pill and the KGA/KGB prefix toggle (prefix stays in Settings → Sharing).
+- New **×** close (44px, muted, Day+Night). The handle has a 28px-tall full-width hit area: **tap closes**, **drag follows the finger** and dismisses past 30% of the sheet or on a fling, else springs back. Tap-outside and Back still close.
+- **Date:** Overview card → that card's session date. Checklist Tools → the date on screen; in two-date mode the sheet now shows a **28/10 · 2/11 toggle** (defaults to the first) instead of silently using the first.
+
+### Swipe to check (t170u #3)
+- Multi-row extension is now hesitant: the finger must go ≥28px past the start row AND ≥60% into the next row before other rows join; once armed it stays armed. Fast drags fill skipped rows.
+- Vertical drags on ✓ columns and names stay pure native scroll with momentum (verified, no ticks).
+- The blue pending ring is unchanged until Steve locks a softer option (`SWIPE_CONFIRM_PLAN.md`).
+
+### Overview
+- Filter chip tap area is a true 44px. The chip row was being shrunk by the flex column to 31px, which clipped the slop to ~32px.
+
+### Tests
+- Unit 90 (haptics palette/scaling, sheet drag, swipe hesitancy). New real-touch `v029-probe` (22 checks); share/haptics probes updated; all 20 probes pass.
+
 ## 0.28.0 — 2026-10-29 (Asia/Calcutta)
 
 Share is back as named templates, built to the locked mocks share-mj1..mj5 (Steve t164u "Beautiful"). Rollback: tag `v0.27.0` / `45778d3`.

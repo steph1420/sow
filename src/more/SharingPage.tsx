@@ -173,7 +173,7 @@ export function SharingPage({ onBack, initialId, createOnOpen, onConsumedIntent 
     const rows = [...(listRef.current?.querySelectorAll<HTMLElement>('.shr-row') ?? [])]
     drag.current = { id, from: index, to: index, pointerId: e.pointerId, mids: rows.map((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 }) }
     setDragView({ id, to: index })
-    haptic('hold')
+    haptic('light')
   }
   const onHandleMove = (e: RPE) => {
     const d = drag.current

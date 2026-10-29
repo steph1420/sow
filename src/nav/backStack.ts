@@ -8,6 +8,7 @@
  * Landing on [base] = back at root → toast "Press back again to exit", re-push guard;
  * a second back inside the window lets the browser leave.
  */
+import { haptic } from '../lib/haptics'
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 type Layer = { id: number; seq: number; count: number; close: () => void }
@@ -127,6 +128,7 @@ function onPop(e: PopStateEvent) {
     }
     armedUntil = Date.now() + EXIT_WINDOW_MS
     toastUntil = armedUntil
+    haptic('heavy')
     emit()
     window.setTimeout(emit, EXIT_WINDOW_MS + 30)
     push(0)
