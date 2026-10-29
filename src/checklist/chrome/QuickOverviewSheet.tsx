@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import type { DateSlot } from '../types'
 
 type Row = { date: DateSlot; n: number; total: number }
@@ -6,8 +5,6 @@ type Props = { classLabel: string; mode: 'set' | 'submitted'; rows: Row[]; left:
 
 /** v0.39.0 (t79u/t80u) Quick overview — both dates at a glance. Tools › Quick overview · swipe up on the Checklist tab · O. */
 export function QuickOverviewSheet({ classLabel, mode, rows, left, onClose }: Props) {
-  const drag = useRef<{ y: number; id: number } | null>(null)
-  const sheet = useRef<HTMLDivElement>(null)
   return (
     <>
       <button type="button" className="qo-scrim" aria-label="Dismiss quick overview" onClick={onClose} />
@@ -16,19 +13,6 @@ export function QuickOverviewSheet({ classLabel, mode, rows, left, onClose }: Pr
         role="dialog"
         aria-modal="true"
         aria-label="Quick overview"
-        ref={sheet}
-        onPointerDown={(e) => { drag.current = { y: e.clientY, id: e.pointerId } }}
-        onPointerMove={(e) => {
-          const d = drag.current; if (!d || d.id !== e.pointerId) return
-          const dy = Math.max(0, e.clientY - d.y)
-          if (sheet.current) sheet.current.style.transform = `translateY(${dy}px)`
-        }}
-        onPointerUp={(e) => {
-          const d = drag.current; drag.current = null
-          if (sheet.current) sheet.current.style.transform = ''
-          if (d && e.clientY - d.y > 60) onClose()
-        }}
-        onPointerCancel={() => { drag.current = null; if (sheet.current) sheet.current.style.transform = '' }}
       >
         <div className="qo-handle" aria-hidden />
         <div className="qo-head">

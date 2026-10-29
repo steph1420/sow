@@ -96,7 +96,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   ok(JSON.stringify(opts) === '["Off","Light","Normal","Strong"]', 'Appearance: Off/Light/Normal/Strong ' + opts);
   await fresh({ 'haptics.level': 'strong' });
   await p.evaluate(() => { window.__vib = []; });
-  await p.click('.sw-allbox'); await p.waitForTimeout(100);
+  await p.click('.sw-tickall'); await p.waitForTimeout(100);
   ok(JSON.stringify(await p.evaluate(() => window.__vib)) === '[[18,40,18]]', 'Strong scales tick-all success → [18,40,18]');
   await fresh({ 'haptics.level': 'off' });
   [x, y] = await cell(3, 0); await touch('touchStart', x, y); await p.waitForTimeout(30); await touch('touchEnd'); await p.waitForTimeout(150);

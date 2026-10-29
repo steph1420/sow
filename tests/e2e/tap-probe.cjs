@@ -29,7 +29,7 @@ const R = 21;
   };
   const CTRL = 'button:not(.scrim):not(.sw-copy-scrim), input, select, [role=button]';
   await p.goto(url, { waitUntil:'networkidle' }); await audit('Overview', CTRL);
-  await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await audit('Checklist', CTRL + ', .sw-allbox');
+  await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await audit('Checklist', CTRL + ', .sw-tickall');
   await p.locator('.sw-tools-chip').click(); await audit('Checklist Tools sheet', '.sw-tools-row, .sw-tools-row button');
   // v0.29.1: the whole Tools row (full width × ≥44px) is the hit area — the ±60px scan above caps width at 121.
   { const bad = await p.evaluate(() => [...document.querySelectorAll('.sw-tools-row')].flatMap((e) => { const r = e.getBoundingClientRect(); const out = []; const cy = r.top + r.height / 2;

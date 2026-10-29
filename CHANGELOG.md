@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.40.0 — 2026-10-30 (Asia/Calcutta)
+
+Checklist header rework + topic editing + sheet feel (Steve t83u, t84u, t85u–t88u). Rollback: tag `v0.39.0` / `607312c`. **Code.js changed (bridge 0.40.0, backward compatible)** — re-paste + New version to sync topics; until then topic edits stay on the phone with a note. CRDT op log renumbered to v0.41.0.
+
+- Overview cards: **Last:** replaces "Latest:" for a past session (Upcoming / Today unchanged).
+- Checklist top header: topic removed; the dates (oldest → newest, e.g. 28/10 · 2/11 ▾) sit on the right. Tapping them opens the **Dates** panel: 1 date / 2 dates, pick which date in 1-date view, and view / edit each session's topic (Save; up to 200 characters). The date chip row is gone (absorbed into the panel).
+- Column header is now two rows: **date**, then the **topic** cut with "…". The whole header cell (≥44 px) is one button: tap it for a toast with the full topic (date and topic as two separate buttons would each be under 44 px tall). The Dates panel opens from the top-right dates or **D**. **No counts in the header** (t84u) — counts live in Quick overview. Screen readers hear "Wed 28, topic: <topic> — show full topic". Tapping the header no longer ticks the column.
+- **Tick all** moved to a footer row under the list: one button per date column, "Tick all" / "Untick all". Keyboard: Tab to the buttons, or **A** in the grid ticks / unticks the focused date column; **D** opens the Dates panel. The ? sheet lists both.
+- Topic edits are saved on the device at once and pushed on the next Sync as `sessions` ops (newer wins on `updatedAt`; missing session rows are created). A bridge older than 0.40.0 ignores them: the edit stays pending and Sync shows "Update bridge script to sync topics".
+- **Fix (t85u–t87u): Quick overview needed two taps to close** (backdrop and Close). See BUGS. Every control in every sheet now works on the first tap.
+- **Bottom sheets follow the finger 1:1 from the first pixel** (t88u): drag the top of any sheet (Quick overview, Dates, Tools, Copy, More, Shortcuts, Spotlight). Release past 30 % of its height or with a flick (> 0.5 px/ms) closes it; otherwise it springs back. The grab zone consumes the touch so Chrome no longer holds back the first ~15 px of movement. Share sheet keeps its own (already 1:1) drag.
+- Tests: unit `topicEdits` (5), `dateLabel` updated, bridge `code.test` +2 (topic newer-wins/ignore/create/reject; old payload → `sessionsApplied: 0`); e2e new `v040-probe` (30 checks), `v040-shots`/`serve-shots` (screenshots), `topic-sync-probe` (routed fake bridge — never the live sheet), `sheet-tap-probe` (one-tap close from all 3 openers + 1:1 drag / 30 % / flick / spring-back); `tickall-probe`, `v039-probe`, `v029-probe`, `tap-probe`, `title-probe`, `keyboard-probe`, `dates-touch-probe` updated for the footer / Dates panel.
+
 ## 0.39.0 — 2026-10-30 (Asia/Calcutta)
 
 Header cleanup + quick overview + calendar date order (Steve t74u, t76u–t82u; built without mock lock per t81u). Rollback: tag `v0.38.0` / `d109227`. **No Code.js change.** CRDT op log renumbered to v0.40.0.

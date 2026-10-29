@@ -152,6 +152,35 @@ describe('bridge', () => {
     expect(ss.getSheetByName('Ticks')!.getRange(2, 9).getFormula()).toMatch(/VLOOKUP/)
   })
 
+  it('v0.40.0 push sessions: topic edit newer-wins, older ignored, new session created, reports sessionsApplied; ticks untouched', () => {
+    const { call, ss } = ready()
+    const before = ss.getSheetByName('Ticks')!.rows().length
+    const out = call({
+      action: 'push',
+      sessions: [
+        { subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Nouns (edited)', updatedAt: '2026-10-29T18:00:00.000Z' },
+        { subjectKey: 'KGA_Eng_HW', date: '2026-10-14', topic: 'old', updatedAt: '2000-01-01T00:00:00.000Z' },
+        { subjectKey: 'KGB_Eng_CW', date: '2026-11-09', topic: 'Brand new', updatedAt: '2026-10-29T18:00:00.000Z' },
+        { subjectKey: 'KGA_Math_CW', date: '2026-11-09', topic: 'X', updatedAt: '2026-10-29T18:00:00.000Z' },
+      ],
+    })
+    expect(out.ok).toBe(true)
+    expect(out.sessionsApplied).toBe(2)
+    expect(out.rejected[0]).toMatch(/KGA_Math_CW/)
+    const ses = out.state.sessions
+    expect(ses.find((x: any) => x.sessionId === 'KGA_Eng_CW|2026-10-28').topic).toBe('Nouns (edited)')
+    expect(ses.find((x: any) => x.sessionId === 'KGA_Eng_HW|2026-10-14').topic).toBe('P p')
+    expect(ses.find((x: any) => x.sessionId === 'KGB_Eng_CW|2026-11-09').topic).toBe('Brand new')
+    expect(ss.getSheetByName('Ticks')!.rows().length).toBe(before)
+  })
+
+  it('v0.40.0 old app push without sessions still works (backward compatible)', () => {
+    const { call } = ready()
+    const out = call({ action: 'push', ticks: [], roster: [] })
+    expect(out.ok).toBe(true)
+    expect(out.sessionsApplied).toBe(0)
+  })
+
   it('push grows the Ticks tab past its 1000 rows instead of failing', () => {
     const { call, ss } = ready()
     const ticks = []

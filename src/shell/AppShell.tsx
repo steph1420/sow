@@ -207,6 +207,16 @@ export function AppShell() {
     return () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2) }
   }, [tab, stack, moreOpen])
   const tabSwipe = useRef<{ x: number; y: number; fired: boolean } | null>(null)
+  // BUGS t85u–t87u: the swipe-up must not become a browser scroll/fling gesture — Chrome then swallows the
+  // next tap (it "stops the fling"), so the sheet's Close/backdrop needed two taps. Cancel the native gesture.
+  const clTabRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const el = clTabRef.current
+    if (!el) return
+    const stop = (e: TouchEvent) => { if (e.cancelable) e.preventDefault() }
+    el.addEventListener('touchmove', stop, { passive: false })
+    return () => el.removeEventListener('touchmove', stop)
+  })
   const stackRef = useRef(stack); stackRef.current = stack
   const tabRef = useRef(tab); tabRef.current = tab
   const moreRef = useRef(moreOpen); moreRef.current = moreOpen
@@ -371,6 +381,7 @@ export function AppShell() {
           type="button"
           className={`tab${tab === 'checklist' && !moreOpen ? ' on' : ''}`}
           aria-description="Swipe up for quick overview"
+          ref={clTabRef}
           onPointerDown={(e) => {
             // t80u: ignore the OS home-gesture edge (bottom 16px) and start only on the tab itself.
             tabSwipe.current = e.clientY > window.innerHeight - 16 ? null : { x: e.clientX, y: e.clientY, fired: false }

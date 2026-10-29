@@ -14,26 +14,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.isVisible('.ov-title'), 'Overview title kept');
   const lines = await p.$$eval('.ov-card .line', (e) => e.map((x) => x.textContent.trim()));
   ok(lines.some((l) => /^Upcoming: Mon 2/.test(l)), `future session card says "Upcoming:" (${lines.find((l) => /Mon 2/.test(l))})`);
-  ok(lines.some((l) => /^Latest: Wed 28/.test(l)) && !lines.some((l) => /^Upcoming: Wed 28/.test(l)), `past session card is not "Upcoming" (${lines.find((l) => /Wed 28/.test(l))})`);
+  ok(lines.some((l) => /^Last: Wed 28/.test(l)) && !lines.some((l) => /^Upcoming: Wed 28/.test(l)), `past session card is not "Upcoming" (${lines.find((l) => /Wed 28/.test(l))})`);
   // Checklist header
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   ok(!(await p.isVisible('.sw-lean-count')), '"16/44 SET" removed');
-  const heads = await p.$$eval('.sw-colhead .sw-allbox', (e) => e.map((x) => ({ t: x.textContent.trim(), h: x.getBoundingClientRect().height, w: x.getBoundingClientRect().width, l: x.getAttribute('aria-label') })));
-  ok(heads.length === 2, `two date headers (${heads.map((h) => h.t).join(' | ')})`);
-  ok(heads.every((h) => /\d+\/\d+.*\d+\/\d+/.test(h.t)), 'each header shows date + count');
-  ok(heads.every((h) => h.h >= 44 && h.w >= 44), `header targets ≥44px (${heads.map((h) => `${Math.round(h.w)}×${Math.round(h.h)}`)})`);
-  ok(heads.every((h) => /tick all|untick all/i.test(h.l)), 'header keeps column tick/untick-all action');
-  const headDates = await p.$$eval('.sw-colbtn .d', (e) => e.map((x) => x.textContent.trim()));
-  ok(headDates[0] === '28/10' && headDates[1] === '2/11', `calendar order (t82u) (${headDates})`);
-  const n0 = await p.$$eval('[data-cell$="-0"][aria-checked="true"]', (e) => e.length);
-  ok(heads[0].t.includes(`${n0}/`), `column 1 count matches ticks (${n0})`);
-  await p.tap('.sw-colhead .sw-allbox >> nth=0'); await p.waitForTimeout(200);
-  const n0b = await p.$$eval('[data-cell$="-0"][aria-checked="true"]', (e) => e.length);
-  ok(n0b !== n0, 'tapping header still ticks/unticks the column');
-  if (await p.isEnabled('[aria-label="Undo"]')) await p.tap('[aria-label="Undo"]');
-  await p.tap('.date-pill >> nth=0'); await p.waitForTimeout(200);
-  ok((await p.$$eval('.sw-colhead .sw-allbox', (e) => e.length)) === 1, '1-date view: one header');
-  await p.tap('.date-pill >> nth=0'); await p.waitForTimeout(200);
+  // v0.40.0 (t83u/t84u) superseded the count headers + header tick-all + date pills — see v040-probe.cjs.
   // Quick overview: Tools
   await p.tap('.sw-tools-chip'); await p.waitForTimeout(150);
   await p.tap('text=Quick overview'); await p.waitForTimeout(250);

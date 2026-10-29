@@ -143,3 +143,7 @@ Friction found → change: (1) focus flagged off-screen right after Enter from q
 ## v0.39.0 additions (t80u–t82u)
 - `?` sheet: **O** — Quick overview (also Tools › Quick overview, swipe up on the Checklist tab). No conflict: O was unused (grid letters are M, P, L; quick find owns typed letters only inside the HUD).
 - Dogfood (`v039-dogfood.cjs`): 20 tab taps, 20 list flings, 10 drags into the tab bar, 10 OS-edge swipes, 10 sideways drags → **0 accidental opens**; 10/10 intended 60 px swipe-ups opened and swipe-down closed all. Hit areas ≥44 px for every header/tab control (date headers 44×52). No ring after touch on header or sheet. Keyboard: grid → O → Esc returns focus; Shift+Tab from grid reaches the date header (reads "Mon 2 2/11: 17 of 44 set · tap to tick all"); keys 1/2 update both header counts live.
+
+## v0.40.0 (t83u)
+- Header tick-all moved to the footer row ("Tick all" / "Untick all" per date column, Tab-reachable). Grid key **A** ticks / unticks the focused date column; **D** opens the Dates panel (1 / 2 dates, edit topics). ? sheet updated.
+- Column header: one button per date (date + topic, toast with full topic); no counts.

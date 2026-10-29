@@ -20,7 +20,8 @@ import {
 import type { DateSlot } from '../checklist/types'
 import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
-import { getSettings, listSessions, setLeft } from '../data/api'
+import { getSettings, listSessions, putSettings, setLeft } from '../data/api'
+import { applyTopicEdits, topicKey, type TopicEdits } from '../sync/topicEdits'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
@@ -54,6 +55,8 @@ type WorkspaceValue = {
   reloadFromIdb: () => Promise<void>
   /** v0.38.0: mark a pupil Left / Active (IDB rosterMeta → pushed by Sync). */
   setPupilLeft: (k: ClassKey, roll: number, left: boolean) => void
+  /** v0.40.0 (t83u): edit a session topic locally (synced to the Sessions tab on next Sync). */
+  setTopic: (k: ClassKey, date: string, topic: string) => void
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
@@ -72,6 +75,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [pulledSessions, setPulledSessions] = useState<Session[]>([])
   const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
+  const [topicEdits, setTopicEdits] = useState<TopicEdits>({})
+  useEffect(() => { void getSettings().then((s) => setTopicEdits(s.topicEdits ?? {})).catch(() => {}) }, [])
 
   const marksRef = useRef(marksByClass)
   useEffect(() => {
@@ -83,6 +88,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const st = await getSettings()
     setSheetTabs(st.discoveredTabs ?? [])
     setLastSyncAt(st.lastSyncAt)
+    setTopicEdits(st.topicEdits ?? {})
     setPulledSessions((await listSessions()).filter((s) => s.sessionId.endsWith('|current')))
     if (loaded.hasStudents) {
       setRosters(loaded.rosters)
@@ -138,9 +144,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const datesFor = useCallback(
     (k: ClassKey): [DateSlot, DateSlot] => {
       const s = pulledSessions.find((x) => x.classKey === k)
-      return s ? datesFromSession(s) : WORKSPACE_DATES
+      const base = s ? datesFromSession(s) : WORKSPACE_DATES
+      return applyTopicEdits(k, base, topicEdits) as [DateSlot, DateSlot]
     },
-    [pulledSessions],
+    [pulledSessions, topicEdits],
   )
   const datesForRef = useRef(datesFor)
   datesForRef.current = datesFor
@@ -154,6 +161,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     void setLeft(k, roll, left, name).catch(() => {})
   }, [])
 
+  const setTopic = useCallback((k: ClassKey, date: string, topic: string) => {
+    const t = topic.trim().slice(0, 200)
+    if (!t) return
+    const edit = { topic: t, updatedAt: new Date().toISOString() }
+    setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
+    void getSettings()
+      .then((s) => putSettings({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true }))
+      .catch(() => {})
+  }, [])
+
   const rosterFor = useCallback(
     (k: ClassKey) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
     [rosters],
@@ -161,10 +178,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const sessions = useMemo(
     () =>
-      pulledSessions.length
+      (pulledSessions.length
         ? sessionsFromIdb(pulledSessions, (k) => rosterFor(k).length)
-        : DEMO_SESSIONS.filter((s) => s.subject === 'Eng'), // no demo Math/Sci (t158u)
-    [pulledSessions, rosterFor],
+        : DEMO_SESSIONS.filter((s) => s.subject === 'Eng')
+      ).map((s) => { const e = topicEdits[topicKey(s.classKey, s.date.date)]; return e ? { ...s, date: { ...s.date, topic: e.topic } } : s }), // no demo Math/Sci (t158u)
+    [pulledSessions, rosterFor, topicEdits],
   )
   const historySessions = useMemo(
     () => (pulledSessions.length ? historyFromIdb(pulledSessions, (k) => rosterFor(k).length) : sessions),
@@ -212,11 +230,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       sheetTabs,
       lastSyncAt,
       datesFor,
+      setTopic,
       rosterFor,
       reloadFromIdb,
       setPupilLeft,
     }),
-    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
+    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

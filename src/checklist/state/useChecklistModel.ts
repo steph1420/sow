@@ -217,6 +217,7 @@ export function useChecklistModel() {
     mode,
     setMode,
     pills,
+    setPills,
     togglePill,
     pendingOnly,
     setPendingOnly,

@@ -27,6 +27,7 @@ import { loadPrefs } from '../prefs/appPrefs'
 import { extractSheetId } from './sheetId'
 import { BridgeError, bridgeCall, buildPushPayload, gvizState, stateToApp, type BridgeState, type PushResult } from './bridge'
 import { listRosterMeta } from '../data'
+import { remainingAfterPush, sessionOps } from './topicEdits'
 
 export type SyncReport = {
   ok: boolean
@@ -369,12 +370,14 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
 export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const started = new Date().toISOString()
   const payload = buildPushPayload(await (await getDb()).getAll('marks'), await listRosterMeta(), settings.bridgeSyncAt)
-  const count = payload.ticks.length + payload.roster.length
+  const sentTopics = { ...(settings.topicEdits ?? {}) }
+  const sessions = sessionOps(sentTopics)
+  const count = payload.ticks.length + payload.roster.length + sessions.length
   let state: BridgeState
   let res: PushResult | null = null
   try {
     if (count) {
-      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload })
+      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload, ...(sessions.length ? { sessions } : {}) })
       state = res.state
     } else {
       state = await bridgeCall<BridgeState>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'pull' })
@@ -400,7 +403,11 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   for (const t of tabs) engSyncState[t.classKey] = { hash: 'bridge', sheetSeenAt: started, lastSyncAt: started }
   clearUndoStacks()
   const rejected = res?.rejected ?? []
+  const latest = (await getSettings()).topicEdits ?? {}
+  const topicEdits = res ? remainingAfterPush(latest, sentTopics, sessions.length ? res.sessionsApplied : 0) : latest
+  const oldBridge = sessions.length > 0 && res?.sessionsApplied === undefined
   await putSettings({
+    topicEdits,
     bridgeSyncAt: started,
     syncDirty: false,
     lastSyncAt: started,
@@ -408,12 +415,17 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
     discoveredTabs: tabs,
     discoveredAt: started,
     engSyncState,
-    syncNotes: a.skipped.length ? [`Not in the app yet: ${a.skipped.join(', ')}`] : [],
+    syncNotes: [
+      ...(a.skipped.length ? [`Not in the app yet: ${a.skipped.join(', ')}`] : []),
+      ...(oldBridge ? ['Update bridge script to sync topics — topic edits stay on this device'] : []),
+    ],
   })
   const parts = [
     res ? `Pushed ${res.applied}${res.ignored ? ` (${res.ignored} older than sheet)` : ''}` : 'Nothing to push',
     `pulled ${a.students} students · ${a.marks} marks`,
   ]
+  if (res?.sessionsApplied) parts.push(`${res.sessionsApplied} topic${res.sessionsApplied > 1 ? 's' : ''} updated`)
+  if (oldBridge) parts.push('update bridge script to sync topics')
   if (a.kept) parts.push(`${a.kept} newer on phone kept`)
   if (rejected.length) parts.push(`${rejected.length} refused`)
   return { ok: true, message: parts.join(' · '), mode: 'sync', pulledStudents: a.students, pulledMarks: a.marks, pushed: !!res }

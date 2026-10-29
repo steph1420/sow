@@ -342,3 +342,8 @@
 .tabbar .tab:nth-child(2) { touch-action: none; }
 .qo-grabber { position: absolute; top: 3px; left: 50%; translate: -50% 0; width: 18px; height: 3px; border-radius: 2px; background: currentColor; opacity: 0; }
 .tab.on .qo-grabber { opacity: .45; }
+
+/* v0.40.0 (BUGS t85u–t87u): while a sheet is open, the page behind can't scroll — a running fling
+   otherwise swallows the first tap (Chrome uses it to stop the fling), so Close/backdrop needed two taps. */
+html.sheet-open .sw-list-wrap, html.sheet-open .app-main, html.sheet-open .more-body { overflow: hidden !important; }
+.qo-handle, .qo-head, .kb-head, .more-pop .handle { touch-action: none; }

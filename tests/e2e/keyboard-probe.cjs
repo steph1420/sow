@@ -1,5 +1,13 @@
 // v0.37.0 — every shortcut in the "?" sheet, keyboard only (Steve t62u/t65u). Desktop, no touch.
 // Usage: node tests/e2e/keyboard-probe.cjs [url] [mac]
+const pillToggle = async (p, hide) => { // v0.40.0: date chips moved into the Dates panel — same toggle semantics
+  const two = (await p.$$eval('.sw-colhead .sw-dh', (e) => e.length)) === 2;
+  await p.$eval('.sw-lean-dates', (e) => e.click()); await p.waitForTimeout(200); // header may be auto-hidden after scrolling
+  if (two) { await p.click('.dp-seg button >> nth=0'); if (hide === 1) await p.click('.dp-pick >> nth=0'); }
+  else await p.click('.dp-seg button >> nth=1');
+  await p.click('.dp-sheet .qo-close'); await p.waitForTimeout(150);
+};
+
 const { chromium, launchOpts } = require('./_launch.cjs');
 const url = process.argv[2] || 'http://localhost:4179/sow/';
 const MAC = process.argv[3] === 'mac';
@@ -211,13 +219,13 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) fails
     for (const [hide, keep, label] of [[0, 1, 'B'], [1, 0, 'A']]) {
       const snap = async () => { const o = []; for (let r = 3; r <= 9; r++) o.push((await st(r))[hide]); return o.join(''); };
       const both0 = await st(6); const h0 = await snap();
-      await p.click(`.date-pill >> nth=${hide}`); await p.waitForTimeout(150);
+      await pillToggle(p, hide); await p.waitForTimeout(150);
       ok((await p.$$eval('[data-cell^="6-"]', (e) => e.length)) === 1, `1-date view (date ${label}) shows one box`);
       await p.focus('[data-cell="6-0"]');
       await press('Space'); await press('ArrowUp'); await press('Shift+Space'); await press('Digit1'); await press('Digit2');
       await press(`${MOD}+KeyZ`); await press(`${MOD}+Shift+KeyZ`);
       await p.focus('[data-cell="7-0"]'); await press('Shift+Space');
-      await p.click(`.date-pill >> nth=${hide}`); await p.waitForTimeout(150);
+      await pillToggle(p, hide); await p.waitForTimeout(150);
       const both1 = await st(6); const r7 = await st(7); const h1 = await snap();
       ok(h0 === h1, `date ${label} view: hidden date untouched on rows 3–9`);
       ok(both1[hide] === both0[hide], `date ${label} view: hidden date untouched on row 6 (${both0}→${both1})`);

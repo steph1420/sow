@@ -805,3 +805,41 @@
 .qo-sub { font-size: 12px; color: var(--text-sec); }
 .qo-foot { font-size: 12px; color: var(--text-ter); padding: 10px 0 4px; }
 .qo-close { width: 100%; min-height: 44px; margin-top: 6px; border-radius: 12px; border: 1px solid var(--hairline); background: none; color: var(--text); font: inherit; }
+
+/* v0.40.0 (t83u/t84u): header dates on the right → Date panel; two-row column header; tick-all footer. */
+.sw-lean-dates {
+  position: relative; z-index: 2; margin-left: auto; margin-bottom: 5px; min-height: 44px; padding: 0 12px; border-radius: 22px;
+  border: 1px solid var(--hairline); background: none; color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap;
+}
+.sw-lean-dates .chev { font-size: 10px; color: var(--text-sec); }
+.sw-colhead .tick.sw-dh { flex-direction: column; align-items: center; gap: 0; text-transform: none; letter-spacing: 0; }
+.sw-dh-btn {
+  width: 50px; min-height: 46px; padding: 3px 0; border: 0; border-radius: 10px; background: none; color: inherit;
+  font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.sw-dh-date, .sw-dh-topic { display: block; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.sw-dh-date { font-size: 12px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.sw-dh-topic { font-size: 10px; font-weight: 500; color: var(--text-sec); }
+.sw-colhead.two .tick.sw-dh { width: 50px; }
+.sw-tickall-row { border-top: 1px solid var(--hairline); margin-top: 4px; padding-top: 8px; padding-bottom: 8px; }
+.sw-tickall-label { font-size: 12px; color: var(--text-ter); }
+.sw-tickall {
+  width: 44px; min-height: 44px; padding: 2px 0; border-radius: 10px; justify-self: center;
+  border: 1px solid var(--hairline); background: none; color: var(--text-sec);
+  font: inherit; font-size: 10px; font-weight: 650; line-height: 1.15; cursor: pointer;
+}
+.sw-tickall.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.sw-page.mode-sub .sw-tickall.on { color: var(--sub); border-color: rgba(139, 124, 247, 0.45); }
+.dp-seg { display: flex; gap: 6px; margin: 4px 0 6px; }
+.dp-seg button { flex: 1; min-height: 44px; border-radius: 12px; border: 1px solid var(--hairline); background: none; color: var(--text-sec); font: inherit; font-weight: 600; }
+.dp-seg button.on { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.dp-pick { min-height: 36px; min-width: 76px; border-radius: 18px; border: 1px solid var(--hairline); background: none; color: var(--text-sec); font: inherit; font-size: 13px; }
+.dp-pick.on { color: var(--accent); border-color: var(--accent); }
+.dp-label { display: block; font-size: 11px; color: var(--text-ter); margin: 8px 0 4px; }
+.dp-edit { display: flex; gap: 8px; }
+.dp-input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--text); font: inherit; font-size: 16px; }
+.dp-save { min-height: 44px; padding: 0 16px; border-radius: 12px; border: 0; background: var(--accent); color: var(--on-accent, #fff); font: inherit; font-weight: 650; }
+.dp-save:disabled { opacity: .35; }
+.dp-saved { margin-top: 6px; color: var(--ok); }

@@ -129,6 +129,8 @@ export interface Settings {
   bridgeSyncAt?: string
   /** v0.29.2: one-time per-tick baseline migration done at (ISO). */
   mergeV2At?: string
+  /** v0.40.0 (t83u): topic edits per `classKey|date`, pending until a v0.40+ bridge confirms. */
+  topicEdits?: Record<string, { topic: string; updatedAt: string }>
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

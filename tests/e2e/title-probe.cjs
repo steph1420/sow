@@ -8,8 +8,9 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await p.waitForTimeout(400);
   await p.tap('.sw-lean-class'); await p.waitForTimeout(300);
   ok(!!(await p.$('.sw-list-wrap')), 'tap class title stays on Checklist');
-  await p.tap('.sw-lean-topic'); await p.waitForTimeout(300);
-  ok(!!(await p.$('.sw-list-wrap')), 'tap topic stays on Checklist');
+  // v0.40.0: topic left the header; the dates button opens the Dates panel (still on Checklist).
+  await p.tap('.sw-lean-dates'); await p.waitForTimeout(300);
+  ok(!!(await p.$('.sw-list-wrap')) && await p.isVisible('.dp-sheet'), 'tap header dates opens Dates panel, stays on Checklist');
   ok(await p.$eval('.sw-lean-left', e => e.tagName !== 'BUTTON'), 'title is not a button');
   console.log('RESULT', fails, 'fails'); await b.close(); process.exit(fails?1:0);
 })();

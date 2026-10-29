@@ -3,7 +3,7 @@ import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { MockSpreadsheet, makeGlobals } from './mockSheets'
 
-// v0.36.1 clock guard (Steve t55u Q-CRDT-1): stamps from the future are clamped to the server clock.
+// v0.40.0 clock guard (Steve t55u Q-CRDT-1): stamps from the future are clamped to the server clock.
 const CODE = readFileSync(new URL('../Code.js', import.meta.url), 'utf8')
 function env() {
   const ss = new MockSpreadsheet()
@@ -19,10 +19,10 @@ const iso = (ms: number) => new Date(ms).toISOString()
 const DAY = 864e5
 
 describe('clock guard', () => {
-  it('every reply carries serverNow and version 0.36.1', () => {
+  it('every reply carries serverNow and version 0.40.0', () => {
     const { post, token } = env()
     const r = post({ action: 'ping', token })
-    expect(r.version).toBe('0.36.1')
+    expect(r.version).toBe('0.40.0')
     expect(Math.abs(Date.parse(r.serverNow) - Date.now())).toBeLessThan(5000)
   })
   it('clampStamp_: future (> now+10 min) → server now; past and near-now untouched', () => {

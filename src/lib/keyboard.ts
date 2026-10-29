@@ -88,6 +88,8 @@ export const SHORTCUTS: { group: string; items: [string, string][] }[] = [
     ['L', `Mark pupil Left (${MOD}+Z undoes)`],
     ['Shift+Space', 'Row swipe: tick / untick both dates'],
     ['Shift+↑ / ↓', 'Select rows (long-press drag)'],
+    ['A', 'Tick all / untick all for the focused date (also the footer buttons)'],
+    ['D', 'Dates panel: 1 or 2 dates · view / edit topics'],
     ['M', 'Switch Set ⇄ Submitted mode (while in the grid)'],
     ['P', 'Pending only (pupils left) on / off'],
     ['O', 'Quick overview of both dates (also Tools, or swipe up on Checklist tab)'],

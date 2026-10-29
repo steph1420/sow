@@ -4,7 +4,7 @@ import App from './App'
 import { installBackStack } from './nav/backStack'
 import { installUpdateFlow } from './pwa/updateFlow'
 import { captureInstallPrompt } from './pwa/install'
-import { installDialogFocus, installInputModality, installWideScale } from './lib/a11yRuntime'
+import { installDialogFocus, installInputModality, installSheetDrag, installWideScale } from './lib/a11yRuntime'
 import './styles/tokens.css'
 import './styles/shell.css'
 
@@ -12,6 +12,7 @@ installBackStack()
 captureInstallPrompt()
 installInputModality()
 installDialogFocus()
+installSheetDrag()
 installWideScale()
 
 // v0.30.1 (t4u): register the SW ourselves so a resumed Android PWA checks for and moves onto new builds.

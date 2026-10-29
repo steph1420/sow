@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.36.1'
+var BRIDGE_VERSION = '0.40.0'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -232,6 +232,25 @@ function applyPush_(ss, ops, by) {
     write_(ss, T.ticks, 8, ticks)
   }
 
+  // v0.40.0: topic edits from the app. Per-session newer wins on updatedAt; older apps simply don't send this.
+  var sessionsApplied = 0
+  if (ops.sessions && ops.sessions.length) {
+    var srows = read_(ss, T.sessions, 8), sI = {}
+    srows.forEach(function (r, i) { sI[r[0]] = i })
+    ops.sessions.forEach(function (o) {
+      if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
+      var d = dateFromIso_(o.date), at = o.updatedAt ? clampStamp_(o.updatedAt) : ''
+      if (!d || !at) { rejected.push('bad session ' + JSON.stringify(o)); return }
+      var sid = sessionId_(o.subjectKey, isoDate_(d)), i = sI[sid], topic = String(o.topic == null ? '' : o.topic).slice(0, 200)
+      if (i == null) { sI[sid] = srows.length; srows.push([sid, o.subjectKey, sectionOf_(o.subjectKey), d, topic, 'Open', at, at]); sessionsApplied++; return }
+      if (toIsoStamp_(srows[i][7]) >= at) { ignored++; return }
+      srows[i][4] = topic
+      srows[i][7] = at
+      sessionsApplied++
+    })
+    write_(ss, T.sessions, 8, srows)
+  }
+
   if (ops.roster && ops.roster.length) {
     var roster = read_(ss, T.roster, 7), rIdx = {}
     roster.forEach(function (r, i) { rIdx[r[0] + '|' + Number(r[1])] = i })
@@ -249,7 +268,7 @@ function applyPush_(ss, ops, by) {
     write_(ss, T.roster, 7, roster)
   }
   meta_(ss, 'lastPush', nowIso_())
-  return { applied: applied, ignored: ignored, rejected: rejected }
+  return { applied: applied, ignored: ignored, rejected: rejected, sessionsApplied: sessionsApplied }
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON) }
@@ -358,7 +377,7 @@ function route_(body) {
     lock.waitLock(20000)
     try {
       var r = applyPush_(ss, body, 'app')
-      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, state: state_(ss) }
+      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, sessionsApplied: r.sessionsApplied, state: state_(ss) }
     } finally { lock.releaseLock() }
   }
   return { ok: false, error: 'unknown action' }

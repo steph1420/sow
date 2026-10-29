@@ -2,12 +2,13 @@ import { useBackLayer } from '../nav/backStack'
 import { createScrollTween, type ScrollTween } from './scrollTween'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
-import { CheckMark, DashMark } from '../components/CheckMark'
+import { CheckMark } from '../components/CheckMark'
 import { AzStrip, type AzStripHandle } from './az/AzStrip'
 import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
+import { DatePanelSheet } from './chrome/DatePanelSheet'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
@@ -51,7 +52,9 @@ type Props = {
  */
 export function ChecklistPage(_props: Props) {
   const m = useChecklistModel()
-  const { openShare } = useShare()
+  const { openShare, toast } = useShare()
+  const [dpOpen, setDpOpen] = useState(false)
+  useBackLayer(dpOpen ? 1 : 0, () => setDpOpen(false))
   const { prefs } = usePrefs()
   const showFab = prefs['chrome.showFab']
   const azLeft = prefs['az.leftSide']
@@ -439,7 +442,7 @@ export function ChecklistPage(_props: Props) {
   const azRef = useRef<AzStripHandle>(null)
   const [kb, setKb] = useState<[number, number]>([0, 0])
   const [live, setLive] = useState('')
-  const { setPupilLeft, activeClassKey, rosterFor } = useWorkspace()
+  const { setPupilLeft, activeClassKey, rosterFor, setTopic } = useWorkspace()
   const [qoOpen, setQoOpen] = useState(false)
   useBackLayer(qoOpen ? 1 : 0, () => setQoOpen(false))
   useEffect(() => {
@@ -509,6 +512,19 @@ export function ChecklistPage(_props: Props) {
       lastLeft.current = null
       haptic('light')
       if (autoAdvance && ri < nRows - 1) focusCell(ri + 1, ci)
+      return
+    }
+    if (e.key === 'a' || e.key === 'A') {
+      e.preventDefault()
+      const d = m.visibleDates[ci]!
+      const value = allState(d.date) !== 'on'
+      tickAll(d.date, value)
+      setLive(`${value ? 'Ticked' : 'Unticked'} all for ${d.dayLabel}`)
+      return
+    }
+    if (e.key === 'd' || e.key === 'D') {
+      e.preventDefault()
+      setDpOpen(true)
       return
     }
     if (e.key === 'm' || e.key === 'M') {
@@ -614,38 +630,22 @@ export function ChecklistPage(_props: Props) {
           {/* P2-3: title is read-only (was a full-width "Back to Overview" button); Back/tab bar navigate */}
           <div className="sw-lean-left">
             <div className="sw-lean-class">{m.classLabel}</div>
-            <div className="sw-lean-topic">
-              {echoDate.topic}{' '}
-              <span className="d">
-                ·{' '}
-                {m.showTwoCol
-                  ? `${m.dates[0].dayNum} · ${m.dates[1].dayNum}`
-                  : (m.visibleDates[0] ?? echoDate).dayNum}
-              </span>
-            </div>
           </div>
+          {/* v0.40.0 (t83u): topic left the header; dates sit right and open the Date panel. */}
+          <button
+            type="button"
+            className="sw-lean-dates"
+            aria-haspopup="dialog"
+            aria-label={`Dates: ${m.visibleDates.map((d) => d.dayLabel).join(' and ')} — choose dates and edit topics`}
+            onClick={() => setDpOpen(true)}
+          >
+            {m.visibleDates.map((d) => d.dayNum).join(' · ')}
+            <span className="chev" aria-hidden>▾</span>
+          </button>
           {/* t76u: '16/44 SET' removed — per-date counts live in the column headers + Quick overview (O). */}
         </div>
 
         <div className="sw-lean-tools">
-          <button
-            type="button"
-            className={`sw-chip date-pill${m.pills[0] ? ' on' : ''}`}
-            onClick={() => m.togglePill(0)}
-            aria-label={`Show date ${m.dates[0].dayNum}`}
-            aria-pressed={m.pills[0]}
-          >
-            {m.dates[0].dayNum}
-          </button>
-          <button
-            type="button"
-            className={`sw-chip date-pill${m.pills[1] ? ' on' : ''}`}
-            onClick={() => m.togglePill(1)}
-            aria-label={`Show date ${m.dates[1].dayNum}`}
-            aria-pressed={m.pills[1]}
-          >
-            {m.dates[1].dayNum}
-          </button>
           <button type="button" className="sw-icon-btn" aria-label="Undo" disabled={!m.canUndo} onClick={() => { m.undo(); haptic('light') }}>
             ↶
           </button>
@@ -686,30 +686,34 @@ export function ChecklistPage(_props: Props) {
             <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
               <span>#</span>
               <span>Name</span>
-              {m.visibleDates.map((d) => {
-                const st = allState(d.date)
-                return (
-                  <span className={`tick${gridFocus && kbCol === m.visibleDates.indexOf(d) ? ' kb-col' : ''}`} key={d.date}>
-                    <button
-                      type="button"
-                      className={`sw-allbox sw-colbtn${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
-                      role="checkbox"
-                      aria-checked={st === 'on' ? 'true' : st === 'partial' ? 'mixed' : 'false'}
-                      aria-label={`${d.dayLabel} ${d.dayNum}: ${m.progressFor(d.date).n} of ${m.progressFor(d.date).total} ${m.mode === 'set' ? 'set' : 'submitted'} · tap to ${st === 'on' ? 'untick' : 'tick'} all`}
-                      data-state={st}
-                      onClick={() => tickAll(d.date, st !== 'on')}
-                    >
-                      <span className="d">{d.dayNum}</span>
-                      <span className="box">{st === 'on' ? <CheckMark size={11} /> : st === 'partial' ? <DashMark size={11} /> : null}</span>
-                      <span className="c">{m.progressFor(d.date).n}/{m.progressFor(d.date).total}</span>
-                    </button>
-                  </span>
-                )
-              })}
+              {m.visibleDates.map((d, ci) => (
+                <span className={`tick sw-dh${gridFocus && kbCol === ci ? ' kb-col' : ''}`} key={d.date}>
+                  {/* t83u/t84u: two rows — date, then topic (ellipsis). No counts here; they live in Quick overview. */}
+                  <button
+                    type="button"
+                    className="sw-dh-btn"
+                    aria-label={`${d.dayLabel}, topic: ${d.topic || 'none'} — show full topic`}
+                    onClick={() => toast(d.topic ? `${d.dayNum} · ${d.topic}` : `${d.dayNum} · no topic`)}
+                  >
+                    <span className="sw-dh-date">{d.dayNum}</span>
+                    <span className="sw-dh-topic">{d.topic || '—'}</span>
+                  </button>
+                </span>
+              ))}
             </div>
         </div>
       </div>
 
+      {dpOpen ? (
+        <DatePanelSheet
+          classLabel={m.classLabel}
+          dates={m.dates}
+          pills={m.pills}
+          onView={(p) => m.setPills(p)}
+          onSaveTopic={(date, topic) => { setTopic(activeClassKey, date, topic); haptic('success') }}
+          onClose={() => setDpOpen(false)}
+        />
+      ) : null}
       {qoOpen ? (
         <QuickOverviewSheet
           classLabel={m.classLabel}
@@ -807,6 +811,28 @@ export function ChecklistPage(_props: Props) {
               )
             })}
           </div>
+          {/* t83u: tick all moved from the header to a footer row — one button per date column. */}
+          {m.filteredRoster.length ? (
+            <div className={`sw-row sw-tickall-row ${m.showTwoCol ? 'two' : 'one'}`} role="group" aria-label="Tick all">
+              <div className="sw-roll" />
+              <div className="sw-name sw-tickall-label">All pupils</div>
+              {m.visibleDates.map((d) => {
+                const st = allState(d.date)
+                return (
+                  <button
+                    key={d.date}
+                    type="button"
+                    className={`sw-tickall${st === 'on' ? ' on' : ''}`}
+                    data-state={st}
+                    aria-label={`${st === 'on' ? 'Untick' : 'Tick'} all for ${d.dayLabel}`}
+                    onClick={() => tickAll(d.date, st !== 'on')}
+                  >
+                    {st === 'on' ? 'Untick all' : 'Tick all'}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
 
         <AzStrip
