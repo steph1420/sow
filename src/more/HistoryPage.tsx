@@ -10,12 +10,17 @@ type Props = {
 
 /** History — past/demo sessions with honest progress. */
 export function HistoryPage({ onBack, onOpenSession }: Props) {
-  const { sessions, marksByClass, rosterFor } = useWorkspace()
+  const { historySessions: sessions, marksByClass, rosterFor, fromSheet, lastSyncAt } = useWorkspace()
+  const synced = lastSyncAt
+    ? new Date(lastSyncAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : ''
 
   return (
     <MoreChrome title="History" onBack={onBack}>
       <div className="more-hint">
-        Demo sessions from the shared workspace · Open jumps to Checklist for that class.
+        {fromSheet
+          ? `From your sheet${synced ? ` · synced ${synced}` : ''} · the sheet keeps only each class’s current dates, so older sessions aren’t listed. Tap to open in Checklist.`
+          : 'Demo sessions until your first Sync · tap to open in Checklist.'}
       </div>
 
       <div className="history-list">
@@ -36,7 +41,7 @@ export function HistoryPage({ onBack, onOpenSession }: Props) {
               <div>
                 <div className="k">{s.label}</div>
                 <div className="line">
-                  <b>{s.date.dayLabel}</b>
+                  <b>{fromSheet ? `${s.date.dayLabel.split(' ')[0]} ${s.date.dayNum}` : s.date.dayLabel}</b>
                   {' · '}
                   <b>
                     {prog.set}/{prog.total}

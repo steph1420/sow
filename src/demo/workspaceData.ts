@@ -262,3 +262,28 @@ export function sessionsFromIdb(rows: Session[], rosterSize: (k: ClassKey) => nu
       } satisfies DemoSession
     })
 }
+
+/** P2-1 (v0.27.0) — History rows from pulled sessions: one row per (class, date), newest first. */
+export function historyFromIdb(rows: Session[], rosterSize: (k: ClassKey) => number): DemoSession[] {
+  const out: DemoSession[] = []
+  for (const s of rows) {
+    if (!s.date1) continue
+    const kind = s.classKey.endsWith('_HW') ? 'HW' : 'CW'
+    const slots = [dateSlotFromIso(s.date1, s.topic1)]
+    if (s.date2 && s.date2 !== s.date1) slots.push(dateSlotFromIso(s.date2, s.topic2))
+    for (const d of slots) {
+      out.push({
+        id: `${s.classKey}|${d.date}`,
+        classKey: s.classKey,
+        label: prettyClassLabel(s.classKey),
+        group: s.classKey.startsWith('KGB') ? 'KGB' : 'KGA',
+        kind,
+        subject: subjectOf(s.classKey),
+        date: d,
+        topics: d.topic ? [d.topic] : [],
+        rosterSize: rosterSize(s.classKey),
+      })
+    }
+  }
+  return out.sort((a, b) => (a.date.date < b.date.date ? 1 : a.date.date > b.date.date ? -1 : a.label.localeCompare(b.label)))
+}

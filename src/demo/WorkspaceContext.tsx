@@ -27,6 +27,7 @@ import {
   WORKSPACE_DATES,
   datesFromSession,
   sessionsFromIdb,
+  historyFromIdb,
   type DemoSession,
 } from './workspaceData'
 
@@ -37,6 +38,8 @@ type WorkspaceValue = {
   marksByClass: MarksByClass
   setMarksForClass: (classKey: ClassKey, next: MarksMap | ((prev: MarksMap) => MarksMap)) => void
   sessions: DemoSession[]
+  /** P2-1: History rows — every pulled date per class (demo sessions before first Sync). */
+  historySessions: DemoSession[]
   /** True when Overview/Checklist bind pulled sheet sessions (not demo). */
   fromSheet: boolean
   /** Checklist date slots for a class — pulled Current, else demo. */
@@ -133,6 +136,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         : DEMO_SESSIONS.filter((s) => s.subject === 'Eng'), // no demo Math/Sci (t158u)
     [pulledSessions, rosterFor],
   )
+  const historySessions = useMemo(
+    () => (pulledSessions.length ? historyFromIdb(pulledSessions, (k) => rosterFor(k).length) : sessions),
+    [pulledSessions, rosterFor, sessions],
+  )
 
   const classKeys = useMemo<ClassKey[]>(() => {
     const ks = new Set<ClassKey>()
@@ -161,6 +168,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       marksByClass,
       setMarksForClass,
       sessions,
+      historySessions,
       fromSheet: pulledSessions.length > 0,
       classKeys,
       sheetTabs,
@@ -169,7 +177,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       rosterFor,
       reloadFromIdb,
     }),
-    [classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
+    [classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

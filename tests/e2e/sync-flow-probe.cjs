@@ -1,0 +1,34 @@
+// v0.27.0 fresh-install sync flow against the live sheet: P0-1 (no phantom Submitted), P2-1 (History honest), P2-4 (KGB HW note).
+const { chromium } = require('playwright-core');
+const url = process.argv[2] || 'http://localhost:4179/sow/';
+(async () => {
+  const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
+  const p = await (await b.newContext({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true })).newPage();
+  let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
+  const go = async h => { await p.goto(url+h); await p.reload({ waitUntil:'networkidle' }); await p.waitForTimeout(400); };
+  await go('');
+  const pre = await p.textContent('.app-main');
+  ok(/Submitted [1-9]/.test(pre), 'pre-sync demo shows Submitted (baseline)');
+  await go('#settings/sync');
+  await p.waitForFunction(() => !document.querySelector('.sync-cta')?.disabled, null, { timeout: 30000 });
+  await p.click('.sync-cta');
+  await p.waitForFunction(() => /Pulled \d+ students/.test(document.body.textContent), null, { timeout: 60000 });
+  const syncTxt = await p.textContent('body');
+  console.log('   sync:', (syncTxt.match(/Pulled[^·]*·[^·]*/)||[''])[0]);
+  ok(/KGB Eng HW/.test(syncTxt), 'sync page mentions KGB Eng HW');
+  global.__syncTxt = syncTxt;
+  await go('');
+  const ov = await p.textContent('.app-main');
+  ok(!/Submitted [1-9]/.test(ov), 'post-sync Overview: no phantom Submitted');
+  await go('#history');
+  const hint = await p.textContent('.more-hint');
+  ok(!/Demo/.test(hint) && /From your sheet/.test(hint), 'History copy honest: '+hint.slice(0,60));
+  const rows = await p.$$eval('.history-item', els => els.map(e => e.querySelector('.k').textContent + ' ' + e.querySelector('.line b').textContent));
+  console.log('   rows:', rows.join(' | '));
+  ok(rows.length === 7, 'History lists every pulled date (7)');
+  await go('#settings/sync');
+  const after = await p.textContent('body');
+  ok(!/col D[^.]*ticks? (skipped|dropped)[^.]*\bwarn/i.test(after), 'no nag');
+  console.log('   sync page warn:', (await p.$$eval('.more-hint', e => e.map(x => x.textContent).filter(t => /KGB Eng HW|col D|undated/i.test(t)))).join(' / '));
+  console.log('RESULT', fails, 'fails'); await b.close(); process.exit(fails?1:0);
+})();
