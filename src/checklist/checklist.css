@@ -475,7 +475,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none;
+  touch-action: pan-y; /* t165u: roll column scrolls unless selecting */
+}
+.sw-rows.selecting .sw-roll {
+  touch-action: none; /* roll-drag extends selection */
 }
 
 .sw-name {
@@ -497,7 +500,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none;
+  /* t165u: pan-y so a vertical drag on ✓ columns scrolls natively; horizontal strokes come to JS */
+  touch-action: pan-y;
   /* forgiving hit — visual stays calm */
 }
 .sw-check {

@@ -11,6 +11,7 @@ import {
   paintRoll,
   rollAtY,
   shouldEngagePaint,
+  rowSwipeValue,
   startPaintSession,
   type DateCol,
   type PaintSession,
@@ -203,9 +204,12 @@ export function ChecklistPage({ onGoOverview }: Props) {
 
     if (!st.engaged) {
       if (!shouldEngagePaint({ dx, dy })) return
-      st.session = startPaintSession(st.startCol, st.startValue, st.startRoll)
+      // t165u: swipe value = toggle of the start row across all visible dates
+      const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
+      st.session = startPaintSession(st.startCol, value, st.startRoll)
       if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
+      navigator.vibrate?.(8)
       setGlowRolls(new Set([st.startRoll]))
     }
 
@@ -223,12 +227,18 @@ export function ChecklistPage({ onGoOverview }: Props) {
     if (!st || st.pointerId !== e.pointerId) return
 
     if (st.engaged && st.session) {
-      const date = m.dates[st.session.targetCol]!.date
+      // t165u: commit every covered row × every visible date in one undo step
       const rolls = [...st.session.paintedRolls]
-      m.paintCells(rolls, date, st.session.paintValue)
+      const value = st.session.paintValue
+      m.setCellsValue(
+        rolls.flatMap((roll) => m.visibleDates.map((d) => ({ roll, date: d.date }))),
+        value,
+      )
+      navigator.vibrate?.(12)
       window.setTimeout(() => setGlowRolls(new Set()), 280)
       return
     }
+    setGlowRolls((g) => (g.size ? new Set() : g))
 
     if (didTap) {
       m.toggleCell(st.startRoll, st.startDate)
@@ -475,7 +485,7 @@ export function ChecklistPage({ onGoOverview }: Props) {
           ref={listRef}
           onScroll={onListScroll}
         >
-          <div className="sw-rows">
+          <div className={`sw-rows${select.active ? ' selecting' : ''}`}>
             {m.filteredRoster.map((r) => {
               const selected = select.selected.has(r.roll)
               const glow = glowRolls.has(r.roll)

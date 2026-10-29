@@ -40,3 +40,13 @@ describe('paintPhysics', () => {
     expect(rollAtY(300, rows)).toBe(null)
   })
 })
+
+import { rowSwipeValue } from './paintPhysics'
+describe('t165u row swipe value', () => {
+  it('ticks unless the start row is fully ticked', () => {
+    expect(rowSwipeValue([false, false])).toBe(true)
+    expect(rowSwipeValue([true, false])).toBe(true)
+    expect(rowSwipeValue([true, true])).toBe(false)
+    expect(rowSwipeValue([true])).toBe(false)
+  })
+})

@@ -79,3 +79,11 @@ export function rollAtY(
   }
   return null
 }
+
+/**
+ * t165u Wave A — a horizontal swipe sets BOTH visible dates for every covered row.
+ * Value = toggle of the first row: fully ticked → clear, otherwise → tick.
+ */
+export function rowSwipeValue(startRowOn: boolean[]): boolean {
+  return !(startRowOn.length > 0 && startRowOn.every(Boolean))
+}
