@@ -11,7 +11,7 @@ const R = 21;
     await p.waitForTimeout(400);
     const bad = await p.evaluate(({ sel, R }) => {
       const out = [];
-      const els = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(e).visibility !== 'hidden'; });
+      const els = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height && r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth && !(e.closest('.ov-filters') && (r.right > e.closest('.ov-filters').getBoundingClientRect().right - 28)) /* scrolled-off chips are reachable by scrolling */ && getComputedStyle(e).visibility !== 'hidden'; });
       const hit = (e,x,y) => { if (x<0||y<0||x>=innerWidth||y>=innerHeight) return false; const h = document.elementFromPoint(x,y); return !!h && (h===e || e.contains(h)); };
       for (const e of els) {
         const r = e.getBoundingClientRect(); const cx = r.left + r.width/2, cy = r.top + r.height/2;

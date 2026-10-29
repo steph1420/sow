@@ -239,3 +239,17 @@
 .ov-actions .btn.primary {
   flex: 1;
 }
+
+/* P2-2 (v0.27.0): scroll hint — fade the clipped edge(s) of the chip row */
+.ov-filters.fade-r {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.ov-filters.fade-l {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+.ov-filters.fade-l.fade-r {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}

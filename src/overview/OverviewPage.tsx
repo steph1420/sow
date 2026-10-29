@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SubjectId } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { progressForSession } from '../demo/workspaceData'
@@ -31,8 +31,10 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   })
 
   const dateChips = useMemo(() => {
-    const labels = [...new Set(sessions.map((s) => s.date.dayLabel))]
-    return ['All', ...labels] as DateFilter[]
+    // P2-2: key by ISO date, label "Wed 28/10" (month disambiguates 7/10 vs 28/10), oldest → newest
+    const byIso = new Map<string, string>()
+    for (const s of sessions) byIso.set(s.date.date, `${s.date.dayLabel.split(' ')[0]} ${s.date.dayNum}`)
+    return [['All', 'All'], ...[...byIso.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))] as [DateFilter, string][]
   }, [sessions])
 
   const filtered = useMemo(() => {
@@ -41,10 +43,26 @@ export function OverviewPage({ onOpenChecklist }: Props) {
         if (s.group !== group) return false
       }
       if (subject !== 'All' && s.subject !== subject) return false
-      if (dateF !== 'All' && s.date.dayLabel !== dateF) return false
+      if (dateF !== 'All' && s.date.date !== dateF) return false
       return true
     })
   }, [sessions, group, subject, dateF])
+
+  // P2-2: edge fade hints that the chip row scrolls
+  const filtersRef = useRef<HTMLDivElement>(null)
+  const [fade, setFade] = useState({ l: false, r: false })
+  const updateFade = useCallback(() => {
+    const e = filtersRef.current
+    if (!e) return
+    const l = e.scrollLeft > 2
+    const r = e.scrollLeft + e.clientWidth < e.scrollWidth - 2
+    setFade((f) => (f.l === l && f.r === r ? f : { l, r }))
+  }, [])
+  useEffect(() => {
+    updateFade()
+    window.addEventListener('resize', updateFade)
+    return () => window.removeEventListener('resize', updateFade)
+  }, [updateFade, dateChips, ovGroups, ovSubjects])
 
   const subLine = useMemo(() => {
     const d = sessions[0]?.date
@@ -64,7 +82,7 @@ export function OverviewPage({ onOpenChecklist }: Props) {
         <div className="ov-sub">{subLine}</div>
       </div>
 
-      <div className="ov-filters">
+      <div className={`ov-filters${fade.l ? ' fade-l' : ''}${fade.r ? ' fade-r' : ''}`} ref={filtersRef} onScroll={updateFade}>
         <div className="ov-slide">
           {(['All', ...ovGroups, ...ovSubjects] as string[]).map((g) => {
             const isOn =
@@ -99,14 +117,14 @@ export function OverviewPage({ onOpenChecklist }: Props) {
         </div>
         <div className="ov-div" />
         <div className="ov-slide">
-          {dateChips.map((d) => (
+          {dateChips.map(([d, label]) => (
             <button
               key={d}
               type="button"
               className={`ov-f${dateF === d ? ' on' : ''}`}
               onClick={() => setDateF(d)}
             >
-              {d}
+              {label}
             </button>
           ))}
         </div>
