@@ -66,3 +66,10 @@ Steve's note (t3u): "pupil names are already demo in code. We pull real from syn
 | Q-FIX-10 | **OPEN — deferred** | "We'll tackle this later... Mark it" |
 
 Status: Q-FIX-5 shipped in v0.29.1 with R4/R5a/R6/R10/docs. Q-FIX-2, 6, 7 shipped in v0.29.2. Next: v0.29.3 (a11y + tidy).
+
+## LOCKED — Steve 2026-10-29 2:15 PM IST (answer t3s5): "Lock both. Do the swipe-confirm styles next."
+- Sync status line after Sync now: `… · Saved on this device · push not set up` (v0.29.2, Q-FIX-7). Never "Pushed" unless a real push succeeded. Mocks: `/workspace/sow-mockups/pushstatus-mj1-sync-{night,day}.png`.
+- Developer → Sync → **Academic year starts** row (native month picker, default April) (v0.29.2, Q-FIX-6). Mocks: `/workspace/sow-mockups/yearstart-mj1-dev-row-{night,day}.png`.
+
+## Release renumbering (v0.30.0 = t175u swipe-confirm styles, a minor feature)
+Privacy & config (Q-FIX-1/3/4) moves to **v0.31.0**; push + Left (Q-FIX-8/9) to **v0.32.0**. v0.29.3 a11y + tidy unchanged.

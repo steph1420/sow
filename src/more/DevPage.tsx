@@ -1,3 +1,4 @@
+import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle } from '../checklist/gestures/swipeConfirm'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
@@ -51,6 +52,23 @@ export function DevPage({ onBack }: Props) {
           Swipe ticks one row only
           <span className={`toggle${prefs['gestures.swipeSingleRow'] ? ' on' : ''}`} aria-hidden />
         </button>
+        {/* v0.30.0 (t175u): pick the swipe pending cue; blue until Steve chooses. */}
+        <label className="more-row dev-swipe-confirm" style={{ position: 'relative' }}>
+          Swipe confirm
+          <span className="meta">{SWIPE_CONFIRM_STYLES.find((s) => s.id === normalizeSwipeStyle(prefs['gestures.swipeConfirmStyle']))!.label}</span>
+          <select
+            aria-label="Swipe confirm"
+            value={normalizeSwipeStyle(prefs['gestures.swipeConfirmStyle'])}
+            onChange={(e) => setPref('gestures.swipeConfirmStyle', normalizeSwipeStyle(e.target.value))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {SWIPE_CONFIRM_STYLES.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* v0.29.2 Q-FIX-6 (t3u): academic year start for sheet dates without a year (default April). */}

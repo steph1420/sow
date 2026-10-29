@@ -27,6 +27,7 @@ import {
   toggleRoll,
   type SelectModel,
 } from './gestures/selectPhysics'
+import { normalizeSwipeStyle, pendingRowClass, washPercent } from './gestures/swipeConfirm'
 import { useChecklistModel } from './state/useChecklistModel'
 import { useShare } from '../share/ShareContext'
 import { haptic } from '../lib/haptics'
@@ -63,6 +64,8 @@ export function ChecklistPage(_props: Props) {
   useBackLayer(toolsOpen ? 1 : 0, () => setToolsOpen(false))
   useBackLayer(copyOpen ? 1 : 0, () => setCopyOpen(false))
   const reduceMotion = prefs['chrome.reduceMotion']
+  const swipeStyle = normalizeSwipeStyle(prefs['gestures.swipeConfirmStyle'])
+  const [glowValue, setGlowValue] = useState(true)
 
   const paintRef = useRef<{
     session: PaintSession | null
@@ -218,10 +221,19 @@ export function ChecklistPage(_props: Props) {
       if (!m.showTwoCol) st.session.targetCol = st.startCol
       st.engaged = true
       haptic('selection')
+      setGlowValue(value)
       setGlowRolls(new Set([st.startRoll]))
     }
 
     if (!st.session) return
+    if (swipeStyle === 'wash') {
+      for (const roll of st.session.paintedRolls) {
+        const el = rowRefs.current.get(roll)
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        el.style.setProperty('--wash-x', `${washPercent(e.clientX, r.left, r.width)}%`)
+      }
+    }
     // t167u dev option: a swipe commits only the row it started on (ignores vertical drift)
     if (prefs['gestures.swipeSingleRow']) return
     // t170u: hesitant — must travel well into the next row before extending
@@ -239,6 +251,7 @@ export function ChecklistPage(_props: Props) {
   const finishPaint = (e: ReactPointerEvent, didTap: boolean) => {
     const st = paintRef.current
     paintRef.current = null
+    if (st?.session) for (const roll of st.session.paintedRolls) rowRefs.current.get(roll)?.style.removeProperty('--wash-x')
     if (!st || st.pointerId !== e.pointerId) return
 
     if (st.engaged && st.session) {
@@ -513,7 +526,7 @@ export function ChecklistPage(_props: Props) {
               return (
                 <div
                   key={r.roll}
-                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? ' paint-glow' : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}`}
+                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, glowRolls.size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}`}
                   ref={(el) => {
                     if (el) rowRefs.current.set(r.roll, el)
                     else rowRefs.current.delete(r.roll)
@@ -550,7 +563,7 @@ export function ChecklistPage(_props: Props) {
                         onPointerCancel={(e) => finishPaint(e, false)}
                         onContextMenu={(e) => e.preventDefault()}
                       >
-                        <div className={`sw-check${on ? ' on' : ''}${glow ? ' pending' : ''}`}>
+                        <div className={`sw-check${on ? ' on' : ''}${glow && swipeStyle === 'blue' ? ' pending' : ''}`}>
                           {on ? <CheckMark size={12} /> : null}
                         </div>
                       </div>

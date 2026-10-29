@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.0 — 2026-10-29 (Asia/Calcutta)
+
+Swipe-confirm styles as a Developer option. Steve t175u ("build ALL proposed swipe confirmations as Developer options"), t3s5 2:15 PM "Lock both. Do the swipe-confirm styles next." Rollback: tag `v0.29.2` / `36c4d5a`.
+
+- **Developer → Swipe confirm** picks the cue shown while a swipe is held: **Blue ring (current, default)** · **A Soft tint** · **B Ghost ✓** (in the mode colour: green Set, purple Submitted) · **C Edge sliver** · **D Trailing wash** (follows your finger) · **B+A** (one row = ghost ✓ only; 2+ rows add a ~7% tint). Steve picks the default; blue stays until then.
+- The new styles have no ring, glow or transition, so quick swipes don't strobe: the cue appears on engage and is gone on release in the same frame as the ticks.
+- **LOCKED (t3s5, 2:15 PM):** the v0.29.2 Sync status line "Saved on this device · push not set up" and the Developer "Academic year starts" row.
+- Tests: unit 117 (+6 `swipeConfirm.test.ts`); new real-touch `swipe-confirm-probe` (6 styles × Set/Submitted, held + quick). Crops Night+Day: `/workspace/sow-mockups/swipeconfirm-mj*` (generator `shot-v0300-swipe-confirm.cjs`).
+- Release plan shift: privacy & config → v0.31.0, push + Left → v0.32.0.
+
 ## 0.29.2 — 2026-10-29 (Asia/Calcutta)
 
 Sync/merge. Steve t3u: Q-FIX-2 "2. A", Q-FIX-6 "Keep academic year - April to March. Keep dev option.", Q-FIX-7 "Think the best concise way." Rollback: tag `v0.29.1` / `616829a`.
