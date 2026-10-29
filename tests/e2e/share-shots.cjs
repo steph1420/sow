@@ -18,7 +18,8 @@ const out = process.argv[3] || '/workspace/shots-v028';
     await p.screenshot({ path: `${out}/${theme}-tools.png` });
     await p.locator('.sw-tools-row.share').tap(); await p.waitForTimeout(400);
     await p.screenshot({ path: `${out}/${theme}-chooser-checklist.png` });
-    await p.locator('.share-manage').tap(); await p.waitForTimeout(500);
+    // v0.29.0 removed the sheet's manage link (t170u #2) → open Settings → Sharing by route.
+    await p.goto(url + '#settings/sharing'); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
     await p.locator('.shr-row .shr-title').nth(2).tap(); await p.waitForTimeout(300);
     await p.screenshot({ path: `${out}/${theme}-settings.png` });
     await p.screenshot({ path: `${out}/${theme}-settings-full.png`, fullPage: true });

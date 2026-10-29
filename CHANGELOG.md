@@ -8,6 +8,8 @@ Data-safety patch. Steve t2u (review agreed) + t3u (Q-FIX answers; Q-FIX-5 "miss
 - **Undo is cleared after a successful pull**, so ↶ can no longer bring back pre-pull marks over the sheet's data.
 - **A pull no longer clears "Local dirty".** Only a successful push clears it.
 - **Saves can't be lost:** the 280 ms delayed save keeps one pending save per class (editing class B no longer drops class A's), and flushes immediately when the app is hidden or closed (`visibilitychange`/`pagehide`).
+- **Checklist Tools rows** (Pending only, Copy marks, Share, Done) now have a true ≥44px tap height (they were 42px). Invisible slop only, pixel-identical Night + Day.
+- e2e: `share-shots` opens Settings → Sharing by route (the sheet's manage link was removed in v0.29.0); `tap-probe` checks Tools rows across their full width.
 - e2e: `v029-probe` and `swipe-single-probe` now reset the real IndexedDB (`sow-app`, was `sow`).
 - Docs: `AGENTS.md` push rule (t128u/t153u) and prefs key `sow-app.prefs.v1`; `docs/CODE_TRIANGULATION_v0291.md`, `docs/FIX_PLAN_v0291.md`.
 - Tests: unit 98 (+8: `sync/dataSafety.test.ts` 5, `demo/persistQueue.test.ts` 3).

@@ -13,7 +13,7 @@
 - **Hide SoW_* tabs:** Sheets MCP has no `hidden` sheet-properties tool. Tabs exist (SoW_Sessions 1728577063, SoW_RosterMeta 1479427997, SoW_Marks 1921268674) — School Bot / Apps Script `hideSheet()` needed.
 
 ## Fixed / mitigated
-- v0.29.1: failed tab load could purge a class incl. Submitted ticks (now source-confirmed only, Submitted kept) · undo survived a pull · pull cleared Local dirty · delayed save dropped another class / lost on close · two e2e probes reset the wrong IDB.
+- v0.29.1: failed tab load could purge a class incl. Submitted ticks (now source-confirmed only, Submitted kept) · undo survived a pull · pull cleared Local dirty · delayed save dropped another class / lost on close · two e2e probes reset the wrong IDB · Checklist Tools rows 42px tall (< 44px), `tap-probe` failing since v0.29.0 · `share-shots` helper tapped the removed `.share-manage`.
 - Sync A Eng Current + ticks pull (v0.7.0); demo Left cleared except locked rolls
 - Left seeds keyed by classKey+roll (not name-only substring on wrong rolls)
 - Day theme submit purple now uses `--submit-fg` (readable on light surfaces).

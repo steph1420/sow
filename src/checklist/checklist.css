@@ -269,6 +269,14 @@
   color: var(--text);
   text-align: left;
   border: 1px solid transparent;
+  position: relative;
+}
+/* v0.29.1: rows render 42px tall (12px padding + 18px line); invisible 2px slop above/below
+   makes the hit area ≥44px without changing the look. Stays inside the sheet's 6px row gap. */
+.sw-tools-row::before {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
 }
 .sw-tools-row .dot {
   font-size: 8px;

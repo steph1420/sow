@@ -31,6 +31,12 @@ const R = 21;
   await p.goto(url, { waitUntil:'networkidle' }); await audit('Overview', CTRL);
   await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await audit('Checklist', CTRL + ', .sw-allbox');
   await p.locator('.sw-tools-chip').click(); await audit('Checklist Tools sheet', '.sw-tools-row, .sw-tools-row button');
+  // v0.29.1: the whole Tools row (full width × ≥44px) is the hit area — the ±60px scan above caps width at 121.
+  { const bad = await p.evaluate(() => [...document.querySelectorAll('.sw-tools-row')].flatMap((e) => { const r = e.getBoundingClientRect(); const out = []; const cy = r.top + r.height / 2;
+      for (let x = Math.ceil(r.left) + 1; x < r.right - 1; x += 3) { const h = document.elementFromPoint(x, cy); if (!(h === e || e.contains(h))) { out.push(`${e.textContent.trim().slice(0,12)} dead at x=${x}`); break } }
+      for (const y of [cy - 21.5, cy + 21.5]) { const h = document.elementFromPoint(r.left + r.width / 2, y); if (!(h === e || e.contains(h))) out.push(`${e.textContent.trim().slice(0,12)} short at y=${Math.round(y - r.top)}`) }
+      return out }));
+    console.log((bad.length ? 'FAIL ' : 'PASS ') + 'Tools rows full-width ≥44px hit' + (bad.length ? '\n   ' + bad.join('\n   ') : '')); fails += bad.length ? 1 : 0 }
   await p.goto(url); await p.reload({ waitUntil:'networkidle' }); await p.locator('.tabbar .tab').nth(2).click(); await audit('More popup', '.more-item');
   await p.goto(url+'#settings'); await p.reload({ waitUntil:'networkidle' }); await audit('Settings', CTRL);
   await p.goto(url+'#settings/sync'); await p.reload({ waitUntil:'networkidle' }); await audit('Sync', CTRL);
