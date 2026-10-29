@@ -326,6 +326,30 @@
   opacity: 0.35;
 }
 
+/* v0.26.1 — ONE opaque chrome block: lean panel + colhead share a box.
+   Colhead lives OUTSIDE the scroller (no sticky), so it is always flush to
+   the panel bottom; rows scroll in .sw-list-wrap strictly below it. */
+.sw-chrome {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 6;
+  background: var(--bg);
+  border-bottom: 1px solid var(--hairline);
+  contain: paint;
+}
+.sw-chrome .sw-lean {
+  border-bottom: 0;
+}
+.sw-colhead-bar {
+  background: var(--bg);
+  padding: 6px var(--pad-list-x) 0;
+  padding-right: calc(var(--az-w) + 10px);
+}
+.sw-colhead-bar.az-left {
+  padding-right: var(--pad-list-x);
+  padding-left: calc(var(--az-w) + 10px);
+}
+
 .sw-body {
   flex: 1;
   min-height: 0;
@@ -355,11 +379,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  position: sticky;
-  top: 0;
-  background: var(--bg); /* solid opaque — no peek */
-  z-index: 5;
-  box-shadow: 0 8px 0 0 var(--bg); /* seal under sticky */
+  background: var(--bg);
 }
 .sw-colhead.one {
   grid-template-columns: 28px 1fr 44px;

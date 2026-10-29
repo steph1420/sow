@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.26.1 — 2026-10-29 (Asia/Calcutta)
+
+### Chrome seam root-fix (t154u)
+- Lean panel + `#`/`NAME` colhead are now **one opaque `.sw-chrome` block** outside the scroller; colhead no longer sticky. Always flush to panel whether shown, mid-hide, or hidden — names can't peek between them.
+- Tick-all column register kept (colhead bar mirrors list insets, incl. A–Z left).
+- Playwright seam probe 412×915: before 25/25 frames leak, after 0/25. Notes: `docs/CODE_TRIANGULATION_v0261.md`.
+- Rollback: tag `v0.26.0` / `9e6819e`
+
 ## 0.26.0 — 2026-10-29 (Asia/Calcutta)
 
 ### Sync accuracy — real sheet data, real tabs

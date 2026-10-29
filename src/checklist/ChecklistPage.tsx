@@ -343,6 +343,7 @@ export function ChecklistPage({ onGoOverview }: Props) {
         />
       ) : null}
 
+      <div className="sw-chrome" data-testid="sw-chrome">
       <div className="sw-lean">
         <div className={`sw-lean-main${leanHidden ? ' is-hidden' : ''}`}>
           <button
@@ -421,32 +422,35 @@ export function ChecklistPage({ onGoOverview }: Props) {
         ) : null}
       </div>
 
+        <div className={`sw-colhead-bar${azLeft ? ' az-left' : ''}`}>
+            <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
+              <span>#</span>
+              <span>Name</span>
+              {m.visibleDates.map((d) => {
+                const st = allState(d.date)
+                return (
+                  <span className="tick" key={d.date}>
+                    <button
+                      type="button"
+                      className={`sw-allbox${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
+                      aria-label={`Toggle all ${d.dayLabel}`}
+                      onClick={() => tickAll(d.date, st !== 'on')}
+                    >
+                      {st !== 'off' ? <CheckMark size={12} /> : null}
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+        </div>
+      </div>
+
       <div className="sw-body">
         <div
           className={`sw-list-wrap${azLeft ? ' az-left' : ''}`}
           ref={listRef}
           onScroll={onListScroll}
         >
-          <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
-            <span>#</span>
-            <span>Name</span>
-            {m.visibleDates.map((d) => {
-              const st = allState(d.date)
-              return (
-                <span className="tick" key={d.date}>
-                  <button
-                    type="button"
-                    className={`sw-allbox${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
-                    aria-label={`Toggle all ${d.dayLabel}`}
-                    onClick={() => tickAll(d.date, st !== 'on')}
-                  >
-                    {st !== 'off' ? <CheckMark size={12} /> : null}
-                  </button>
-                </span>
-              )
-            })}
-          </div>
-
           <div className="sw-rows">
             {m.filteredRoster.map((r) => {
               const selected = select.selected.has(r.roll)
