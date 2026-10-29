@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.2 — 2026-10-29 (Asia/Calcutta)
+
+Sync/merge. Steve t3u: Q-FIX-2 "2. A", Q-FIX-6 "Keep academic year - April to March. Keep dev option.", Q-FIX-7 "Think the best concise way." Rollback: tag `v0.29.1` / `616829a`.
+
+- **Per-tick merge (newer tick wins).** A tick changed on this phone since the last pull is kept; every other tick follows the sheet. One local tick no longer blocks Steve's sheet edits to the rest of the class. Saving now writes only the ticks that changed.
+- **One-time migration** of existing ticks on the first pull: ticks untouched since the last pull get a per-tick baseline; ticks edited locally keep winning until they're resolved. No local tick is dropped.
+- **Academic year April→March** for sheet dates without a year (28/12 seen in January stays last December). Developer → Sync → **Academic year starts** (default April).
+- **Honest push status:** Sync now ends with "Saved on this device · push not set up" and never says "Pushed" (push isn't built yet; the placeholder request is no longer sent).
+- **Fix (v0.29.1 regression):** a pull no longer flips "Local dirty" to Yes; sheet writes don't count as local changes.
+- Tests: unit 111 (+13: `sync/mergeV2.test.ts` 6, `sync/academicYear.test.ts` 6, dataSafety +1). Mocks Night+Day in `/workspace/sow-mockups` (`yearstart-mj1-*`, `pushstatus-mj1-*`).
+
 ## 0.29.1 — 2026-10-29 (Asia/Calcutta)
 
 Data-safety patch. Steve t2u (review agreed) + t3u (Q-FIX answers; Q-FIX-5 "missing classes where tabs fail to load should be confirmed from the source - Google Sheets. That is always the source of truth"). Rollback: tag `v0.29.0` / `f15060a`. No visual change.

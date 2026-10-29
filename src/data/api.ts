@@ -80,12 +80,12 @@ export async function setLeft(classKey: ClassKey, roll: number, left: boolean, n
 
 export async function putSession(
   s: Session,
-  opts?: { keepUpdatedAt?: boolean },
+  opts?: { keepUpdatedAt?: boolean; fromSheet?: boolean },
 ): Promise<Session> {
   const db = await getDb()
   const row = { ...s, updatedAt: opts?.keepUpdatedAt ? s.updatedAt : now() }
   await db.put('sessions', row)
-  await markDirty()
+  if (!opts?.fromSheet) await markDirty()
   return row
 }
 
@@ -107,6 +107,8 @@ export async function getSession(sessionId: string): Promise<Session | undefined
 
 export async function putMark(
   input: Omit<Mark, 'markId' | 'updatedAt'> & { markId?: string; updatedAt?: string },
+  /** v0.29.2: sheet/sync writes are not local changes → don't mark the device dirty. */
+  opts?: { fromSheet?: boolean },
 ): Promise<Mark> {
   const db = await getDb()
   const row: Mark = {
@@ -115,7 +117,7 @@ export async function putMark(
     updatedAt: input.updatedAt ?? now(),
   }
   await db.put('marks', row)
-  await markDirty()
+  if (!opts?.fromSheet) await markDirty()
   return row
 }
 
@@ -124,10 +126,10 @@ export async function getMark(classKey: ClassKey, roll: number, date: string): P
   return db.get('marks', makeMarkId(classKey, roll, date))
 }
 
-export async function deleteMark(markId: string): Promise<void> {
+export async function deleteMark(markId: string, opts?: { fromSheet?: boolean }): Promise<void> {
   const db = await getDb()
   await db.delete('marks', markId)
-  await markDirty()
+  if (!opts?.fromSheet) await markDirty()
 }
 
 export async function listMarks(classKey: ClassKey, date?: string): Promise<Mark[]> {

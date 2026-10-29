@@ -5,6 +5,8 @@ import './more.css'
 type Props = { onBack: () => void }
 
 /** Dev — gated physics / chrome knobs. Safety floors stay locked. */
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
 export function DevPage({ onBack }: Props) {
   const { prefs, setPref } = usePrefs()
 
@@ -49,6 +51,27 @@ export function DevPage({ onBack }: Props) {
           Swipe ticks one row only
           <span className={`toggle${prefs['gestures.swipeSingleRow'] ? ' on' : ''}`} aria-hidden />
         </button>
+      </div>
+
+      {/* v0.29.2 Q-FIX-6 (t3u): academic year start for sheet dates without a year (default April). */}
+      <div className="more-sec">Sync</div>
+      <div className="more-card">
+        <label className="more-row dev-year-start" style={{ position: 'relative' }}>
+          Academic year starts
+          <span className="meta">{MONTHS[(prefs['sync.yearStartMonth'] ?? 4) - 1]}</span>
+          <select
+            aria-label="Academic year starts"
+            value={prefs['sync.yearStartMonth'] ?? 4}
+            onChange={(e) => setPref('sync.yearStartMonth', Number(e.target.value))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="more-sec">Chrome</div>

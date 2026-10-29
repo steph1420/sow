@@ -92,6 +92,8 @@ export interface Mark {
   set: boolean
   submitted: boolean
   updatedAt: string
+  /** v0.29.2 (Q-FIX-2 A): Set value the sheet had at the last pull — per-tick baseline. Undefined = legacy (pre-v0.29.2). */
+  sheetSet?: boolean
 }
 
 /** Per-class Eng sync snapshot (Sync A). */
@@ -119,6 +121,8 @@ export interface Settings {
   /** Real readable teaching tabs discovered on the workbook (v0.26 · t152u). */
   discoveredTabs?: DiscoveredTab[]
   discoveredAt?: string
+  /** v0.29.2: one-time per-tick baseline migration done at (ISO). */
+  mergeV2At?: string
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

@@ -56,6 +56,12 @@ describe('v0.29.1 undo cleared after pull', () => {
 })
 
 describe('v0.29.1 pull keeps the changed-locally flag', () => {
+  it('v0.29.2: a pull itself never marks the device dirty (sheet writes are not local changes)', async () => {
+    await putSettings({ syncDirty: false })
+    const r = await pullSubjects(['Eng'])
+    expect(r.ok).toBe(true)
+    expect((await getSettings()).syncDirty).toBe(false)
+  })
   it('pull does not clear syncDirty', async () => {
     await pullSubjects(['Eng'])
     await putSettings({ syncDirty: true })

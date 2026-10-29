@@ -17,13 +17,13 @@ import {
   putSettings,
   putStudent,
 } from '../data'
-import { CLASS_LABELS, type ClassKey, type DiscoveredTab } from '../data/types'
-import { bridgePush } from './bridge'
+import { CLASS_LABELS, type ClassKey, type DiscoveredTab, type Settings } from '../data/types'
 import { getDb } from '../data/db'
 import { clearUndoStacks } from '../lib/undoStack'
 import { parseCsv } from './csv'
 import { OfflineError, discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
-import { parseEngTabLite, sheetDateToIso } from './parseEngLite'
+import { parseEngTabLite, sheetDateToIsoAcademic } from './parseEngLite'
+import { loadPrefs } from '../prefs/appPrefs'
 import { extractSheetId } from './sheetId'
 
 export type SyncReport = {
@@ -134,6 +134,26 @@ export async function purgeClassesNotOnSheet(
   return n
 }
 
+/**
+ * v0.29.2 one-time migration (Q-FIX-2 A): v0.29.1 stamped every tick of a class on each save, so
+ * per-tick history can't be recovered. Ticks untouched since the last pull get a baseline
+ * (sheetSet = set, they equalled the sheet then); ticks stamped after it stay baseline-less and keep
+ * the old local-wins rule for one more pull — never dropping a local edit.
+ */
+export async function migrateMergeV2(engSyncState: Settings['engSyncState'] = {}): Promise<number> {
+  let n = 0
+  for (const [key, st] of Object.entries(engSyncState ?? {})) {
+    if (!st) continue
+    for (const m of await listMarks(key as ClassKey)) {
+      if (m.sheetSet !== undefined || m.updatedAt > st.lastSyncAt) continue
+      await putMark({ ...m, sheetSet: m.set }, { fromSheet: true })
+      n++
+    }
+  }
+  await putSettings({ mergeV2At: new Date().toISOString() })
+  return n
+}
+
 /** Merge-pull discovered tabs. Never imports a tab that discovery rejected. */
 async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<SyncReport & { perTab: TabPullStat[] }> {
   const settings = await getSettings()
@@ -155,13 +175,15 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
   const perTab: TabPullStat[] = []
   const engSyncState = { ...(settings.engSyncState ?? {}) }
   const notes: string[] = []
+  const yearStartMonth = loadPrefs()['sync.yearStartMonth'] ?? 4
+  if (!settings.mergeV2At) await migrateMergeV2(engSyncState)
 
   for (const tab of tabs) {
     const key = tab.classKey
     try {
       const cached = discovery?.csv.get(tab.name)
       const rows = cached != null ? parseCsv(cached) : await fetchSheetCsv(id, tab.name)
-      const parsed = parseEngTabLite(key, rows, now)
+      const parsed = parseEngTabLite(key, rows, now, { yearStartMonth })
       const prev = engSyncState[key]
       const stat: TabPullStat = { tab: tab.name, students: 0, marks: 0, kept: 0, warnings: parsed.warnings }
 
@@ -173,37 +195,42 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
       // P0-1: first pull for this key → sheet wins entirely. Every pre-existing mark
       // (demo seed, incl. app-only Submitted) is dropped; later pulls keep Submitted.
       if (!prev) {
-        for (const old of await listMarks(key)) await deleteMark(old.markId)
+        for (const old of await listMarks(key)) await deleteMark(old.markId, { fromSheet: true })
       }
 
       for (const m of parsed.marks) {
         const existing = await getMark(key, m.roll, m.date)
-        // Sync A merge: local edit since last pull wins; submitted is app-only → always kept.
-        const localNewer =
-          !!prev && !!existing && existing.updatedAt > prev.lastSyncAt && existing.set !== m.set
+        // v0.29.2 Q-FIX-2 A — per tick: a tick changed on this device since the last pull (differs from
+        // its sheet baseline) beats an unchanged sheet value; otherwise the sheet's value wins.
+        // Legacy ticks without a baseline fall back to the old timestamp rule (no data loss).
+        // Submitted is app-only → always kept.
+        const localChanged =
+          !!existing &&
+          (existing.sheetSet === undefined ? existing.updatedAt > (prev?.lastSyncAt ?? "") : existing.set !== existing.sheetSet)
+        const localNewer = !!prev && localChanged && existing!.set !== m.set
         if (localNewer) stat.kept++
         await putMark({
           ...m,
           set: localNewer ? existing!.set : m.set,
           submitted: prev ? (existing?.submitted ?? false) : false,
           updatedAt: localNewer ? existing!.updatedAt : now,
-        })
+          sheetSet: m.set,
+        }, { fromSheet: true })
         stat.marks++
       }
 
       if (parsed.current.date1) {
-        const year = Number.parseInt(now.slice(0, 4), 10)
         const prevSession = await getSession(`${key}|current`)
         await putSession({
           sessionId: `${key}|current`,
           classKey: key,
-          date1: sheetDateToIso(parsed.current.date1, year),
+          date1: sheetDateToIsoAcademic(parsed.current.date1, now, yearStartMonth),
           topic1: parsed.current.topic1,
-          date2: parsed.current.date2 ? sheetDateToIso(parsed.current.date2, year) : '',
+          date2: parsed.current.date2 ? sheetDateToIsoAcademic(parsed.current.date2, now, yearStartMonth) : '',
           topic2: parsed.current.topic2,
           createdAt: prevSession?.createdAt ?? now,
           updatedAt: now,
-        })
+        }, { fromSheet: true })
       }
 
       engSyncState[key] = { hash: hashRows(rows), sheetSeenAt: now, lastSyncAt: now }
@@ -264,112 +291,32 @@ export async function pullSubjects(subjects: SubjectId[]): Promise<SyncReport & 
   return report
 }
 
-export async function pushLocal(): Promise<SyncReport> {
-  const settings = await getSettings()
-  const id = extractSheetId(settings.sheetUrl)
-  if (!settings.syncUrl || !/script\.google\.com/i.test(settings.syncUrl)) {
-    return {
-      ok: false,
-      message:
-        'Push not connected · paste an Apps Script web-app URL (SoWSync) to enable round-trip. Local IDB persist still works offline.',
-      mode: 'push',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
-  }
-  if (!id) {
-    return {
-      ok: false,
-      message: 'Sheet URL missing · cannot push.',
-      mode: 'push',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
-  }
+/** v0.29.2 Q-FIX-7 (t3u "Think the best concise way"): honest status until a real push exists. */
+export const PUSH_NOT_SET_UP = 'Saved on this device · push not set up'
 
-  try {
-    const r = await bridgePush(settings.syncUrl, id, {
-      note: 'sow-app rewrite push placeholder — full SoW_* payload pending',
-    })
-    const now = new Date().toISOString()
-    await putSettings({
-      lastSyncAt: now,
-      lastSyncError: r.ok ? undefined : r.message,
-      syncDirty: r.ok ? false : true,
-    })
-    return {
-      ok: Boolean(r.ok),
-      message: r.message ?? (r.ok ? 'Pushed.' : 'Push failed.'),
-      mode: 'push',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: Boolean(r.ok),
-    }
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e)
-    await putSettings({ lastSyncError: message })
-    return {
-      ok: false,
-      message,
-      mode: 'push',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
-  }
+/**
+ * Push is not built yet (Q-FIX-9 C: Apps Script stays undeployed; a token-auth push comes later).
+ * The old placeholder POST could answer ok and claim "Pushed" with nothing sent — so never call it.
+ * syncDirty is left as is: only a real successful push may clear it.
+ */
+export async function pushLocal(): Promise<SyncReport> {
+  return { ...emptyReport('push', PUSH_NOT_SET_UP), pushed: false }
 }
 
 /**
- * Sync now — one job: pull selected subjects; push only when bridge set AND dirty;
- * otherwise Quiet “saved on device”.
+ * Sync now — pull the selected subjects; marks always stay on this device. Never reports "Pushed"
+ * unless a real push succeeded (none exists yet).
  */
 export async function syncNow(subjects: SubjectId[]): Promise<SyncReport> {
   if (isOffline()) return emptyReport('sync', OFFLINE_MESSAGE)
   const settings = await getSettings()
-  const bridgeReady = Boolean(settings.syncUrl && /script\.google\.com/i.test(settings.syncUrl))
-  const dirty = Boolean(settings.syncDirty)
-
   const pull = await pullSubjects(subjects)
   if (pull.message === OFFLINE_MESSAGE) return { ...pull, mode: 'sync' } // P1-2: no push, no state change
-
-  if (bridgeReady && dirty) {
-    const push = await pushLocal()
-    const ok = pull.ok || push.ok
-    return {
-      ok,
-      message: [pull.message, push.pushed ? 'Pushed local changes.' : push.message]
-        .filter(Boolean)
-        .join(' · '),
-      mode: 'sync',
-      pulledStudents: pull.pulledStudents,
-      pulledMarks: pull.pulledMarks,
-      pushed: push.pushed,
-    }
-  }
-
-  if (!bridgeReady) {
-    const quiet = 'Marks saved on this device · push when Apps Script bridge is set.'
-    return {
-      ok: pull.ok || !extractSheetId(settings.sheetUrl), // local-only still ok
-      message: pull.ok ? `${pull.message} · ${quiet}` : pull.message.includes('Not connected')
-        ? quiet
-        : `${pull.message} · ${quiet}`,
-      mode: pull.ok ? 'sync' : settings.sheetUrl ? 'sync' : 'local-only',
-      pulledStudents: pull.pulledStudents,
-      pulledMarks: pull.pulledMarks,
-      pushed: false,
-    }
-  }
-
-  // bridge ready but clean
+  const push = await pushLocal()
   return {
-    ok: pull.ok,
-    message: pull.ok
-      ? `${pull.message} · nothing dirty to push.`
-      : `${pull.message} · local clean.`,
-    mode: 'sync',
+    ok: pull.ok || !extractSheetId(settings.sheetUrl), // local-only still ok
+    message: pull.ok || !pull.message.includes('Not connected') ? `${pull.message} · ${push.message}` : push.message,
+    mode: pull.ok ? 'sync' : settings.sheetUrl ? 'sync' : 'local-only',
     pulledStudents: pull.pulledStudents,
     pulledMarks: pull.pulledMarks,
     pushed: false,

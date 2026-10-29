@@ -65,4 +65,4 @@ Steve's note (t3u): "pupil names are already demo in code. We pull real from syn
 | Q-FIX-9 | **C** now, **A** (token) when push is built | "9. C + A" |
 | Q-FIX-10 | **OPEN — deferred** | "We'll tackle this later... Mark it" |
 
-Status: Q-FIX-5 shipped in v0.29.1 with R4/R5a/R6/R10/docs. Next: v0.29.2 (Q-FIX-2, 6, 7).
+Status: Q-FIX-5 shipped in v0.29.1 with R4/R5a/R6/R10/docs. Q-FIX-2, 6, 7 shipped in v0.29.2. Next: v0.29.3 (a11y + tidy).

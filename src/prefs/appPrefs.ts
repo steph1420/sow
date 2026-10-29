@@ -33,6 +33,8 @@ export type AppPrefs = {
   'share.lastUsedId': string
   /** Settings default for KGA/KGB prefix; the Share sheet toggle overrides per share. */
   'share.includeClassPrefix': boolean
+  /** v0.29.2 Q-FIX-6 (t3u): academic year start month (1–12) for sheet dates without a year. Dev option. */
+  'sync.yearStartMonth': number
 }
 
 export const PREFS_DEFAULTS: AppPrefs = {
@@ -50,6 +52,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'share.defaultId': 'pending',
   'share.lastUsedId': '',
   'share.includeClassPrefix': false,
+  'sync.yearStartMonth': 4,
 }
 
 const STORE_KEY = 'sow-app.prefs.v1'

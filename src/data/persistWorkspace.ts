@@ -115,24 +115,32 @@ export async function persistClassMarks(
   }
   for (const d of slots) dates.add(d.date)
 
+  // v0.29.2 (Q-FIX-2 A): per-tick — write and stamp only ticks that actually changed.
+  const existing = new Map((await listMarks(classKey)).map((m) => [m.markId, m]))
+  let changed = 0
   for (const roll of nameByRoll.keys()) {
     for (const date of dates) {
       const cell = marks[markKey(roll, date)] ?? { set: false, submitted: false }
-      const topic = slots.find((x) => x.date === date)?.topic ?? ''
+      const id = makeMarkId(classKey, roll, date)
+      const prev = existing.get(id)
+      if (prev && prev.set === cell.set && prev.submitted === cell.submitted) continue
+      const topic = slots.find((x) => x.date === date)?.topic ?? prev?.topic ?? ''
       await putMark({
-        markId: makeMarkId(classKey, roll, date),
+        ...(prev ?? {}),
+        markId: id,
         classKey,
         roll,
-        name: nameByRoll.get(roll) ?? '',
+        name: nameByRoll.get(roll) ?? prev?.name ?? '',
         date,
         topic,
         set: cell.set,
         submitted: cell.submitted,
         updatedAt: ts,
       })
+      changed++
     }
   }
-  await putSettings({ syncDirty: true })
+  if (changed) await putSettings({ syncDirty: true })
 }
 
 export async function readSyncStatus(): Promise<{

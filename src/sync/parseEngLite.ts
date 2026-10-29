@@ -93,12 +93,29 @@ export function sheetDateToIso(dmy: string, year = 2026): string {
   return `${year}-${mon}-${day}`
 }
 
+/** v0.29.2 Q-FIX-6 (t3u): academic year that `nowIso` falls in (start month 1–12, default April). */
+export function academicYearFor(nowIso: string, startMonth = 4): number {
+  const y = Number.parseInt(nowIso.slice(0, 4), 10) || 2026
+  const mo = Number.parseInt(nowIso.slice(5, 7), 10) || 1
+  return mo >= startMonth ? y : y - 1
+}
+
+/** d/m (no year) → ISO inside the current academic year: months ≥ start → start year, else the next. */
+export function sheetDateToIsoAcademic(dmy: string, nowIso: string, startMonth = 4): string {
+  const m = dmy.match(/^(\d{1,2})\/(\d{1,2})$/)
+  if (!m) return dmy
+  const ay = academicYearFor(nowIso, startMonth)
+  const mon = Number.parseInt(m[2]!, 10)
+  return sheetDateToIso(dmy, mon >= startMonth ? ay : ay + 1)
+}
+
 export type TickCol = { col: number; date: string; topic: string; source: 'row2' | 'current' }
 
 export function parseEngTabLite(
   classKey: ClassKey,
   rows: string[][],
   nowIso: string,
+  opts: { yearStartMonth?: number } = {},
 ): {
   students: Student[]
   marks: Mark[]
@@ -109,7 +126,7 @@ export function parseEngTabLite(
   /** P2-4: sheet-layout info that needs no action from the app (e.g. undated tick column). */
   notes: string[]
 } {
-  const year = Number.parseInt(nowIso.slice(0, 4), 10) || 2026
+  const startMonth = opts.yearStartMonth ?? 4
   const entries = parseCurrentEntries(rows)
   const current = parseCurrentLite(rows)
   const start = findRosterStart(rows)
@@ -175,7 +192,7 @@ export function parseEngTabLite(
     for (const t of tickCols) {
       const b = parseBoolCell(rows[r]?.[t.col] ?? '')
       if (b == null) continue
-      const date = sheetDateToIso(t.date, year)
+      const date = sheetDateToIsoAcademic(t.date, nowIso, startMonth)
       marks.push({
         markId: markId(classKey, roll, date),
         classKey,
