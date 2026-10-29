@@ -135,12 +135,10 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
         stat.students++
       }
 
-      // First pull for this key: drop demo leftovers on dates the sheet doesn't have.
-      const pulledDates = new Set(parsed.marks.map((m) => m.date))
-      if (!prev && parsed.marks.length) {
-        for (const old of await listMarks(key)) {
-          if (!pulledDates.has(old.date)) await deleteMark(old.markId)
-        }
+      // P0-1: first pull for this key → sheet wins entirely. Every pre-existing mark
+      // (demo seed, incl. app-only Submitted) is dropped; later pulls keep Submitted.
+      if (!prev) {
+        for (const old of await listMarks(key)) await deleteMark(old.markId)
       }
 
       for (const m of parsed.marks) {
@@ -152,7 +150,7 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
         await putMark({
           ...m,
           set: localNewer ? existing!.set : m.set,
-          submitted: existing?.submitted ?? false,
+          submitted: prev ? (existing?.submitted ?? false) : false,
           updatedAt: localNewer ? existing!.updatedAt : now,
         })
         stat.marks++

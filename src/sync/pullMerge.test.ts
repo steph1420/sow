@@ -72,3 +72,17 @@ describe('discovery + merge pull', () => {
     expect((await getMark('KGA_Eng_CW', 2, '2026-10-28'))?.set).toBe(false)
   })
 })
+
+describe('P0-1 first pull: sheet wins over demo seed', () => {
+  it('drops every demo mark (incl. Submitted) on first pull for pulled classes', async () => {
+    const before = await listMarks('KGA_Eng_CW')
+    expect(before.some((m) => m.submitted)).toBe(true) // demo seed has phantom Submitted
+    await pullSubjects(['Eng'])
+    for (const k of ['KGA_Eng_CW', 'KGB_Eng_CW', 'KGA_Eng_HW', 'KGB_Eng_HW']) {
+      expect((await listMarks(k)).filter((m) => m.submitted)).toHaveLength(0)
+    }
+    // roll 1 is FALSE on sheet for 28/10 → not set, not submitted
+    const r1 = await getMark('KGA_Eng_CW', 1, '2026-10-28')
+    expect(r1?.submitted ?? false).toBe(false)
+  })
+})
