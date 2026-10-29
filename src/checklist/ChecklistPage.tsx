@@ -2,7 +2,7 @@ import { useBackLayer } from '../nav/backStack'
 import { createScrollTween, type ScrollTween } from './scrollTween'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
-import { CheckMark } from '../components/CheckMark'
+import { CheckMark, DashMark } from '../components/CheckMark'
 import { AzStrip } from './az/AzStrip'
 import { SearchBar } from './chrome/SearchBar'
 import { SelectBar } from './chrome/SelectBar'
@@ -454,10 +454,13 @@ export function ChecklistPage({ onGoOverview }: Props) {
                     <button
                       type="button"
                       className={`sw-allbox${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
-                      aria-label={`Toggle all ${d.dayLabel}`}
+                      role="checkbox"
+                      aria-checked={st === 'on' ? 'true' : st === 'partial' ? 'mixed' : 'false'}
+                      aria-label={`${st === 'on' ? 'All ticked' : st === 'partial' ? 'Some ticked' : 'None ticked'} ${d.dayLabel} · tap to ${st === 'on' ? 'untick' : 'tick'} all`}
+                      data-state={st}
                       onClick={() => tickAll(d.date, st !== 'on')}
                     >
-                      {st !== 'off' ? <CheckMark size={12} /> : null}
+                      {st === 'on' ? <CheckMark size={12} /> : st === 'partial' ? <DashMark size={12} /> : null}
                     </button>
                   </span>
                 )
