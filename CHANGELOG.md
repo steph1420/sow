@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.39.0 — 2026-10-30 (Asia/Calcutta)
+
+Header cleanup + quick overview + calendar date order (Steve t74u, t76u–t82u; built without mock lock per t81u). Rollback: tag `v0.38.0` / `d109227`. **No Code.js change.** CRDT op log renumbered to v0.40.0.
+
+- **Dates always in calendar order** (oldest → newest, e.g. 28/10 then 2/11) for chips, columns, headers, Quick overview and Share (t82u LOCKED). The sheet/bridge still stores newest-first; the app flips once (`datesFromSession`). Ticks, undo, keys 1/2 and column focus follow the date itself, not its position.
+- **Checklist header**: each tick column now has its date and count on top (e.g. 28/10 · 15/44). Tapping it still ticks/unticks the whole column (the old '−' box, merged in). The top-right '16/44 SET' is gone (it counted only one date). 1-date view shows one header. Header topic and Share default use the newest visible date.
+- **Quick overview** sheet: both dates with count, bar, pending and %, plus how many pupils are marked Left. Open with Tools › Quick overview, a swipe up on the Checklist tab (40 px, vertical only, ignores the bottom 16 px OS gesture edge, short haptic; a small grabber shows on the tab), or **O**. Swipe down, Esc or Close shuts it; focus returns when opened by keyboard.
+- **Overview**: 'HOME' eyebrow and the '2/11 · pick a class to mark' subtitle removed (no other page had that pattern). Collapsed cards say **Upcoming:** / **Today:** / **Latest:** before the date — the card shows the class's newest open session, which can be in the past, so it only says Upcoming when the date is after today.
+- Date chips row kept: it is the only way to switch to 1-date view.
+- Share opens on the newest date (same date it opened on before the flip; now it is the second chip).
+- Tests: unit `dateLabel` (4), `dateOrder` (4); e2e `v039-probe` (30+ checks), `v039-dogfood` (real touch + keyboard).
+
 ## 0.38.0 — 2026-10-30 (Asia/Calcutta)
 
 Spotlight-style quick find + date-column hardening (Steve t67u, t68u; approved t69u). Rollback: tag `v0.37.0` / `5e9dc4b`. **No Code.js change.** CRDT op log renumbered to v0.39.0.

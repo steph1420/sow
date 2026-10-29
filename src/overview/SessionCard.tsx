@@ -1,3 +1,4 @@
+import { sessionDateLabel } from './dateLabel'
 import type { DemoSession, SessionProgress } from '../demo/workspaceData'
 
 type Props = {
@@ -40,6 +41,7 @@ export function SessionCard({
           </div>
           <div className="k">{session.label}</div>
           <div className="line">
+            {sessionDateLabel(session.date.date) ? `${sessionDateLabel(session.date.date)}: ` : ''}
             <b>{session.date.dayLabel}</b>
             {' · '}
             <b>

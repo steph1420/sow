@@ -138,3 +138,8 @@ Quick find replaces the "/" strip mode (see CHANGELOG 0.38.0 for the ranking). D
 Mixed dates (10 pupils alternating date 1/date 2): arrows 30 keys / 1.0 s vs keys 1/2 20 keys / 0.67 s → **1/2 shipped**.
 
 Friction found → change: (1) focus flagged off-screen right after Enter from quick find — the live scroll used the A–Z tween, which kept running after focus moved; quick find now scrolls instantly and focusing a cell cancels any tween. (2) The focused cell could sit under the tab bar → cells get scroll margins. (3) Old dogfood "/ S S" (strip cycling) became "/ S ↓ Enter" — same 5 keys.
+
+
+## v0.39.0 additions (t80u–t82u)
+- `?` sheet: **O** — Quick overview (also Tools › Quick overview, swipe up on the Checklist tab). No conflict: O was unused (grid letters are M, P, L; quick find owns typed letters only inside the HUD).
+- Dogfood (`v039-dogfood.cjs`): 20 tab taps, 20 list flings, 10 drags into the tab bar, 10 OS-edge swipes, 10 sideways drags → **0 accidental opens**; 10/10 intended 60 px swipe-ups opened and swipe-down closed all. Hit areas ≥44 px for every header/tab control (date headers 44×52). No ring after touch on header or sheet. Keyboard: grid → O → Esc returns focus; Shift+Tab from grid reaches the date header (reads "Mon 2 2/11: 17 of 44 set · tap to tick all"); keys 1/2 update both header counts live.

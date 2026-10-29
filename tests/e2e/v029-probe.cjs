@@ -55,11 +55,12 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   ok(!/New/.test(txt) && !(await p.$('.share-pill.add')), "no '+ New' pill");
   ok(!/KGA\/KGB prefix/.test(txt) && !(await p.$('.share-prefix-row')), 'no prefix toggle in sheet');
   const dates = await p.$$eval('.share-date', (e) => e.map((x) => [x.textContent, x.getAttribute('aria-checked')]));
-  ok(dates.length === 2 && dates[0][1] === 'true', `two-date toggle, first default ${JSON.stringify(dates)}`);
+  // v0.39.0 (t82u): calendar order, newest (last) is the default — same date as before the flip.
+  ok(dates.length === 2 && dates[1][1] === 'true', `two-date toggle, newest default ${JSON.stringify(dates)}`);
   const d0 = await p.$eval('.share-sheet', (e) => e.dataset.date);
-  await p.click('.share-date:nth-child(2)'); await p.waitForTimeout(100);
+  await p.click('.share-date:nth-child(1)'); await p.waitForTimeout(100);
   const d1 = await p.$eval('.share-sheet', (e) => [e.dataset.date, e.dataset.message.split('\n')[0]]);
-  ok(d1[0] !== d0 && d1[1].includes(dates[1][0]), `date toggle switches message date → ${d1[1]}`);
+  ok(d1[0] !== d0 && d1[1].includes(dates[0][0]), `date toggle switches message date → ${d1[1]}`);
   const xb = await p.$eval('.share-x', (e) => { const r = e.getBoundingClientRect(); return [r.width, r.height, getComputedStyle(e).color]; });
   ok(xb[0] >= 44 && xb[1] >= 44, `× is 44×44 (${xb})`);
   await p.click('.share-x'); await p.waitForTimeout(250);

@@ -7,6 +7,7 @@ import { AzStrip, type AzStripHandle } from './az/AzStrip'
 import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
+import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
@@ -111,8 +112,8 @@ export function ChecklistPage(_props: Props) {
     [m.filteredRoster],
   )
 
-  const echoDate = m.visibleDates[0] ?? m.dates[m.activeDateIndex]
-  const echoProg = m.progressFor(echoDate.date)
+  // t82u calendar order: the newest visible date is last; header topic + share default use it.
+  const echoDate = m.visibleDates[m.visibleDates.length - 1] ?? m.dates[m.activeDateIndex]
 
   const measureRows = useCallback((): RowGeom[] => {
     const out: RowGeom[] = []
@@ -438,7 +439,14 @@ export function ChecklistPage(_props: Props) {
   const azRef = useRef<AzStripHandle>(null)
   const [kb, setKb] = useState<[number, number]>([0, 0])
   const [live, setLive] = useState('')
-  const { setPupilLeft, activeClassKey } = useWorkspace()
+  const { setPupilLeft, activeClassKey, rosterFor } = useWorkspace()
+  const [qoOpen, setQoOpen] = useState(false)
+  useBackLayer(qoOpen ? 1 : 0, () => setQoOpen(false))
+  useEffect(() => {
+    const open = () => setQoOpen(true)
+    window.addEventListener('sow:quick-overview', open)
+    return () => window.removeEventListener('sow:quick-overview', open)
+  }, [])
   const lastLeft = useRef<{ roll: number; name: string; ri: number } | null>(null)
   const autoAdvance = prefs['kbd.autoAdvance']
   const [qsOpen, setQsOpen] = useState(false)
@@ -572,6 +580,11 @@ export function ChecklistPage(_props: Props) {
       if (isMod(e) && !e.altKey && !e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault(); m.redo(); return
       }
+      if ((e.key === 'o' || e.key === 'O') && !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector('[role="dialog"]')) {
+        e.preventDefault()
+        setQoOpen(true)
+        return
+      }
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault()
         qsReturn.current = document.activeElement as HTMLElement | null
@@ -611,12 +624,7 @@ export function ChecklistPage(_props: Props) {
               </span>
             </div>
           </div>
-          <div className={`sw-lean-count${m.mode === 'submitted' ? ' mode-sub' : ''}`}>
-            <div className="n">
-              {echoProg.n}/{echoProg.total}
-            </div>
-            <div className="u">{m.mode === 'set' ? 'set' : 'submitted'}</div>
-          </div>
+          {/* t76u: '16/44 SET' removed — per-date counts live in the column headers + Quick overview (O). */}
         </div>
 
         <div className="sw-lean-tools">
@@ -684,14 +692,16 @@ export function ChecklistPage(_props: Props) {
                   <span className={`tick${gridFocus && kbCol === m.visibleDates.indexOf(d) ? ' kb-col' : ''}`} key={d.date}>
                     <button
                       type="button"
-                      className={`sw-allbox${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
+                      className={`sw-allbox sw-colbtn${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
                       role="checkbox"
                       aria-checked={st === 'on' ? 'true' : st === 'partial' ? 'mixed' : 'false'}
-                      aria-label={`${st === 'on' ? 'All ticked' : st === 'partial' ? 'Some ticked' : 'None ticked'} ${d.dayLabel} · tap to ${st === 'on' ? 'untick' : 'tick'} all`}
+                      aria-label={`${d.dayLabel} ${d.dayNum}: ${m.progressFor(d.date).n} of ${m.progressFor(d.date).total} ${m.mode === 'set' ? 'set' : 'submitted'} · tap to ${st === 'on' ? 'untick' : 'tick'} all`}
                       data-state={st}
                       onClick={() => tickAll(d.date, st !== 'on')}
                     >
-                      {st === 'on' ? <CheckMark size={12} /> : st === 'partial' ? <DashMark size={12} /> : null}
+                      <span className="d">{d.dayNum}</span>
+                      <span className="box">{st === 'on' ? <CheckMark size={11} /> : st === 'partial' ? <DashMark size={11} /> : null}</span>
+                      <span className="c">{m.progressFor(d.date).n}/{m.progressFor(d.date).total}</span>
                     </button>
                   </span>
                 )
@@ -700,6 +710,15 @@ export function ChecklistPage(_props: Props) {
         </div>
       </div>
 
+      {qoOpen ? (
+        <QuickOverviewSheet
+          classLabel={m.classLabel}
+          mode={m.mode}
+          rows={(m.dates[0].date === m.dates[1].date ? [m.dates[0]] : m.dates).map((d) => ({ date: d, ...m.progressFor(d.date) }))}
+          left={rosterFor(activeClassKey).filter((r) => r.left).length}
+          onClose={() => setQoOpen(false)}
+        />
+      ) : null}
       {qsOpen ? (
         <QuickSearchHud
           rows={m.filteredRoster}
@@ -838,6 +857,10 @@ export function ChecklistPage(_props: Props) {
                 Submitted
               </button>
             </div>
+            <button type="button" className="sw-tools-row" onClick={() => { setToolsOpen(false); setQoOpen(true) }}>
+              <span className="dot">▤</span> Quick overview
+              <span className="chev">O</span>
+            </button>
             <button
               type="button"
               className={`sw-tools-row${m.pendingOnly ? ' on' : ''}`}

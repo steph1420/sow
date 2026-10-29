@@ -235,9 +235,10 @@ export function dateSlotFromIso(iso: string, topic: string): DateSlot {
 
 /** Two Checklist slots from a pulled session (single-date session repeats slot 1). */
 export function datesFromSession(s: Session): [DateSlot, DateSlot] {
+  // t82u LOCKED: always calendar order (oldest → newest); the bridge stores newest-first.
   const a = dateSlotFromIso(s.date1, s.topic1)
   const b = s.date2 ? dateSlotFromIso(s.date2, s.topic2) : a
-  return [a, b]
+  return b.date < a.date ? [b, a] : [a, b]
 }
 
 /** Overview cards from pulled IDB sessions (one per classKey, Current block). */
@@ -247,7 +248,7 @@ export function sessionsFromIdb(rows: Session[], rosterSize: (k: ClassKey) => nu
     .filter((s) => s.date1)
     .sort((a, b) => (order.get(a.classKey) ?? 99) - (order.get(b.classKey) ?? 99))
     .map((s) => {
-      const [d1] = datesFromSession(s)
+      const d1 = datesFromSession(s)[1] // newest open session (calendar order puts it last)
       const kind = s.classKey.endsWith('_HW') ? 'HW' : 'CW'
       return {
         id: `${s.classKey}|${s.date1}`,

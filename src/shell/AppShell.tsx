@@ -21,6 +21,7 @@ import { ShortcutsSheet } from './ShortcutsSheet'
 import { isMod, isTypingTarget } from '../lib/keyboard'
 import { topDialog } from '../lib/a11yRuntime'
 import { usePrefs } from '../prefs/PrefsContext'
+import { haptic } from '../lib/haptics'
 import { ChecklistScreen } from '../screens/ChecklistScreen'
 import { OverviewScreen } from '../screens/OverviewScreen'
 
@@ -205,6 +206,7 @@ export function AppShell() {
     }) })
     return () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2) }
   }, [tab, stack, moreOpen])
+  const tabSwipe = useRef<{ x: number; y: number; fired: boolean } | null>(null)
   const stackRef = useRef(stack); stackRef.current = stack
   const tabRef = useRef(tab); tabRef.current = tab
   const moreRef = useRef(moreOpen); moreRef.current = moreOpen
@@ -368,11 +370,32 @@ export function AppShell() {
         <button
           type="button"
           className={`tab${tab === 'checklist' && !moreOpen ? ' on' : ''}`}
-          onClick={() => {
+          aria-description="Swipe up for quick overview"
+          onPointerDown={(e) => {
+            // t80u: ignore the OS home-gesture edge (bottom 16px) and start only on the tab itself.
+            tabSwipe.current = e.clientY > window.innerHeight - 16 ? null : { x: e.clientX, y: e.clientY, fired: false }
+          }}
+          onPointerMove={(e) => {
+            const t = tabSwipe.current
+            if (!t || t.fired) return
+            const dx = e.clientX - t.x, dy = e.clientY - t.y
+            if (Math.abs(dx) > 28) { tabSwipe.current = null; return }
+            if (dy < -40 && Math.abs(dy) > Math.abs(dx) * 2) {
+              t.fired = true
+              haptic('light')
+              setMoreOpen(false); setStack([]); setTab('checklist')
+              window.setTimeout(() => window.dispatchEvent(new Event('sow:quick-overview')), 0)
+            }
+          }}
+          onPointerCancel={() => { tabSwipe.current = null }}
+          onClick={(e) => {
+            if (tabSwipe.current?.fired) { tabSwipe.current = null; e.preventDefault(); return }
+            tabSwipe.current = null
             setMoreOpen(false)
             setTab('checklist')
           }}
         >
+          <span className="qo-grabber" aria-hidden />
           <span className="tic">
             <CheckMark size={15} />
           </span>

@@ -67,7 +67,7 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   const subLine = useMemo(() => {
     const d = sessions[0]?.date
     if (!d) return 'No sessions yet · Sync to pull from the Sheet'
-    return `${d.dayNum} · pick a class to mark${fromSheet ? '' : ' · demo'}`
+    return ''
   }, [sessions, fromSheet])
 
   const toggleExpand = (id: string) => {
@@ -77,9 +77,9 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   return (
     <div className="ov-page">
       <div className="ov-hero">
-        <div className="ov-eyebrow">Home</div>
+        {/* t74u: HOME eyebrow + date/"pick a class" subtitle removed; only the empty/demo hint remains. */}
         <div className="ov-title">Overview</div>
-        <div className="ov-sub">{subLine}</div>
+        {subLine ? <div className="ov-sub">{subLine}</div> : null}
       </div>
 
       <div className={`ov-filters${fade.l ? ' fade-l' : ''}${fade.r ? ' fade-r' : ''}`} ref={filtersRef} onScroll={updateFade}>

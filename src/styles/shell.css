@@ -336,3 +336,9 @@
 .kb-row dt { display: flex; flex-wrap: wrap; gap: 4px; flex: 0 0 48%; }
 .kb-row dd { margin: 0; font-size: 13px; opacity: .85; text-align: right; }
 .kb-row kbd { font: 12px/1.4 ui-monospace, monospace; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* v0.39.0 (t80u): swipe-up affordance on the Checklist tab */
+.tabbar .tab { position: relative; }
+.tabbar .tab:nth-child(2) { touch-action: none; }
+.qo-grabber { position: absolute; top: 3px; left: 50%; translate: -50% 0; width: 18px; height: 3px; border-radius: 2px; background: currentColor; opacity: 0; }
+.tab.on .qo-grabber { opacity: .45; }

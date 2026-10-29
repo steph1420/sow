@@ -90,6 +90,7 @@ export const SHORTCUTS: { group: string; items: [string, string][] }[] = [
     ['Shift+↑ / ↓', 'Select rows (long-press drag)'],
     ['M', 'Switch Set ⇄ Submitted mode (while in the grid)'],
     ['P', 'Pending only (pupils left) on / off'],
+    ['O', 'Quick overview of both dates (also Tools, or swipe up on Checklist tab)'],
     [`${MOD}+F`, 'Filter list by name (hides others)'],
     [`${MOD}+Z  ·  ${MOD}+Shift+Z`, 'Undo · redo'],
   ] },

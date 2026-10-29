@@ -768,3 +768,40 @@
 :root[data-input='kbd'] .sw-colhead .tick.kb-col { color: var(--accent); font-weight: 700; box-shadow: inset 0 -2px 0 var(--accent); }
 .sw-page { position: relative; }
 .sw-check-hit { scroll-margin-top: 64px; scroll-margin-bottom: calc(var(--tabbar-h, 64px) + 24px); }
+
+/* v0.39.0 (t76u): date + count above each tick column; tap = tick/untick all (the old '−' box, merged). */
+.sw-allbox.sw-colbtn {
+  width: 44px; height: auto; min-height: 50px; padding: 3px 0; gap: 2px;
+  flex-direction: column; border: 0; background: none; border-radius: 10px;
+  color: var(--text-sec); font: inherit; text-transform: none; cursor: pointer;
+}
+.sw-colbtn .d { font-size: 11px; font-weight: 700; color: var(--text); letter-spacing: 0; }
+.sw-colbtn .c { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-sec); }
+.sw-colbtn .box { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; color: transparent; }
+.sw-colbtn.on .box { border-color: color-mix(in srgb, var(--tint) 45%, transparent); background: color-mix(in srgb, var(--tint) 12%, transparent); color: var(--ok); }
+.sw-colbtn.partial .box { border-color: color-mix(in srgb, var(--tint) 35%, transparent); color: var(--ok); }
+.sw-page.mode-sub .sw-colbtn.on .box, .sw-page.mode-sub .sw-colbtn.partial .box { color: var(--sub); border-color: rgba(139, 124, 247, 0.45); }
+.sw-allbox.sw-colbtn.on, .sw-allbox.sw-colbtn.partial { background: none; border: 0; }
+.sw-colhead { padding-top: 4px; padding-bottom: 4px; }
+
+/* v0.39.0 Quick overview sheet (t80u) */
+.qo-scrim { position: fixed; inset: 0; z-index: 80; border: 0; background: var(--scrim); }
+.qo-sheet {
+  position: fixed; left: 50%; bottom: 0; translate: -50% 0; z-index: 81; width: min(560px, 100%);
+  background: var(--surface, var(--bg)); color: var(--text); border-top: 1px solid var(--hairline);
+  border-radius: 20px 20px 0 0; padding: 8px 18px calc(18px + var(--safe-bottom)); touch-action: none;
+  transition: transform .18s ease;
+}
+.qo-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--hairline); margin: 2px auto 10px; }
+.qo-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.qo-head h2 { font-size: 17px; margin: 0; }
+.qo-class { font-size: 12px; color: var(--text-sec); }
+.qo-date { padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.qo-top { display: flex; justify-content: space-between; font-size: 15px; }
+.qo-count { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--mode, var(--ok)); }
+.qo-topic { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.qo-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--text) 10%, transparent); margin: 8px 0 4px; overflow: hidden; }
+.qo-bar span { display: block; height: 100%; background: var(--mode, var(--ok)); border-radius: 4px; }
+.qo-sub { font-size: 12px; color: var(--text-sec); }
+.qo-foot { font-size: 12px; color: var(--text-ter); padding: 10px 0 4px; }
+.qo-close { width: 100%; min-height: 44px; margin-top: 6px; border-radius: 12px; border: 1px solid var(--hairline); background: none; color: var(--text); font: inherit; }
