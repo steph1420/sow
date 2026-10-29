@@ -1,3 +1,4 @@
+import { noteServerNow } from './clockSkew'
 /**
  * v0.33.0 push bridge client (Q-FIX-9 → A). Talks to apps-script/Code.js (schema 1).
  * Sheet layout: docs/SHEET_LAYOUT_PLAN.md — Roster · Subjects · Sessions · Ticks.
@@ -66,6 +67,7 @@ export async function bridgeCall<T>(url: string, body: Record<string, unknown>):
   } catch {
     throw new BridgeError('Bridge did not answer JSON · check the web app URL and that it is deployed for “Anyone”')
   }
+  noteServerNow((json as { serverNow?: string }).serverNow)
   if (!json.ok) throw new BridgeError(json.error === 'bad token' ? 'Bridge refused the token · copy it again from SoW > Show app token' : `Bridge: ${json.error ?? 'error'}`)
   return json as T
 }

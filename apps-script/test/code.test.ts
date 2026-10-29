@@ -103,6 +103,16 @@ describe('bridge', () => {
     return { ss, ...env, token, call }
   }
 
+  it('v0.36.1 clock guard: a tick stamped a day ahead is clamped; a later honest un-tick still wins', () => {
+    const { call } = ready()
+    const day = 864e5, now = Date.now()
+    let r = call({ action: 'push', ticks: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 2, set: true, updatedAt: new Date(now + day).toISOString() }] })
+    expect(r.clamped).toBe(1)
+    r = call({ action: 'push', ticks: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 2, set: false, updatedAt: new Date(now + 60e3).toISOString() }] })
+    expect(r.applied).toBe(1)
+    expect(r.state.ticks.find((t: any) => t.tickId === 'KGA_Eng_CW|2026-10-28|2').set).toBe(false)
+  })
+
   it('rejects a bad token', () => {
     const { ctx } = ready()
     const out = JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify({ token: 'nope', action: 'pull' }) } }).text)

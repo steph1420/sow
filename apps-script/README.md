@@ -27,3 +27,6 @@ After editing Code.js later: **Deploy › Manage deployments › ✎ › Version
 2. Deploy › Manage deployments › ✎ (edit) › Version: **New version** › Deploy. Do **not** make a New deployment (the built-in `/exec` URL must stay the same).
 3. Nothing to run: the hidden **Prefs** tab is created on the first settings sync. Columns: key · category · value · updatedAt · deviceId. Don't edit it by hand.
 New actions: `prefsPull`, `prefsPush` (token). All older actions unchanged; replies say `version: "0.36.0"`.
+
+## v0.36.1 update (one paste: settings sync + clock guard)
+Same 2 steps as v0.36.0 — paste the whole `apps-script/Code.js`, Save, Deploy › Manage deployments › ✎ › Version: New version › Deploy. Covers v0.36.0 too, so paste once.

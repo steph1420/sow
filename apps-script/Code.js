@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.36.0'
+var BRIDGE_VERSION = '0.36.1'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -20,6 +20,14 @@ var OLD_TAB_RE = /^(KG[A-Z])\s+(\w+)\s+(CW|HW)$/i
 
 // ───────────────────────── helpers ─────────────────────────
 function nowIso_() { return new Date().toISOString() }
+/** v0.36.1 clock guard (t55u): a stamp more than 10 min ahead of the server clock is clamped to server now. */
+var CLOCK_SLACK_MS = 10 * 60 * 1000
+var clamped_ = 0
+function clampStamp_(at, nowMs) {
+  var t = Date.parse(String(at)), now = nowMs == null ? Date.now() : nowMs
+  if (!isNaN(t) && t > now + CLOCK_SLACK_MS) { clamped_++; return new Date(now).toISOString() }
+  return String(at)
+}
 function pad2_(n) { return (n < 10 ? '0' : '') + n }
 function isoDate_(d) { return d.getFullYear() + '-' + pad2_(d.getMonth() + 1) + '-' + pad2_(d.getDate()) }
 function dateFromIso_(s) { var m = String(s).match(/^(\d{4})-(\d\d)-(\d\d)/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null }
@@ -210,7 +218,7 @@ function applyPush_(ss, ops, by) {
     ticks.forEach(function (r, i) { tIdx[r[0]] = i })
     ops.ticks.forEach(function (t) {
       if (!subjects[t.subjectKey]) { rejected.push(t.subjectKey + ' is not in Subjects'); return }
-      var d = dateFromIso_(t.date), roll = Number(t.roll), at = String(t.updatedAt || '')
+      var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? clampStamp_(t.updatedAt) : ''
       if (!d || !(roll > 0) || !at) { rejected.push('bad tick ' + JSON.stringify(t)); return }
       var cls = sectionOf_(t.subjectKey), sid = sessionId_(t.subjectKey, isoDate_(d)), id = tickId_(sid, roll)
       if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, String(t.topic || ''), 'Open', at, at]) }
@@ -230,6 +238,7 @@ function applyPush_(ss, ops, by) {
     ops.roster.forEach(function (p) {
       var i = rIdx[p.classKey + '|' + Number(p.roll)]
       if (i == null) { rejected.push('no pupil ' + p.classKey + ' roll ' + p.roll + ' in Roster'); return } // never invent pupils
+      p.updatedAt = clampStamp_(p.updatedAt)
       if (String(roster[i][6]) >= String(p.updatedAt)) { ignored++; return }
       var left = p.status === 'Left'
       roster[i][3] = left ? 'Left' : 'Active'
@@ -301,6 +310,7 @@ function prefsPush_(ss, rows, deviceId) {
   ;(rows || []).forEach(function (r) {
     var key = String(r && r.key || '')
     if (!key || PREFS_DENY.test(key) || !r.updatedAt) { ignored++; return }
+    r = { key: r.key, category: r.category, value: r.value, updatedAt: clampStamp_(r.updatedAt) }
     var next = { key: key, category: String(r.category || ''), value: r.value, updatedAt: String(r.updatedAt), deviceId: String(deviceId || '') }
     var i = byKey[key]
     if (i == null) { byKey[key] = cur.length; cur.push(next); applied++ }
@@ -323,8 +333,11 @@ function withLock_(fn) {
 }
 
 function handle_(body) {
+  clamped_ = 0
   var out = route_(body)
   out.version = BRIDGE_VERSION
+  out.serverNow = nowIso_()
+  if (clamped_) out.clamped = clamped_
   return out
 }
 function route_(body) {

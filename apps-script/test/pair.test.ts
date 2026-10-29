@@ -30,7 +30,7 @@ describe('pairing bridge', () => {
     expect(r.ok).toBe(true)
     expect(r.code).toMatch(/^\d{6}$/)
     expect(r.expiresInSec).toBe(300)
-    expect(r.version).toBe('0.36.0')
+    expect(r.version).toBe('0.36.1')
     const raw = props.get('SOW_PAIR')!
     expect(raw).toBeTruthy()
     expect(raw).not.toContain(r.code)
@@ -43,7 +43,7 @@ describe('pairing bridge', () => {
     const { post, token } = env()
     const { code } = post({ action: 'pairStart', token })
     const ok = post({ action: 'pairClaim', code })
-    expect(ok).toMatchObject({ ok: true, token, version: '0.36.0' })
+    expect(ok).toMatchObject({ ok: true, token, version: '0.36.1' })
     expect(post({ action: 'pairClaim', code })).toMatchObject({ ok: false, error: 'no code' })
   })
 
@@ -77,7 +77,7 @@ describe('pairing bridge', () => {
 
   it('ping checks the token and reports version', () => {
     const { post, token } = env()
-    expect(post({ action: 'ping', token })).toMatchObject({ ok: true, version: '0.36.0', schema: 1 })
-    expect(post({ action: 'ping', token: 'x' })).toMatchObject({ ok: false, error: 'bad token', version: '0.36.0' })
+    expect(post({ action: 'ping', token })).toMatchObject({ ok: true, version: '0.36.1', schema: 1 })
+    expect(post({ action: 'ping', token: 'x' })).toMatchObject({ ok: false, error: 'bad token', version: '0.36.1' })
   })
 })

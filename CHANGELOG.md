@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.36.1 — 2026-10-30 (Asia/Calcutta)
+
+Clock guard (Steve t54u "I'm mainly concerned for data - ticks and all"; Q-CRDT-1 LOCKED t55u "Ship v0.36.1 first"). Rollback: tag `v0.36.0` / `f5010e4`. **One combined Code.js (prefs actions + clock guard) — re-paste once + New version.**
+
+- Bridge: a tick, Left or settings stamp more than 10 min ahead of the Apps Script clock is clamped to the server time, so a phone with a fast clock can no longer block later honest edits. Replies carry `serverNow` and `clamped`. Version 0.36.1.
+- App: Sync page warns "This phone's clock is 1 day fast/slow…" when the phone differs from the sheet's clock by more than 10 min (measured on each bridge reply).
+- Plan: docs/CRDT_SYNC_PLAN.md locked (t55u) — full op log is v0.37.0.
+- Tests: unit 205 (+7: `apps-script/test/clockguard.test.ts` 3, code.test clock case 1, `src/sync/clockSkew.test.ts` 3). New `clock-probe` (4 checks). All probes green at 412×915.
+
 ## 0.36.0 — 2026-10-30 (Asia/Calcutta)
 
 Settings sync across paired devices (Steve t49u; plan docs/PREFS_SYNC_PLAN.md; locks t52u). Rollback: tag `v0.35.1` / `ba27194`. **Needs Code.js re-paste + New version** for the sync itself; until then the app says "Update bridge script" and changes nothing.

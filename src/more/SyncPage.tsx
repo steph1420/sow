@@ -6,6 +6,7 @@ import { useWorkspace } from '../demo/WorkspaceContext'
 import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
 import { PrefsSyncCard } from './PrefsSyncCard'
+import { clockWarning, readSkew } from '../sync/clockSkew'
 import { runPrefsSync } from '../sync/prefsRunner'
 import { usePrefs } from '../prefs/PrefsContext'
 import './more.css'
@@ -168,6 +169,11 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         Offline-first · marks save on this device. Pull any readable subject tabs from the Sheet.
         {syncUrl && token ? ' Push via the sheet bridge.' : ' Push not set up yet.'}
       </div>
+
+      {/* v0.36.1 clock guard (t55u): warn when this phone's clock is off vs the sheet's. */}
+      {clockWarning(readSkew()?.skewMs) ? (
+        <div className="more-hint clock-warn" role="alert" style={{ color: 'var(--warn)' }}>⚠ {clockWarning(readSkew()?.skewMs)}</div>
+      ) : null}
 
       <div className="more-sec">Status</div>
       <div className="more-card">
