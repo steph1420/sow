@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.27.0 — 2026-10-29 (Asia/Calcutta)
+
+Systematic fix pass on the v0.26.3 dogfood (Steve t163u "B") + real-phone gesture regression (t165u). Share restore is not in this release (mocked separately). Rollback: tag `v0.26.3` / `f289eb8`.
+
+### Gestures on ✓ columns (t165u, real Android Brave) — top priority
+- Vertical drag on the ✓ columns now scrolls the list (was blocked by `touch-action: none`); the roll column scrolls too except while selecting.
+- Horizontal swipe on a row ticks **both** dates on release (fully ticked row → clears both); horizontal-then-vertical drag covers more rows and ticks them all on release, one undo step, light haptic.
+- No stuck rings on release or cancel. Verified with real CDP touch events (Android UA): `tests/e2e/touch-gesture-probe.cjs` (also covers tap, long-press select, roll-drag select, Mark/Clear).
+
+### P0
+- **First Sync: sheet wins.** The first pull for a class drops every demo mark, including the phantom "Submitted" ones; later pulls still keep your Submitted marks.
+
+### P1
+- **Reload keeps your screen.** Hash routes (`#checklist/KGB_Eng_HW`, `#settings/sync`, …) work with Back and the exit toast.
+- **Offline Sync.** Keeps the last tabs and chips, shows "You're offline", and disables Sync now, Test sheet and Pull only. Nothing is written, so the dirty flag doesn't change.
+- **Tick-all partial** shows a dash (aria "mixed"); all ticked shows ✓.
+- **≥44px tap areas** on chips, undo/redo, search, tick-all, Back, Sync pills/inputs/buttons. Visual sizes are unchanged, except the column header, which is 10px taller.
+- **AA contrast** (4.5:1) for faint text in both themes, plus Day semantic colours, eyebrow tags and Settings icon tiles.
+
+### P2
+- History: honest copy after Sync ("From your sheet · synced …") and one row per pulled date.
+- Overview date chips: "Wed 28/10" (with month), a scrollable row with an edge fade.
+- Checklist class title no longer navigates back to Overview.
+- KGB Eng HW col D (ticks without a date): a quiet note on Sync replaces the sticky warning, and it clears itself once the sheet has a second Current date.
+- Deep link to a class not on the sheet falls back to a sheet class.
+
+### Tests
+- Unit 54. New e2e: reload, offline-sync, tickall, tap (412/360), contrast (10 screens × 2 themes), touch-gesture, ovchips, title, sync-flow (live sheet), empty (fresh IDB), copy. Seam, back and az-tween probes re-run green.
+
 ## 0.26.3 — 2026-10-29 (Asia/Calcutta)
 
 ### Back button steps back; press back again to exit (t156u)
