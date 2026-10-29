@@ -35,6 +35,8 @@ beforeEach(async () => {
   await resetDbForTests()
   workbook()
   await seedIfEmpty()
+  // v0.32.0: workbook URL is blank by default (Q-FIX-4B); these tests pull from a configured sheet
+  await putSettings({ sheetUrl: 'https://docs.google.com/spreadsheets/d/TESTSHEET/edit' })
 })
 afterEach(() => vi.unstubAllGlobals())
 

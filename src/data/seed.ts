@@ -18,7 +18,7 @@ export async function seedIfEmpty(): Promise<{ seeded: boolean }> {
     await putSettings({
       hideLeft: false,
       sheetUrl:
-        'https://docs.google.com/spreadsheets/d/1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw/edit',
+        '', // v0.32.0 Q-FIX-4B (t3u): blank by default, entered in Settings > Sync
       syncUrl: '',
       theme: 'night',
       seededAt: ts,

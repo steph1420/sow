@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.0 — 2026-10-29 (Asia/Calcutta)
+
+Config/privacy, Q-FIX-4B LOCKED (t3u "4. B"): workbook URL blank by default, entered in Settings > Sync. Steve t6u "Also continue to other fixes or plans you had". Rollback: tag `v0.31.1` / `8c5cf8c`.
+
+- **A fresh install no longer comes pointed at Steve's workbook.** Settings > Sync starts empty ("Sheet: Not set"); paste the URL there. Phones that already have the URL keep it (it's stored on the device, nothing is migrated or cleared).
+- The workbook ID is gone from the app code and bundle (kept in docs/ and git history per Q-FIX-1C).
+- Uses the existing Sync screen; no new UI. Mocks of the blank state Night+Day: `/workspace/sow-mockups/blankurl-mj1-*`.
+- Tests: unit 128 (seed now expects a blank URL; sync tests set a test sheet). Sheet probes (`sync-flow`, `offline-sync`) enter the URL from `SOW_SHEET_URL` like Steve would. 23/23 probes green.
+
 ## 0.31.1 — 2026-10-29 (Asia/Calcutta)
 
 Tidy, no visible change. Steve t6u "Also continue to other fixes or plans you had" (plan item v-next tidy, review t2u). Rollback: tag `v0.31.0` / `f8b4145`.

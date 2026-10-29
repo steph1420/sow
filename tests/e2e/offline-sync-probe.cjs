@@ -6,7 +6,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   const ctx = await b.newContext({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
   const p = await ctx.newPage();
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
-  await p.goto(url+'#settings/sync', { waitUntil:'networkidle' });
+  await require('./_launch.cjs').setSheet(p, url);
   await p.waitForFunction(() => document.querySelectorAll('.subj-pill').length > 1, null, { timeout: 30000 }).catch(()=>{});
   const tabsRow = () => p.$$eval('.more-row-sub', els => els.map(e=>e.textContent).join('|'));
   const dirty = () => p.$$eval('.more-row', els => (els.find(e=>/Local dirty/.test(e.textContent))||{}).textContent);

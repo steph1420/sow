@@ -34,7 +34,8 @@ describe('JB-2 local store', () => {
     expect(marks.length).toBeGreaterThan(0)
 
     const s = await getSettings()
-    expect(s.sheetUrl).toContain('spreadsheets')
+    // v0.32.0 (Q-FIX-4B, t3u): workbook URL blank by default; entered in Settings > Sync
+    expect(s.sheetUrl).toBe('')
     expect(s.seededAt).toBeTruthy()
   })
 

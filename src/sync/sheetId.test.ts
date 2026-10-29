@@ -5,8 +5,8 @@ describe('extractSheetId', () => {
   it('parses docs URL', () => {
     expect(
       extractSheetId(
-        'https://docs.google.com/spreadsheets/d/1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw/edit',
+        'https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd/edit',
       ),
-    ).toBe('1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw')
+    ).toBe('1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd')
   })
 })

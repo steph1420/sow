@@ -9,6 +9,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await go('');
   const pre = await p.textContent('.app-main');
   ok(/Submitted [1-9]/.test(pre), 'pre-sync demo shows Submitted (baseline)');
+  await require('./_launch.cjs').setSheet(p, url);
   await go('#settings/sync');
   await p.waitForFunction(() => !document.querySelector('.sync-cta')?.disabled, null, { timeout: 30000 });
   await p.click('.sync-cta');

@@ -7,4 +7,14 @@ async function phone(opts = {}) {
   const p = await ctx.newPage();
   return { b, ctx, p };
 }
-module.exports = { phone, chromium, launchOpts };
+// v0.32.0 (Q-FIX-4B): the workbook URL is blank by default, so sheet probes enter it like Steve does (Settings > Sync).
+// The URL comes from SOW_SHEET_URL (never committed).
+async function setSheet(p, url) {
+  const sheet = process.env.SOW_SHEET_URL;
+  if (!sheet) { console.error('SOW_SHEET_URL not set'); process.exit(3); }
+  await p.goto(url + '#settings/sync', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' });
+  await p.fill('input[name=sow-sheet-url]', sheet);
+  await p.getByRole('button', { name: 'Test sheet', exact: true }).click();
+  await p.waitForFunction(() => document.querySelectorAll('.subj-pill').length > 1, null, { timeout: 30000 }).catch(() => {});
+}
+module.exports = { phone, chromium, launchOpts, setSheet };
