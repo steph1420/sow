@@ -18,6 +18,7 @@ import {
   type RostersByClass,
 } from '../data/persistWorkspace'
 import type { DateSlot } from '../checklist/types'
+import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
 import { getSettings, listSessions } from '../data/api'
 import type { DiscoveredTab } from '../data/types'
@@ -69,8 +70,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [pulledSessions, setPulledSessions] = useState<Session[]>([])
   const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
-  const persistTimer = useRef<number | null>(null)
-  const pendingPersist = useRef<ClassKey | null>(null)
 
   const reloadFromIdb = useCallback(async () => {
     const loaded = await loadWorkspaceFromIdb()
@@ -100,19 +99,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [reloadFromIdb])
 
-  const flushPersist = useCallback(
-    (classKey: ClassKey, marks: MarksMap) => {
-      pendingPersist.current = classKey
-      if (persistTimer.current) window.clearTimeout(persistTimer.current)
-      persistTimer.current = window.setTimeout(() => {
-        const key = pendingPersist.current
-        if (!key) return
-        const roster = rosters[key]?.length ? rosters[key] : ROSTERS[key]
-        void persistClassMarks(key, marks, roster, datesForRef.current(key))
-      }, 280)
-    },
-    [rosters],
-  )
+  // v0.29.1: per-class queue (no class's edits dropped) + flush on pagehide / hidden.
+  const rostersRef = useRef(rosters)
+  rostersRef.current = rosters
+  const queueRef = useRef<PersistQueue<ClassKey, MarksMap> | null>(null)
+  if (!queueRef.current) {
+    queueRef.current = createPersistQueue<ClassKey, MarksMap>((key, marks) => {
+      const r = rostersRef.current[key]
+      const roster = r?.length ? r : ROSTERS[key]
+      void persistClassMarks(key, marks, roster, datesForRef.current(key))
+    }, 280)
+  }
+  useEffect(() => {
+    const flush = () => queueRef.current?.flushAll()
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [])
+  const flushPersist = useCallback((classKey: ClassKey, marks: MarksMap) => {
+    queueRef.current?.schedule(classKey, marks)
+  }, [])
 
   const datesFor = useCallback(
     (k: ClassKey): [DateSlot, DateSlot] => {

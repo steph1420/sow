@@ -57,6 +57,10 @@ export type Discovery = {
   source: 'tab-list' | 'probe'
   /** name → raw CSV text, reused by pull to avoid refetch */
   csv: Map<string, string>
+  /** v0.29.1: tabs whose fetch failed (network/HTTP) — uncertain, never purged. */
+  errored: string[]
+  /** v0.29.1 Q-FIX-5: tabs the sheet itself confirms are gone (absent from its tab list, or gviz answered with the default-tab fingerprint). */
+  confirmedMissing: string[]
 }
 
 /**
@@ -84,6 +88,11 @@ export async function discoverTabs(sheetId: string): Promise<Discovery> {
   const tabs: DiscoveredTab[] = []
   const rejected: string[] = []
   const csv = new Map<string, string>()
+  const errored: string[] = []
+  const confirmedMissing: string[] = []
+  if (listed) {
+    for (const n of Object.values(CLASS_LABELS) as string[]) if (!listed.includes(n)) confirmedMissing.push(n)
+  }
   for (const name of candidates) {
     const key = classKeyForTab(name)
     if (!key) continue
@@ -94,10 +103,12 @@ export async function discoverTabs(sheetId: string): Promise<Discovery> {
     } catch (e) {
       if (e instanceof OfflineError) netFails++
       rejected.push(name)
+      errored.push(name)
       continue
     }
     if (missing && text === missing && name !== firstTab) {
       rejected.push(name)
+      confirmedMissing.push(name)
       continue
     }
     const hasRoll = parseCsv(text).some(
@@ -112,7 +123,7 @@ export async function discoverTabs(sheetId: string): Promise<Discovery> {
   }
   // P1-2: every request failed at network level → offline, not "no tabs".
   if (!tabs.length && netFails > 0 && netFails === attempts) throw new OfflineError()
-  return { tabs, rejected, source: listed ? 'tab-list' : 'probe', csv }
+  return { tabs, rejected, source: listed ? 'tab-list' : 'probe', csv, errored, confirmedMissing }
 }
 
 export async function testSheetReadable(sheetId: string): Promise<{ ok: boolean; message: string }> {

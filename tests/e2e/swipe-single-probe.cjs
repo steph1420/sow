@@ -11,7 +11,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   const rowOn = () => p.$$eval('.sw-row', (rows) => Object.fromEntries(rows.map((r) => [r.dataset.roll, [...r.querySelectorAll('.sw-check')].every((c) => c.classList.contains('on'))])));
   const run = async (single) => {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((single) => { indexedDB.deleteDatabase('sow'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'gestures.swipeSingleRow': single })); }, single);
+    await p.evaluate((single) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'gestures.swipeSingleRow': single })); }, single);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
     const before = await rowOn();
     const start = Object.keys(before).find((r) => !before[r] && +r > 2 && !before[+r + 1] && !before[+r + 2]);

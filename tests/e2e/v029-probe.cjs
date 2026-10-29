@@ -9,7 +9,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await p.addInitScript(() => { window.__vib = []; navigator.vibrate = (ms) => { window.__vib.push(ms); return true; }; });
   const fresh = async (prefs = {}, hash = '#checklist/KGB_Eng_CW') => {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
+    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
     await p.goto(url + hash, { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
   };
   const cell = (roll, col) => p.$eval(`.sw-row[data-roll="${roll}"]`, (r, col) => { const c = r.querySelectorAll('.sw-check-hit')[col].getBoundingClientRect(); const rr = r.getBoundingClientRect(); return [c.left + c.width / 2, c.top + c.height / 2, rr.height]; }, col);

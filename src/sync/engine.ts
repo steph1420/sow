@@ -17,9 +17,10 @@ import {
   putSettings,
   putStudent,
 } from '../data'
-import type { DiscoveredTab } from '../data/types'
+import { CLASS_LABELS, type ClassKey, type DiscoveredTab } from '../data/types'
 import { bridgePush } from './bridge'
 import { getDb } from '../data/db'
+import { clearUndoStacks } from '../lib/undoStack'
 import { parseCsv } from './csv'
 import { OfflineError, discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
 import { parseEngTabLite, sheetDateToIso } from './parseEngLite'
@@ -71,8 +72,11 @@ export async function discoverAndStore(): Promise<{
   if (isOffline()) return { tabs: prev, error: OFFLINE_MESSAGE, offline: true }
   try {
     const d = await discoverTabs(id)
-    await putSettings({ discoveredTabs: d.tabs, discoveredAt: new Date().toISOString() })
-    return { tabs: d.tabs, discovery: d }
+    // v0.29.1 Q-FIX-5: a tab that failed to load is uncertain → keep it from the last discovery.
+    const kept = prev.filter((t) => d.errored.includes(t.name) && !d.tabs.some((x) => x.name === t.name))
+    const tabs = [...d.tabs, ...kept]
+    await putSettings({ discoveredTabs: tabs, discoveredAt: new Date().toISOString() })
+    return { tabs, discovery: { ...d, tabs } }
   } catch (e) {
     if (e instanceof OfflineError) return { tabs: prev, error: OFFLINE_MESSAGE, offline: true }
     return { tabs: prev, error: e instanceof Error ? e.message : String(e) }
@@ -97,17 +101,31 @@ export async function probeSheet(): Promise<SyncReport> {
 
 export type TabPullStat = { tab: string; students: number; marks: number; kept: number; warnings: string[] }
 
-/** t158u — drop demo classes (e.g. Math/Sci) that aren't tabs on the sheet. */
-export async function purgeClassesNotOnSheet(onSheet: DiscoveredTab[]): Promise<number> {
+/**
+ * t158u — drop demo classes (e.g. Math/Sci) that aren't tabs on the sheet.
+ * v0.29.1 Q-FIX-5 (t3u): a class that was ever pulled from the sheet is purged only when the
+ * sheet itself confirms its tab is gone, never on a fetch failure; its Submitted ticks
+ * (app-only, not on the sheet) are always preserved.
+ */
+export async function purgeClassesNotOnSheet(
+  onSheet: DiscoveredTab[],
+  confirm?: { confirmedMissing: string[]; pulled: Set<ClassKey> },
+): Promise<number> {
   const keep = new Set(onSheet.map((t) => t.classKey))
   if (!keep.size) return 0
   const db = await getDb()
   let n = 0
   for (const k of CLASS_KEYS) {
     if (keep.has(k)) continue
+    const pulled = confirm ? confirm.pulled.has(k) : false
+    if (pulled && !confirm!.confirmedMissing.includes(CLASS_LABELS[k])) continue // uncertain → keep
     for (const store of ['students', 'rosterMeta', 'sessions', 'marks'] as const) {
       const keys = await db.getAllKeysFromIndex(store, 'by-class', k)
       for (const key of keys) {
+        if (pulled && store === 'marks') {
+          const m = await db.get('marks', key)
+          if (m?.submitted) continue // Submitted ticks preserved
+        }
         await db.delete(store, key)
         n++
       }
@@ -204,13 +222,16 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
     ? `Pulled ${pulledStudents} students · ${pulledMarks} marks (${perTab.map((t) => `${t.tab} ${t.marks}`).join(' · ')})${errors.length ? ` · ${errors.length} tab warning(s)` : ''}`
     : errors[0] ?? 'Pull returned nothing · sheet may be private or tabs renamed.'
 
-  if (ok) await purgeClassesNotOnSheet((await getSettings()).discoveredTabs ?? tabs)
+  if (ok && discovery) {
+    const pulled = new Set(Object.keys(settings.engSyncState ?? {}) as ClassKey[])
+    await purgeClassesNotOnSheet(discovery.tabs, { confirmedMissing: discovery.confirmedMissing, pulled })
+  }
+  if (ok) clearUndoStacks() // v0.29.1: undo must never restore pre-pull marks over sheet data
 
   await putSettings({
     engSyncState,
     lastSyncAt: ok ? now : settings.lastSyncAt,
     lastSyncError: ok ? (errors.length ? errors.join('; ') : undefined) : message,
-    syncDirty: ok ? false : settings.syncDirty,
     ...(ok ? { syncNotes: notes } : {}),
   })
 

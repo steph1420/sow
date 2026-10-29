@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.1 — 2026-10-29 (Asia/Calcutta)
+
+Data-safety patch. Steve t2u (review agreed) + t3u (Q-FIX answers; Q-FIX-5 "missing classes where tabs fail to load should be confirmed from the source - Google Sheets. That is always the source of truth"). Rollback: tag `v0.29.0` / `f15060a`. No visual change.
+
+- **Sync never deletes a class on a failed load.** A tab that errors (timeout, 500) keeps its class, chips and marks. A class that was pulled before is removed only when Google Sheets itself confirms the tab is gone (missing from the workbook's tab list, or gviz answers with the default-tab fingerprint). Its Submitted ticks are always kept. Demo-only classes (t158u) still clear as before.
+- **Undo is cleared after a successful pull**, so ↶ can no longer bring back pre-pull marks over the sheet's data.
+- **A pull no longer clears "Local dirty".** Only a successful push clears it.
+- **Saves can't be lost:** the 280 ms delayed save keeps one pending save per class (editing class B no longer drops class A's), and flushes immediately when the app is hidden or closed (`visibilitychange`/`pagehide`).
+- e2e: `v029-probe` and `swipe-single-probe` now reset the real IndexedDB (`sow-app`, was `sow`).
+- Docs: `AGENTS.md` push rule (t128u/t153u) and prefs key `sow-app.prefs.v1`; `docs/CODE_TRIANGULATION_v0291.md`, `docs/FIX_PLAN_v0291.md`.
+- Tests: unit 98 (+8: `sync/dataSafety.test.ts` 5, `demo/persistQueue.test.ts` 3).
+
 ## 0.29.0 — 2026-10-29 (Asia/Calcutta)
 
 Steve t170u + t171u. Rollback: tag `v0.28.0` / `8833b96`.
