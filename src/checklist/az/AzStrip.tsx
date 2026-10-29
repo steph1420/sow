@@ -128,7 +128,6 @@ export const AzStrip = forwardRef<AzStripHandle, Props>(function AzStrip({ names
         aria-valuemax={26}
         aria-valuenow={hi ? AZ_LETTERS.indexOf(hi) + 1 : 1}
         aria-valuetext={hi ? `Letter ${hi}` : 'No letter'}
-        aria-keyshortcuts="/"
         data-az-strip
         onKeyDown={onKeyDown}
         onBlur={() => { setHud(null); window.setTimeout(() => setHi(null), 300) }}

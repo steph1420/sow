@@ -114,3 +114,27 @@ Friction found → change:
 4. **No fast way between classes** (8+ Tabs through filter chips) → Overview cards take ↑/↓; Ctrl+1 lands on the first card.
 5. **"Mark Left" had no UI at all** (Left was display-only) → `L` in the grid marks Left (writes rosterMeta → pushed on Sync, same as the sheet's Left), focus stays on the row that slid up; Ctrl+Z restores Active.
 6. Invisible focus: none after fixes (ring checked after every key: ≥2 px accent outline + halo, on-screen). No key took >100 ms on desktop; one 162 ms on phone width before the focus fix, none after.
+
+
+## v0.38.0 — Quick find + dates (t67u/t68u/t69u)
+
+Quick find replaces the "/" strip mode (see CHANGELOG 0.38.0 for the ranking). Dogfood (`kbd-dogfood.cjs`, same numbers at 1920×1080 and 412×915+kbd):
+
+| Query | Target | First hit | ↓ needed | Count | Keys (incl. / and Enter) | Time |
+|---|---|---|---|---|---|---|
+| harsh | Harshita Rao | ✓ | 0 | 1 of 2 | 7 | 0.24 s |
+| kab se | Kabir Sethi | ✓ | 0 | 1 of 1 | 8 | 0.27 s |
+| krishnan | Veda Krishnan | Meera Krishnan | 1 | 2 of 2 | 11 | 0.37 s |
+| lakshay (typo) | Lakshya Gupta | ✓ | 0 | 1 of 1 | 9 | 0.30 s |
+| dp (initials) | Dhruv Patel | ✓ | 0 | 1 of 2 | 4 | 0.13 s |
+| nathn (typo) | Nathan Cruz | ✓ | 0 | 1 of 1 | 7 | 0.23 s |
+| malh | Ira Malhotra | Kabir Malhotra | 1 | 2 of 2 | 7 | 0.23 s |
+| chtra (typo) | Chitra Menon | ✓ | 0 | 1 of 1 | 7 | 0.23 s |
+| elna (typo) | Elena Roy | ✓ | 0 | 1 of 1 | 6 | 0.20 s |
+| zoa | Zoya Khan | ✓ | 0 | 1 of 1 | 5 | 0.17 s |
+
+10/10 found, 72 keys total (7.2 per pupil), 8/10 first hit; the 2 misses were same-surname pairs ranked by roll (correct per spec). Slowest key 46 ms.
+
+Mixed dates (10 pupils alternating date 1/date 2): arrows 30 keys / 1.0 s vs keys 1/2 20 keys / 0.67 s → **1/2 shipped**.
+
+Friction found → change: (1) focus flagged off-screen right after Enter from quick find — the live scroll used the A–Z tween, which kept running after focus moved; quick find now scrolls instantly and focusing a cell cancels any tween. (2) The focused cell could sit under the tab bar → cells get scroll margins. (3) Old dogfood "/ S S" (strip cycling) became "/ S ↓ Enter" — same 5 keys.

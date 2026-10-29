@@ -19,7 +19,7 @@ const PROFILES = [
         const a = document.activeElement;
         if (!a || a === document.body) return { lost: true };
         const cs = getComputedStyle(a), rc = a.getBoundingClientRect();
-        return { lost: false, ring: parseFloat(cs.outlineWidth) >= 2 || cs.boxShadow !== 'none', vis: rc.bottom > 0 && rc.top < innerHeight && rc.width > 0, what: (a.getAttribute('aria-label') || a.textContent || a.tagName).trim().slice(0, 40) };
+        return { lost: false, ring: parseFloat(cs.outlineWidth) >= 2 || cs.boxShadow !== 'none', vis: rc.bottom > 0 && rc.width > 0 && rc.bottom <= (document.querySelector('.tabbar')?.getBoundingClientRect().top ?? innerHeight) + 1, what: (a.getAttribute('aria-label') || a.textContent || a.tagName).trim().slice(0, 40) };
       });
       if (r.lost) issues.push(`focus lost after ${k}`);
       else { if (!r.vis) issues.push(`focus off-screen after ${k} (${r.what})`); if (!r.ring && r.focusVisible !== false) issues.push(`no ring after ${k} (${r.what})`); }
@@ -36,7 +36,7 @@ const PROFILES = [
     const task = async (name, fn) => {
       keys = 0; issues = []; slow = 0; maxMs = 0; const t = Date.now();
       let err = ''; try { await fn(); } catch (e) { err = String(e.message).split('\n')[0]; }
-      out.push({ profile: prof.name, task: name, keys, ms: Date.now() - t, maxKeyMs: maxMs, slowKeys: slow, issues: [...new Set(issues)].slice(0, 4), err });
+      out.push({ profile: prof.name, task: name, keys, ms: Date.now() - t, maxKeyMs: maxMs, slowKeys: slow, issues: [...new Set(issues)].slice(0, 12), err });
     };
     const mod = 'Control';
 
@@ -55,9 +55,10 @@ const PROFILES = [
       const n = await p.$$eval('[data-cell$="-0"]', (e) => e.length);
       for (let i = 0; i < n; i++) await press(`${mod}+KeyZ`);
     });
-    await task('jump with / + letter, tick that pupil', async () => {
-      await press('Slash'); await press('KeyS'); await press('KeyS'); await press('Enter'); await press('Space');
-      const who = await p.evaluate(() => document.querySelector('.sw-row.az-focus .sw-name')?.textContent || '');
+    await task('jump with / + letter, next S, tick that pupil', async () => {
+      await press('Slash'); await press('KeyS'); await press('ArrowDown'); await press('Enter');
+      const who = await p.evaluate(() => (document.activeElement?.getAttribute('aria-label') || '').split(',')[0]);
+      await press('Space');
       if (!/^S/i.test(who)) throw new Error('jump missed: ' + who);
     });
     await task('mark a pupil Left, then undo', async () => {
@@ -96,6 +97,36 @@ const PROFILES = [
     await task('Sync now (Ctrl+S)', async () => {
       await press(`${mod}+KeyS`); await p.waitForTimeout(300);
       if (!(await p.evaluate(() => location.hash)).includes('sync')) throw new Error('not on Sync');
+    });
+    await task('quick find: 10 pupils by partial / typo names', async () => {
+      await press(`${mod}+2`, 1, false); await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.waitForTimeout(300);
+      await p.focus('[data-cell="0-0"]');
+      const Q = [['harsh', 'Harshita Rao'], ['kab se', 'Kabir Sethi'], ['krishnan', 'Veda Krishnan'], ['lakshay', 'Lakshya Gupta'], ['dp', 'Dhruv Patel'],
+        ['nathn', 'Nathan Cruz'], ['malh', 'Ira Malhotra'], ['chtra', 'Chitra Menon'], ['elna', 'Elena Roy'], ['zoa', 'Zoya Khan']];
+      const log = [];
+      for (const [q, want] of Q) {
+        const k0 = keys, t0 = Date.now();
+        await press('Slash'); for (const ch of q) await press(ch === ' ' ? 'Space' : `Key${ch.toUpperCase()}`, 1, false);
+        let hit = await p.$eval('.sw-row.qs-hit .sw-name', (e) => e.textContent.trim()).catch(() => '');
+        const first = hit; let downs = 0;
+        while (hit !== want && downs < 6) { await press('ArrowDown', 1, false); downs++; hit = await p.$eval('.sw-row.qs-hit .sw-name', (e) => e.textContent.trim()).catch(() => ''); }
+        const count = await p.$eval('.qs-count', (e) => e.textContent.trim());
+        await press('Enter');
+        const landed = await p.evaluate(() => document.activeElement?.getAttribute('aria-label') || '');
+        log.push({ q, want, first, downs, count: count.replace(/·.*/, '').trim(), keys: keys - k0, ms: Date.now() - t0, ok: landed.startsWith(want) });
+      }
+      for (const l of log) issues.push(JSON.stringify(l));
+      if (log.some((l) => !l.ok)) throw new Error('missed: ' + log.filter((l) => !l.ok).map((l) => l.q).join(','));
+    });
+    await task('mixed dates (10 pupils, alternate date1/date2) — arrows', async () => {
+      await p.focus('[data-cell="10-0"]');
+      for (let i = 0; i < 10; i++) { if (i % 2) { await press('ArrowRight'); await press('Space'); await press('ArrowLeft'); } else await press('Space'); }
+      for (let i = 0; i < 10; i++) await press(`${mod}+KeyZ`, 1, false);
+    });
+    await task('mixed dates (10 pupils, alternate date1/date2) — keys 1/2', async () => {
+      await p.focus('[data-cell="10-0"]');
+      for (let i = 0; i < 10; i++) await press(i % 2 ? 'Digit2' : 'Digit1');
+      for (let i = 0; i < 10; i++) await press(`${mod}+KeyZ`, 1, false);
     });
     await ctx.close();
   }

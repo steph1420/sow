@@ -133,7 +133,6 @@ export function AppShell() {
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return
-      document.body.dataset.kbd = '1'
       const tgt = e.target as HTMLElement
       if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && tgt.matches?.('.ov-card .top') && !e.altKey && !e.ctrlKey && !e.metaKey) {
         const tops = [...document.querySelectorAll<HTMLElement>('.ov-card .top')]
@@ -186,14 +185,14 @@ export function AppShell() {
         sc.scrollTo({ top, behavior: prefs['chrome.reduceMotion'] ? 'auto' : 'smooth' })
       }
     }
-    const onPtr = () => { document.body.dataset.kbd = '0' }
     window.addEventListener('keydown', onKey)
-    window.addEventListener('pointerdown', onPtr, true)
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', onPtr, true) }
+    return () => window.removeEventListener('keydown', onKey)
   }, [prefs, setTheme])
   // Dogfood (t66u): never drop focus to <body> after a screen change — land somewhere useful.
   useEffect(() => {
     let raf2 = 0
+    // t71u: only when the last input was the keyboard — never on load, touch or pointer.
+    if (document.documentElement.dataset.input !== 'kbd') return
     const raf = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => {
       const a = document.activeElement
       if (a && a !== document.body && document.contains(a) && !a.closest('.tabbar')) return
@@ -202,7 +201,6 @@ export function AppShell() {
         : !topRoute(stack) && tab === 'checklist' ? pick('[data-cell][tabindex="0"]')
         : !topRoute(stack) ? pick('.ov-card.exp .top') ?? pick('.ov-card .top')
         : pick('.app-shell button:not(.tabbar *), .app-shell [tabindex="0"]')
-      if (a && a.closest('.tabbar') && !(document.body.dataset.kbd === '1')) return
       target?.focus({ preventScroll: false })
     }) })
     return () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2) }

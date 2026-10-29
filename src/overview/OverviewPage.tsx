@@ -19,7 +19,7 @@ type Props = {
  * Flat Classes list · expand in place · no Now-marking promote (Steve t142/t144).
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
-  const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
+  const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey } = useWorkspace()
   const { openShare } = useShare()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [subject, setSubject] = useState<SubjectFilter>('All')
@@ -27,10 +27,8 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   const ovGroups = useMemo(() => [...new Set(sessions.map((s) => s.group))].sort(), [sessions])
   const ovSubjects = useMemo(() => [...new Set(sessions.map((s) => s.subject as string))], [sessions])
   const [dateF, setDateF] = useState<DateFilter>('All')
-  const [expandedId, setExpandedId] = useState<string | null>(() => {
-    const match = sessions.find((s) => s.classKey === activeClassKey)
-    return match?.id ?? sessions[0]?.id ?? null
-  })
+  // t75u: nothing auto-expands on load or navigation — every card starts closed; only a tap / Enter opens one.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const dateChips = useMemo(() => {
     // P2-2: key by ISO date, label "Wed 28/10" (month disambiguates 7/10 vs 28/10), oldest → newest

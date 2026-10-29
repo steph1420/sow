@@ -4,12 +4,13 @@ import App from './App'
 import { installBackStack } from './nav/backStack'
 import { installUpdateFlow } from './pwa/updateFlow'
 import { captureInstallPrompt } from './pwa/install'
-import { installDialogFocus, installWideScale } from './lib/a11yRuntime'
+import { installDialogFocus, installInputModality, installWideScale } from './lib/a11yRuntime'
 import './styles/tokens.css'
 import './styles/shell.css'
 
 installBackStack()
 captureInstallPrompt()
+installInputModality()
 installDialogFocus()
 installWideScale()
 

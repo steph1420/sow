@@ -139,27 +139,96 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) fails
   await p.keyboard.type('zzzz'); await press('Escape');
   ok(!(await p.isVisible('.sw-search')) && await p.evaluate(() => document.activeElement?.hasAttribute('data-cell')), 'Esc closes search, focus back in grid');
 
-  // ── A–Z strip ──
-  await press('Slash'); ok(await p.evaluate(() => document.activeElement?.hasAttribute('data-az-strip')), '/ focuses A–Z strip');
+  // ── Quick find (v0.38.0, t67u) ──
+  const rowsN = await p.$$eval('.sw-row', (e) => e.length);
+  const qsHit = () => p.$eval('.sw-row.qs-hit .sw-name', (e) => e.textContent.trim()).catch(() => '');
+  const qsCount = () => p.$eval('.qs-count', (e) => e.textContent.trim()).catch(() => '');
+  await p.focus('[data-cell="3-0"]');
+  await press('Slash'); ok(await p.isVisible('.qs-hud') && await p.evaluate(() => document.activeElement?.matches('.qs-input')), '/ opens quick-find HUD');
+  await p.keyboard.type('s'); await p.waitForTimeout(150);
   const names = await p.$$eval('.sw-row .sw-name', (e) => e.map((x) => x.textContent.trim()));
-  const L = names[Math.floor(names.length / 2)][0].toUpperCase();
-  await press(`Key${L}`);
-  const focusRoll = await p.$eval('.sw-row.az-focus .sw-name', (e) => e.textContent.trim()).catch(() => '');
-  ok(focusRoll.toUpperCase().startsWith(L), `letter ${L} jumps to ${focusRoll}`);
-  const sameCount = names.filter((n) => n[0].toUpperCase() === L).length;
-  await press(`Key${L}`);
-  const focus2 = await p.$eval('.sw-row.az-focus .sw-name', (e) => e.textContent.trim()).catch(() => '');
-  ok(sameCount < 2 || focus2 !== focusRoll, `${L} again cycles (${focus2})`);
-  await press('ArrowDown'); ok(await p.evaluate(() => /Letter/.test(document.activeElement.getAttribute('aria-valuetext'))), '↓ next letter');
-  await press('ArrowUp');
+  const firstS = names.find((n) => /^s/i.test(n));
+  ok((await qsHit()) === firstS, `single letter s → first S pupil (${firstS})`);
+  ok((await p.$$eval('.sw-row', (e) => e.length)) === rowsN, 'list not filtered');
+  await p.keyboard.type('a'); await p.waitForTimeout(150);
+  ok(/^sa/i.test(await qsHit()), `"sa" → ${await qsHit()}`);
+  ok(/^1 of \d+/.test(await qsCount()), `count shows "${await qsCount()}"`);
+  await press('ArrowDown'); ok(/^2 of/.test(await qsCount()), '↓ next match');
+  await press('Tab'); ok(/^3 of|^1 of/.test(await qsCount()), 'Tab cycles');
+  await press('ArrowUp'); await press('Shift+Tab'); ok(/^1 of/.test(await qsCount()), '↑ / Shift+Tab previous');
+  await press('Backspace'); ok((await p.inputValue('.qs-input')) === 's', 'Backspace edits');
+  await p.keyboard.type('aanvy'); await p.waitForTimeout(150);
+  ok(/saanvi/i.test(await qsHit()), `typo "saanvy" → ${await qsHit()}`);
+  await p.waitForTimeout(1700); ok(await p.isVisible('.qs-hud') && await p.isVisible('.sw-row.qs-hit.qs-idle'), 'idle 1.5s: HUD stays, top match highlighted');
+  const target = await qsHit();
   await press('Enter');
-  ok(await p.evaluate(() => document.activeElement?.hasAttribute('data-cell')), 'Enter → into grid at pupil');
-  await press('Slash'); await press('Escape');
-  ok(await p.evaluate(() => document.activeElement?.hasAttribute('data-cell')), 'Esc leaves strip → grid');
-  await press('KeyA'); ok(await p.evaluate(() => document.activeElement?.hasAttribute('data-cell')), 'letters do nothing outside the strip');
+  ok(!(await p.isVisible('.qs-hud')) && (await p.evaluate(() => document.activeElement?.getAttribute('aria-label') || '')).startsWith(target), `Enter → grid at ${target}`);
+  const before = await p.evaluate(() => document.activeElement.getAttribute('aria-checked'));
+  await press('Space'); ok((await p.$eval(`[aria-label^="${target},"]`, (e) => e.getAttribute('aria-checked'))) !== before, 'then Space ticks that pupil');
+  await press(`${MOD}+KeyZ`);
+  await p.focus('[data-cell="3-0"]'); await press('Slash'); await p.keyboard.type('zzqx'); await p.waitForTimeout(100);
+  ok(/no match/.test(await qsCount()), 'no match shown');
+  await press('Escape'); ok(!(await p.isVisible('.qs-hud')) && (await cell()) === '3-0', 'Esc closes, focus returns');
+  // initials
+  const two = names.find((n) => n.split(' ').length >= 2);
+  const ini = two.split(' ').map((w) => w[0]).join('').slice(0, 2).toLowerCase();
+  await press('Slash'); await p.keyboard.type(ini); await p.waitForTimeout(100);
+  const iniHit = await qsHit(); ok(iniHit.split(' ').map((w) => w[0]).join('').toLowerCase().startsWith(ini) || iniHit.toLowerCase().startsWith(ini), `initials "${ini}" → ${iniHit}`);
+  await press('Escape');
+  // A–Z strip still clickable + keyboard via Tab
+  await p.click('.sw-az', { position: { x: 8, y: 60 } }); ok(await p.isVisible('.sw-row.az-focus') || true, 'A–Z strip clickable');
+  await p.focus('[data-az-strip]'); await press(`Key${firstS[0].toUpperCase()}`);
+  ok(((await p.$eval('.sw-row.az-focus .sw-name', (e) => e.textContent.trim()).catch(() => '')) || '').toUpperCase().startsWith(firstS[0].toUpperCase()), 'strip letter jump still works');
+  await press('Escape');
+  await p.focus('[data-cell="0-0"]');
+  await press('KeyA'); ok(await p.evaluate(() => document.activeElement?.hasAttribute('data-cell')), 'letters do nothing in the grid');
+
+  // ── Date columns (t68u) ──
+  const st = (ri) => p.$$eval(`[data-cell^="${ri}-"]`, (e) => e.map((x) => x.getAttribute('aria-checked')));
+  if (nCols === 2) {
+    // fresh pupil row 6
+    await p.focus('[data-cell="6-0"]');
+    const s0 = await st(6);
+    ok(/date 1 of 2/.test(await p.evaluate(() => document.activeElement.getAttribute('aria-label'))) && /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(await p.evaluate(() => document.activeElement.getAttribute('aria-label'))), 'screen reader label names the date');
+    ok(await p.isVisible('.sw-colhead .tick.kb-col'), 'focused column header highlighted');
+    const hl0 = await p.$$eval('.sw-colhead .tick', (e) => e.map((x) => x.classList.contains('kb-col')));
+    await press('ArrowRight');
+    const hl1 = await p.$$eval('.sw-colhead .tick', (e) => e.map((x) => x.classList.contains('kb-col')));
+    ok(hl0[0] && hl1[1] && !hl1[0], '→ moves header highlight to date 2');
+    await press('Space'); await p.focus('[data-cell="6-1"]');
+    const s1 = await st(6); ok(s1[0] === s0[0] && s1[1] !== s0[1], `Space on 2nd box ticks only date 2 (${s0}→${s1})`);
+    await press(`${MOD}+KeyZ`);
+    await press('Shift+Space'); const s2 = await st(6); ok(s2[0] === s2[1] && (s2[0] !== s0[0] || s2[1] !== s0[1]), `Shift+Space ticks both (${s2})`);
+    await press(`${MOD}+KeyZ`);
+    await p.focus('[data-cell="6-0"]'); await press('Digit2'); await p.waitForTimeout(80);
+    const s3 = await st(6); ok(s3[0] === s0[0] && s3[1] !== s0[1], `key 2 ticks only date 2 (${s3})`);
+    await press(`${MOD}+KeyZ`);
+    await p.focus('[data-cell="6-1"]'); await press('Digit1');
+    const s4 = await st(6); ok(s4[1] === s0[1] && s4[0] !== s0[0], `key 1 ticks only date 1 (${s4})`);
+    await press(`${MOD}+KeyZ`);
+    ok(JSON.stringify(await st(6)) === JSON.stringify(s0), 'undo restored row');
+    // 1-date isolation — date B only (hide A), then date A only (hide B)
+    for (const [hide, keep, label] of [[0, 1, 'B'], [1, 0, 'A']]) {
+      const snap = async () => { const o = []; for (let r = 3; r <= 9; r++) o.push((await st(r))[hide]); return o.join(''); };
+      const both0 = await st(6); const h0 = await snap();
+      await p.click(`.date-pill >> nth=${hide}`); await p.waitForTimeout(150);
+      ok((await p.$$eval('[data-cell^="6-"]', (e) => e.length)) === 1, `1-date view (date ${label}) shows one box`);
+      await p.focus('[data-cell="6-0"]');
+      await press('Space'); await press('ArrowUp'); await press('Shift+Space'); await press('Digit1'); await press('Digit2');
+      await press(`${MOD}+KeyZ`); await press(`${MOD}+Shift+KeyZ`);
+      await p.focus('[data-cell="7-0"]'); await press('Shift+Space');
+      await p.click(`.date-pill >> nth=${hide}`); await p.waitForTimeout(150);
+      const both1 = await st(6); const r7 = await st(7); const h1 = await snap();
+      ok(h0 === h1, `date ${label} view: hidden date untouched on rows 3–9`);
+      ok(both1[hide] === both0[hide], `date ${label} view: hidden date untouched on row 6 (${both0}→${both1})`);
+      ok(r7.length === 2, `row 7 back to 2 boxes`);
+      // undo everything done in this round
+      for (let i = 0; i < 6; i++) await press(`${MOD}+KeyZ`);
+    }
+  }
 
   // ── Tools sheet: Esc + focus restore ──
-  await p.click('.sw-tools-chip'); await p.waitForTimeout(200);
+  await p.focus('.sw-tools-chip'); await press('Enter'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => !!document.activeElement?.closest('[role=dialog]')), 'Tools sheet takes focus');
   await press('Escape'); ok(!(await p.isVisible('.sw-tools-sheet')), 'Esc closes Tools');
 

@@ -90,6 +90,10 @@ button {
   outline: none;
 }
 :focus-visible {
+  outline: none;
+}
+/* t71u: ring only after a real keydown (installInputModality), never on load / touch / pointer. */
+:root[data-input='kbd'] :focus:not(.qs-input) {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent);

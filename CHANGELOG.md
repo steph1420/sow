@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.38.0 — 2026-10-30 (Asia/Calcutta)
+
+Spotlight-style quick find + date-column hardening (Steve t67u, t68u; approved t69u). Rollback: tag `v0.37.0` / `5e9dc4b`. **No Code.js change.** CRDT op log renumbered to v0.39.0.
+
+- **/ opens Quick find**: a small HUD at the top shows the word you type; the list stays whole and scrolls live to the best match. Matching ranks roll number, first-name prefix, other-name prefix, multi-word prefix ("kab se"), initials ("rk" → R… K…), part of the name, typo (1 edit for 4+ letters, swaps count as 1), then letters-in-order; ties go by roll. Shows "2 of 3". ↑/↓ or Tab/Shift+Tab cycle, Enter puts you in the grid on that pupil (Space ticks), Backspace edits, Esc closes and returns focus. After 1.5 s idle the HUD stays and the match row lights up. A single letter still lands on the first pupil with that letter. Replaces the old "/" strip mode; the A–Z strip stays clickable (and Tab-focusable with letter keys).
+- Mod+F stays a separate filter (hides non-matching pupils).
+- Dates: ←/→ move between date boxes, Space ticks only the focused box, Shift+Space both; new **1 / 2** keys tick date 1 / date 2 on the row (2-date view; 33% fewer keys in the dogfood). Focused date column header is highlighted. Screen-reader label names the date ("Wed 28, date 2 of 2").
+- 1-date view verified: keyboard, row swipe, name swipe, tap, undo/redo never touch the hidden date.
+- **Fix (t71u–t73u): no focus ring with touch on any page.** Rings show only after a real keydown; a tap hides them. Focus is moved on screen change / sheet open only when you were using the keyboard. New `modality-probe` taps through every page and sheet.
+- **Fix (t75u): Overview cards all start closed** on load and navigation (the active card used to open itself — behaviour since ≤ v0.28, not v0.37.0). Keyboard landing focuses a card, never opens it.
+- Fix: a running A–Z / scroll tween no longer fights keyboard focus; keyboard focus keeps clear of the tab bar.
+- Tests: unit `quickSearch.test.ts` (12); `keyboard-probe` now covers quick find + date columns (Ctrl and Cmd runs); new `dates-touch-probe` (real touch, date A and date B); `kbd-dogfood` adds 10 quick-find lookups and mixed-date marking.
+
 ## 0.37.0 — 2026-10-30 (Asia/Calcutta)
 
 Full keyboard + desktop widescreen (Steve t62u, t64u "go all the way till push", t65u thorough, t66u dogfood; plan docs/KEYBOARD_WIDESCREEN_PLAN.md). Rollback: tag `v0.36.1` / `9b90dc3`. **No Code.js change.** CRDT op log renumbered to v0.38.0.

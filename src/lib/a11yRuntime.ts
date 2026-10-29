@@ -24,12 +24,13 @@ export function installDialogFocus(): void {
       if (restore.has(d)) continue
       const prev = document.activeElement as HTMLElement | null
       restore.set(d, prev)
-      if (!d.contains(prev)) (focusables(d)[0] ?? (d.tabIndex = -1, d)).focus({ preventScroll: true })
+      // t73u: move focus into a sheet only after keyboard input — touch/pointer never get a stray ring.
+      if (document.documentElement.dataset.input === 'kbd' && !d.contains(prev)) (focusables(d)[0] ?? (d.tabIndex = -1, d)).focus({ preventScroll: true })
     }
     for (const [d, prev] of [...restore]) {
       if (document.contains(d)) continue
       restore.delete(d)
-      if (prev && document.contains(prev) && (document.activeElement === document.body || !document.activeElement)) prev.focus({ preventScroll: true })
+      if (document.documentElement.dataset.input === 'kbd' && prev && document.contains(prev) && (document.activeElement === document.body || !document.activeElement)) prev.focus({ preventScroll: true })
     }
   }
   new MutationObserver(() => queueMicrotask(sync)).observe(document.body, { childList: true, subtree: true })
@@ -67,4 +68,20 @@ export function installWideScale(): void {
   }
   apply()
   window.addEventListener('resize', apply)
+}
+
+/**
+ * t71u input modality: rings only after a real keydown; any pointer/touch hides them again.
+ * <html data-input="kbd|pointer">; starts "pointer" so a reload never shows a ring.
+ */
+export function installInputModality(doc: Document = document): void {
+  const root = doc.documentElement
+  root.dataset.input = 'pointer'
+  doc.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return
+    root.dataset.input = 'kbd'
+  }, true)
+  const ptr = () => { root.dataset.input = 'pointer' }
+  doc.addEventListener('pointerdown', ptr, true)
+  doc.addEventListener('touchstart', ptr, { capture: true, passive: true })
 }

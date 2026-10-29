@@ -6,6 +6,7 @@ import { CheckMark, DashMark } from '../components/CheckMark'
 import { AzStrip, type AzStripHandle } from './az/AzStrip'
 import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
+import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
@@ -440,16 +441,22 @@ export function ChecklistPage(_props: Props) {
   const { setPupilLeft, activeClassKey } = useWorkspace()
   const lastLeft = useRef<{ roll: number; name: string; ri: number } | null>(null)
   const autoAdvance = prefs['kbd.autoAdvance']
+  const [qsOpen, setQsOpen] = useState(false)
+  const [qsRoll, setQsRoll] = useState<number | null>(null)
+  const [qsIdle, setQsIdle] = useState(false)
+  const qsReturn = useRef<HTMLElement | null>(null)
+  const [gridFocus, setGridFocus] = useState(false)
   const nRows = m.filteredRoster.length
   const nCols = m.visibleDates.length
   const kbRow = Math.min(kb[0], Math.max(0, nRows - 1))
   const kbCol = Math.min(kb[1], Math.max(0, nCols - 1))
   const focusCell = useCallback((ri: number, ci: number) => {
     setKb([ri, ci])
+    tweenRef.current?.cancel() // dogfood t69u: a lingering A–Z/quick-find tween must not fight keyboard focus
     requestAnimationFrame(() => {
       const el = listRef.current?.querySelector<HTMLElement>(`[data-cell="${ri}-${ci}"]`)
       el?.focus({ preventScroll: true })
-      el?.scrollIntoView({ block: 'nearest' })
+      el?.scrollIntoView({ block: 'nearest', behavior: 'instant' as ScrollBehavior })
     })
   }, [])
   const focusRoll = useCallback((roll: number | null) => {
@@ -469,7 +476,7 @@ export function ChecklistPage(_props: Props) {
       } else {
         const was = m.isOn(roll, date)
         m.toggleCell(roll, date)
-        setLive(`${name}: ${was ? 'unticked' : 'ticked'}`)
+        setLive(`${name}: ${was ? 'unticked' : 'ticked'} ${m.visibleDates[ci]?.dayLabel ?? ''}`)
       }
       lastLeft.current = null
       haptic('light')
@@ -482,6 +489,18 @@ export function ChecklistPage(_props: Props) {
       setPupilLeft(activeClassKey, roll, true)
       setLive(`${name} marked Left — ${navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Z to undo`)
       focusCell(Math.max(0, Math.min(ri, nRows - 2)), ci)
+      return
+    }
+    if ((e.key === '1' || e.key === '2') && nCols === 2 && !e.shiftKey) {
+      e.preventDefault()
+      const c = Number(e.key) - 1
+      const d = m.visibleDates[c]!
+      const was = m.isOn(roll, d.date)
+      m.toggleCell(roll, d.date)
+      setLive(`${name}: ${was ? 'unticked' : 'ticked'} ${d.dayLabel}`)
+      lastLeft.current = null
+      haptic('light')
+      if (autoAdvance && ri < nRows - 1) focusCell(ri + 1, ci)
       return
     }
     if (e.key === 'm' || e.key === 'M') {
@@ -555,7 +574,8 @@ export function ChecklistPage(_props: Props) {
       }
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault()
-        azRef.current?.focus()
+        qsReturn.current = document.activeElement as HTMLElement | null
+        setQsOpen(true)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -661,7 +681,7 @@ export function ChecklistPage(_props: Props) {
               {m.visibleDates.map((d) => {
                 const st = allState(d.date)
                 return (
-                  <span className="tick" key={d.date}>
+                  <span className={`tick${gridFocus && kbCol === m.visibleDates.indexOf(d) ? ' kb-col' : ''}`} key={d.date}>
                     <button
                       type="button"
                       className={`sw-allbox${st === 'on' ? ' on' : st === 'partial' ? ' partial' : ''}`}
@@ -680,6 +700,25 @@ export function ChecklistPage(_props: Props) {
         </div>
       </div>
 
+      {qsOpen ? (
+        <QuickSearchHud
+          rows={m.filteredRoster}
+          onPreview={(roll, idle) => {
+            setQsRoll(roll); setQsIdle(idle)
+            if (roll != null) {
+              const ri = m.filteredRoster.findIndex((r) => r.roll === roll)
+              if (ri >= 0) setKb([ri, kbCol])
+              scrollToRoll(roll, false) // instant: no tween left running when Enter hands focus to the grid
+            }
+          }}
+          onEnter={(roll) => { setQsOpen(false); setQsRoll(null); focusRoll(roll) }}
+          onClose={() => {
+            setQsOpen(false); setQsRoll(null)
+            const back = qsReturn.current
+            requestAnimationFrame(() => { if (back && document.contains(back)) back.focus(); else focusCell(kbRow, kbCol) })
+          }}
+        />
+      ) : null}
       <div className="sw-body">
         <div
           className={`sw-list-wrap${azLeft ? ' az-left' : ''}`}
@@ -687,14 +726,14 @@ export function ChecklistPage(_props: Props) {
           onScroll={onListScroll}
         >
           <div className="sr-only" aria-live="polite">{live}</div>
-          <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts">
+          <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts" onFocus={() => setGridFocus(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGridFocus(false) }}>
             {m.filteredRoster.map((r, rowIndex) => {
               const selected = select.selected.has(r.roll)
               const glow = glowRolls.has(r.roll)
               return (
                 <div
                   key={r.roll}
-                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, glowRolls.size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}`}
+                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, glowRolls.size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}${qsOpen && qsRoll === r.roll ? ` qs-hit${qsIdle ? ' qs-idle' : ''}` : ''}`}
                   ref={(el) => {
                     if (el) rowRefs.current.set(r.roll, el)
                     else rowRefs.current.delete(r.roll)
@@ -727,7 +766,7 @@ export function ChecklistPage(_props: Props) {
                         key={d.date}
                         role="checkbox"
                         aria-checked={on}
-                        aria-label={`${r.name}, roll ${r.roll}, ${d.dayLabel}`}
+                        aria-label={`${r.name}, roll ${r.roll}, ${d.dayLabel}${m.visibleDates.length === 2 ? `, date ${colIndex + 1} of 2` : ''}`}
                         tabIndex={rowIndex === kbRow && colIndex === kbCol ? 0 : -1}
                         data-cell={`${rowIndex}-${colIndex}`}
                         onKeyDown={(e) => onCellKey(e, rowIndex, colIndex, r.roll, d.date)}

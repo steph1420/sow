@@ -748,3 +748,23 @@
   border-color: var(--primary);
   color: var(--on-primary);
 }
+
+/* v0.38.0 quick find HUD (t67u) */
+.qs-hud {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 60;
+  width: min(92%, 380px); display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--surface, var(--bg)) 92%, transparent);
+  backdrop-filter: blur(16px); border: 1px solid var(--hairline);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+.qs-glass { opacity: .6; font-size: 18px; }
+.qs-input { flex: 1; min-width: 0; background: none; border: 0; color: inherit; font-size: 20px; font-weight: 600; letter-spacing: .01em; }
+.qs-input:focus-visible { outline: none; box-shadow: none; }
+.qs-count { font-size: 12px; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.qs-count.none { color: var(--warn, #e0a030); opacity: 1; }
+.sw-row.qs-hit { box-shadow: inset 3px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.sw-row.qs-hit.qs-idle { background: color-mix(in srgb, var(--accent) 24%, transparent); transition: background .3s; }
+:root[data-input='kbd'] .sw-colhead .tick.kb-col { color: var(--accent); font-weight: 700; box-shadow: inset 0 -2px 0 var(--accent); }
+.sw-page { position: relative; }
+.sw-check-hit { scroll-margin-top: 64px; scroll-margin-bottom: calc(var(--tabbar-h, 64px) + 24px); }
