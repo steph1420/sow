@@ -71,6 +71,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
 
+  const marksRef = useRef(marksByClass)
+  useEffect(() => {
+    marksRef.current = marksByClass
+  }, [marksByClass])
+
   const reloadFromIdb = useCallback(async () => {
     const loaded = await loadWorkspaceFromIdb()
     const st = await getSettings()
@@ -171,12 +176,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const setMarksForClass = useCallback(
     (classKey: ClassKey, next: MarksMap | ((prev: MarksMap) => MarksMap)) => {
-      setMarksByClass((prev) => {
-        const cur = prev[classKey]
-        const resolved = typeof next === 'function' ? next(cur) : next
-        flushPersist(classKey, resolved)
-        return { ...prev, [classKey]: resolved }
-      })
+      // v0.31.1 tidy: no side effects inside the state updater (StrictMode runs updaters twice).
+      // marksRef holds the newest marks (incl. not-yet-rendered ones) so back-to-back edits chain.
+      const cur = marksRef.current[classKey]
+      const resolved = typeof next === 'function' ? next(cur) : next
+      marksRef.current = { ...marksRef.current, [classKey]: resolved }
+      setMarksByClass((prev) => ({ ...prev, [classKey]: resolved }))
+      flushPersist(classKey, resolved)
     },
     [flushPersist],
   )

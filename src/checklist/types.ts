@@ -31,8 +31,3 @@ export type ColPills = [boolean, boolean]
 export type SelectAction = 'mark' | 'clear' | 'done'
 
 /** Format ISO date YYYY-MM-DD → DD/MM. */
-export function toDdMm(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim())
-  if (!m) return iso
-  return `${Number(m[3])}/${Number(m[2])}`
-}

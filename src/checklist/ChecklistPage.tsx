@@ -485,6 +485,8 @@ export function ChecklistPage(_props: Props) {
             type="button"
             className={`sw-chip date-pill${m.pills[0] ? ' on' : ''}`}
             onClick={() => m.togglePill(0)}
+            aria-label={`Show date ${m.dates[0].dayNum}`}
+            aria-pressed={m.pills[0]}
           >
             {m.dates[0].dayNum}
           </button>
@@ -492,13 +494,15 @@ export function ChecklistPage(_props: Props) {
             type="button"
             className={`sw-chip date-pill${m.pills[1] ? ' on' : ''}`}
             onClick={() => m.togglePill(1)}
+            aria-label={`Show date ${m.dates[1].dayNum}`}
+            aria-pressed={m.pills[1]}
           >
             {m.dates[1].dayNum}
           </button>
-          <button type="button" className="sw-icon-btn" disabled={!m.canUndo} onClick={() => { m.undo(); haptic('light') }}>
+          <button type="button" className="sw-icon-btn" aria-label="Undo" disabled={!m.canUndo} onClick={() => { m.undo(); haptic('light') }}>
             ↶
           </button>
-          <button type="button" className="sw-icon-btn" disabled={!m.canRedo} onClick={() => { m.redo(); haptic('light') }}>
+          <button type="button" className="sw-icon-btn" aria-label="Redo" disabled={!m.canRedo} onClick={() => { m.redo(); haptic('light') }}>
             ↷
           </button>
           <span className="sw-lean-spacer" />

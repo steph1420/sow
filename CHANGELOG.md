@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.31.1 — 2026-10-29 (Asia/Calcutta)
+
+Tidy, no visible change. Steve t6u "Also continue to other fixes or plans you had" (plan item v-next tidy, review t2u). Rollback: tag `v0.31.0` / `f8b4145`.
+
+- Screen-reader names for the date pills ("Show date 28/10", pressed state) and the ↶/↷ buttons (Undo/Redo).
+- Saving no longer starts from inside a React state update (it could fire twice under StrictMode); edits made back-to-back still chain.
+- Dead code removed: `sync/bridge.ts` (placeholder push, unused since v0.29.2), `seedDemoMarks`, `toDdMm`, `selectedCount`.
+- Tests: unit 128; new `a11y-probe` (every control on 12 screens has a name). 23/23 probes green.
+
 ## 0.31.0 — 2026-10-29 (Asia/Calcutta)
 
 Version label + app updates (Steve t4u "Stuck in 0.29.0") and swipe from the name row (Steve t5u "Make the swipe recognised from about half the length of the name row. But checkboxes only respond when I cross over them."). Rollback: tag `v0.30.0` / `2db49a2`.

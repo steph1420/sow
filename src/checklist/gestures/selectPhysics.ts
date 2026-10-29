@@ -57,9 +57,6 @@ export function applyRollDrag(
   return { ...model, selected: next }
 }
 
-export function selectedCount(model: SelectModel): number {
-  return model.selected.size
-}
 
 /** Actions enabled only when ≥1 selected (0 = none). */
 export function actionsEnabled(model: SelectModel): boolean {

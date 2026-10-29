@@ -1,5 +1,4 @@
-import type { DateSlot, MarksMap, StudentRow } from './types'
-import { markKey } from './types'
+import type { DateSlot, StudentRow } from './types'
 
 /** Demo roster spanning letters for A–Z dogfood (Phase B — no Sync yet). */
 export const DEMO_CLASS_LABEL = 'KGA · Eng CW'
@@ -51,15 +50,3 @@ export const DEMO_ROSTER: StudentRow[] = [
   { roll: 28, name: 'Zoya Khan', left: false },
 ]
 
-export function seedDemoMarks(): MarksMap {
-  const m: MarksMap = {}
-  const d0 = DEMO_DATES[0].date
-  const d1 = DEMO_DATES[1].date
-  for (const s of DEMO_ROSTER) {
-    const on0 = s.roll % 3 !== 0
-    const on1 = s.roll % 4 === 0 || s.roll % 5 === 0
-    m[markKey(s.roll, d0)] = { set: on0, submitted: s.roll % 7 === 0 }
-    m[markKey(s.roll, d1)] = { set: on1, submitted: s.roll % 9 === 0 }
-  }
-  return m
-}
