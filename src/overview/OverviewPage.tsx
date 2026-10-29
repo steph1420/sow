@@ -21,6 +21,9 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [subject, setSubject] = useState<SubjectFilter>('All')
+  // Filter chips derive from real sessions (t158u) — no hardcoded Math.
+  const ovGroups = useMemo(() => [...new Set(sessions.map((s) => s.group))].sort(), [sessions])
+  const ovSubjects = useMemo(() => [...new Set(sessions.map((s) => s.subject as string))], [sessions])
   const [dateF, setDateF] = useState<DateFilter>('All')
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     const match = sessions.find((s) => s.classKey === activeClassKey)
@@ -63,22 +66,22 @@ export function OverviewPage({ onOpenChecklist }: Props) {
 
       <div className="ov-filters">
         <div className="ov-slide">
-          {(['All', 'KGA', 'KGB', 'Eng', 'Math'] as const).map((g) => {
+          {(['All', ...ovGroups, ...ovSubjects] as string[]).map((g) => {
             const isOn =
               g === 'All'
                 ? group === 'All' && subject === 'All'
-                : g === 'Eng' || g === 'Math'
+                : ovSubjects.includes(g)
                   ? subject === g
                   : group === g
             const handle = () => {
-              if (g === 'Eng' || g === 'Math') {
-                setSubject(g)
+              if (ovSubjects.includes(g)) {
+                setSubject(g as SubjectFilter)
                 setGroup('All')
               } else if (g === 'All') {
                 setGroup('All')
                 setSubject('All')
               } else {
-                setGroup(g)
+                setGroup(g as GroupFilter)
                 setSubject('All')
               }
             }

@@ -1,3 +1,4 @@
+import { useBackLayer } from '../nav/backStack'
 import { createScrollTween, type ScrollTween } from './scrollTween'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
@@ -51,6 +52,10 @@ export function ChecklistPage({ onGoOverview }: Props) {
   const [leanHidden, setLeanHidden] = useState(false)
   const [azFocusRoll, setAzFocusRoll] = useState<number | null>(null)
   const lastScrollY = useRef(0)
+  // Overlays are back-steps (t156u): hardware back closes them before leaving Checklist.
+  useBackLayer(m.searchOpen ? 1 : 0, () => m.setSearchOpen(false))
+  useBackLayer(toolsOpen ? 1 : 0, () => setToolsOpen(false))
+  useBackLayer(copyOpen ? 1 : 0, () => setCopyOpen(false))
   const reduceMotion = prefs['chrome.reduceMotion']
 
   const paintRef = useRef<{

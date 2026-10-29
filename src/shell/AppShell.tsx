@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useBackLayer, useExitToast } from '../nav/backStack'
 import { CheckMark } from '../components/CheckMark'
 import type { ClassKey } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
@@ -22,7 +23,11 @@ export type TabId = 'checklist' | 'overview'
  */
 export function AppShell() {
   const { setActiveClassKey } = useWorkspace()
-  const [tab, setTab] = useState<TabId>('overview')
+  const [tab, setTab] = useState<TabId>(() =>
+    /\/checklist\/?$/.test(window.location.pathname) || window.location.hash === '#checklist'
+      ? 'checklist'
+      : 'overview',
+  )
   const [moreOpen, setMoreOpen] = useState(false)
   const [stack, setStack] = useState<MoreStack>([])
 
@@ -50,6 +55,17 @@ export function AppShell() {
     setTab('overview')
   }, [])
 
+  // History sync (t156u): each open layer = one browser back-step, topmost closes first.
+  useBackLayer(tab === 'checklist' ? 1 : 0, () => setTab('overview'))
+  useBackLayer(stack.length, () => setStack((s) => popRoute(s)))
+  useBackLayer(moreOpen ? 1 : 0, () => setMoreOpen(false))
+  const exitToast = useExitToast()
+  const toast = exitToast ? (
+    <div className="exit-toast" role="status" aria-live="polite">
+      Press back again to exit
+    </div>
+  ) : null
+
   const top = topRoute(stack)
 
   if (top) {
@@ -57,6 +73,7 @@ export function AppShell() {
       return (
         <div className="app-shell">
           <RosterPage onBack={onBack} />
+          {toast}
         </div>
       )
     }
@@ -71,6 +88,7 @@ export function AppShell() {
               setTab('checklist')
             }}
           />
+          {toast}
         </div>
       )
     }
@@ -87,6 +105,7 @@ export function AppShell() {
             onOpenHistory={() => setStack((s) => pushRoute(s, 'history'))}
             onOpenAbout={() => setStack((s) => pushRoute(s, 'about'))}
           />
+          {toast}
         </div>
       )
     }
@@ -94,6 +113,7 @@ export function AppShell() {
       return (
         <div className="app-shell">
           <DevPage onBack={onBack} />
+          {toast}
         </div>
       )
     }
@@ -104,6 +124,7 @@ export function AppShell() {
             onBack={onBack}
             onOpenSubjects={() => setStack((s) => pushRoute(s, 'subjects'))}
           />
+          {toast}
         </div>
       )
     }
@@ -114,6 +135,7 @@ export function AppShell() {
             onBack={onBack}
             onOpenAzDev={() => setStack((s) => pushRoute(s, 'dev'))}
           />
+          {toast}
         </div>
       )
     }
@@ -121,6 +143,7 @@ export function AppShell() {
       return (
         <div className="app-shell">
           <SubjectsPage onBack={onBack} />
+          {toast}
         </div>
       )
     }
@@ -128,6 +151,7 @@ export function AppShell() {
       return (
         <div className="app-shell">
           <AboutPage onBack={onBack} />
+          {toast}
         </div>
       )
     }
@@ -195,6 +219,7 @@ export function AppShell() {
           More
         </button>
       </nav>
+      {toast}
     </div>
   )
 }

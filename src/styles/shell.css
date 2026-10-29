@@ -24,7 +24,7 @@
   padding: 6px 8px var(--safe-bottom);
   display: flex;
   gap: 4px;
-  background: rgba(10, 11, 14, 0.92);
+  background: var(--chrome-bar);
   border-top: 1px solid var(--hairline);
   backdrop-filter: blur(12px);
   z-index: 20;
@@ -46,7 +46,8 @@
 }
 
 .tab.on {
-  color: var(--text);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .tab .tic {
@@ -60,7 +61,7 @@
 .scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.48);
+  background: var(--scrim);
   z-index: 30;
 }
 
@@ -74,7 +75,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 8px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--shadow-pop);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -292,4 +293,27 @@
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Exit toast — Quiet Lucid, bottom, non-blocking (v0.26.3 · t156u) */
+.exit-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text, #1d1d1f) 88%, transparent);
+  color: var(--bg, #fff);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  animation: exit-toast-in 160ms ease-out;
+  white-space: nowrap;
+}
+@keyframes exit-toast-in {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }

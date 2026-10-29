@@ -61,7 +61,7 @@ export function SettingsPage({
             <div className="hc-label">
               Subjects & sheets <span className="chev">›</span>
             </div>
-            <div className="hc-sub">Eng · Math · Sci · manage tabs</div>
+            <div className="hc-sub">Tabs on your sheet · manage</div>
           </div>
         </button>
       </div>
@@ -108,7 +108,7 @@ export function SettingsPage({
           </span>
           <span className="g-body">
             <span className="g-title">About</span>
-            <span className="g-sub">v0.26.2 · Quiet Lucid</span>
+            <span className="g-sub">v0.26.3 · Quiet Lucid</span>
           </span>
           <span className="chev">›</span>
         </button>

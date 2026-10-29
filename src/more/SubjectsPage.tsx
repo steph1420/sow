@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { CLASS_KEYS, CLASS_LABELS, type DiscoveredTab, type SubjectId } from '../data/types'
+import { type DiscoveredTab, type SubjectId } from '../data/types'
 import { getSettings } from '../data'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
 type Props = { onBack: () => void }
 
-const SUBJECTS: SubjectId[] = ['Eng', 'Math', 'Sci']
 
 /**
  * Subjects & sheets — catalog = tabs actually discovered on the workbook (v0.26).
@@ -23,7 +22,7 @@ export function SubjectsPage({ onBack }: Props) {
     })
   }, [])
 
-  const missing = CLASS_KEYS.filter((k) => !tabs.some((t) => t.classKey === k))
+  const SUBJECTS = [...new Set(tabs.map((t) => t.subject))] as SubjectId[]
 
   return (
     <MoreChrome title="Subjects & sheets" onBack={onBack}>
@@ -34,6 +33,11 @@ export function SubjectsPage({ onBack }: Props) {
 
       <div className="more-sec">Subjects</div>
       <div className="more-card">
+        {!SUBJECTS.length ? (
+          <div className="more-row" style={{ cursor: 'default' }}>
+            Sync to load your classes
+          </div>
+        ) : null}
         {SUBJECTS.map((s) => {
           const n = tabs.filter((t) => t.subject === s).length
           return (
@@ -61,11 +65,6 @@ export function SubjectsPage({ onBack }: Props) {
         )}
       </div>
 
-      {missing.length ? (
-        <div className="more-hint">
-          Not on sheet: {missing.map((k) => CLASS_LABELS[k]).join(' · ')} — kept on device as demo, never pulled.
-        </div>
-      ) : null}
     </MoreChrome>
   )
 }

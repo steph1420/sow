@@ -58,7 +58,7 @@ describe('discovery + merge pull', () => {
     await putMark({ ...m, submitted: true, updatedAt: st!.lastSyncAt })
     await pullSubjects(['Eng'])
     expect((await getMark('KGA_Eng_CW', 2, '2026-10-28'))?.submitted).toBe(true)
-    expect((await listMarks('KGA_Math_CW')).length).toBeGreaterThan(0) // demo Math untouched
+    expect((await listMarks('KGA_Math_CW')).length).toBe(0) // t158u: demo Math purged (not on sheet)
     await putSettings({})
   })
 

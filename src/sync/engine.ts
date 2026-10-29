@@ -19,6 +19,7 @@ import {
 } from '../data'
 import type { DiscoveredTab } from '../data/types'
 import { bridgePush } from './bridge'
+import { getDb } from '../data/db'
 import { parseCsv } from './csv'
 import { discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
 import { parseEngTabLite, sheetDateToIso } from './parseEngLite'
@@ -79,6 +80,25 @@ export async function probeSheet(): Promise<SyncReport> {
 }
 
 export type TabPullStat = { tab: string; students: number; marks: number; kept: number; warnings: string[] }
+
+/** t158u — drop demo classes (e.g. Math/Sci) that aren't tabs on the sheet. */
+export async function purgeClassesNotOnSheet(onSheet: DiscoveredTab[]): Promise<number> {
+  const keep = new Set(onSheet.map((t) => t.classKey))
+  if (!keep.size) return 0
+  const db = await getDb()
+  let n = 0
+  for (const k of CLASS_KEYS) {
+    if (keep.has(k)) continue
+    for (const store of ['students', 'rosterMeta', 'sessions', 'marks'] as const) {
+      const keys = await db.getAllKeysFromIndex(store, 'by-class', k)
+      for (const key of keys) {
+        await db.delete(store, key)
+        n++
+      }
+    }
+  }
+  return n
+}
 
 /** Merge-pull discovered tabs. Never imports a tab that discovery rejected. */
 async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<SyncReport & { perTab: TabPullStat[] }> {
@@ -168,6 +188,8 @@ async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<S
     ? `Pulled ${pulledStudents} students · ${pulledMarks} marks (${perTab.map((t) => `${t.tab} ${t.marks}`).join(' · ')})${errors.length ? ` · ${errors.length} tab warning(s)` : ''}`
     : errors[0] ?? 'Pull returned nothing · sheet may be private or tabs renamed.'
 
+  if (ok) await purgeClassesNotOnSheet((await getSettings()).discoveredTabs ?? tabs)
+
   await putSettings({
     engSyncState,
     lastSyncAt: ok ? now : settings.lastSyncAt,
@@ -231,7 +253,7 @@ export async function pushLocal(): Promise<SyncReport> {
 
   try {
     const r = await bridgePush(settings.syncUrl, id, {
-      note: 'sow-app rewrite push placeholder — full SoW_* payload Phase E+',
+      note: 'sow-app rewrite push placeholder — full SoW_* payload pending',
     })
     const now = new Date().toISOString()
     await putSettings({

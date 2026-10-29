@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.26.3 — 2026-10-29 (Asia/Calcutta)
+
+### Back button steps back; press back again to exit (t156u)
+- Cause: the app never touched browser history (in-app nav was pure React state), so Android back/gesture back left the page (closed the tab/PWA).
+- New `src/nav/backStack.ts`: history laid out as [base][guard][layer 1..n]. Each open layer (Checklist tab, More popup, Settings sub-pages, Tools, Copy, Search) is one entry; a reconcile pass pushes or `history.go(-k)`s so history depth always equals open layers (no double-push, in-app ← buttons stay in sync).
+- `popstate` closes the topmost layer first (overlay → page → Overview).
+- At root: back lands on base → Quiet Lucid toast "Press back again to exit" (~2s, bottom, non-blocking) and guard re-pushed; second back within window leaves (falls back to `window.close()` for standalone PWA at index 0).
+- Reload mid-stack / bfcache restore unwind to the guard; `#checklist` deep link opens Checklist with Overview underneath.
+- e2e: `tests/e2e/back-probe.cjs` (412×915).
+
+### Day theme: light A–Z rail + tab bar (t157u)
+- A–Z rail used hardcoded `#111318`; tab bar hardcoded `rgba(10,11,14,.92)` → now `--surface` / `--chrome-bar`. Active tab = accent green on `--accent-soft` pill (was dark-on-dark in Day).
+- New tokens `--chrome-bar --accent --accent-soft --shadow-pop --scrim` (Night values unchanged); popup/sheet shadows and scrims softened in Day.
+- e2e: `tests/e2e/theme-shots.cjs`.
+
+### Only your sheet's classes (t158u)
+- Roster, Overview filter chips, Subjects & sheets and Settings now derive from discovered/pulled sheet tabs — no hardcoded Eng/Math/Sci. Before first Sync: "Sync to load your classes".
+- Pull purges demo classes not on the sheet (students, rosterMeta, sessions, marks) from IDB.
+- Roster copy: source tab + last synced time (removed "Phase E" text). Demo Overview (pre-sync) shows Eng only.
+
 ## 0.26.2 — 2026-10-29 (Asia/Calcutta)
 
 ### A–Z scrub scroll: quick but smooth (t155u)

@@ -42,6 +42,11 @@
   --tabbar-h: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  --chrome-bar: rgba(10, 11, 14, 0.92);
+  --accent: var(--ok);
+  --accent-soft: rgba(48, 209, 88, 0.14);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --scrim: rgba(0, 0, 0, 0.48);
 }
 
 *,
@@ -100,4 +105,8 @@ button {
   --warn: #c77700;
   --danger: #d93025;
   --sel: rgba(26, 159, 75, 0.1);
+  --chrome-bar: rgba(255, 255, 255, 0.94);
+  --accent-soft: rgba(26, 159, 75, 0.12);
+  --shadow-pop: 0 12px 36px rgba(18, 20, 26, 0.16);
+  --scrim: rgba(18, 20, 26, 0.28);
 }

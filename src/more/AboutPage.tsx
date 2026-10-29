@@ -13,7 +13,7 @@ export function AboutPage({ onBack }: Props) {
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Version
-          <span className="meta">0.26.2</span>
+          <span className="meta">0.26.3</span>
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Craft

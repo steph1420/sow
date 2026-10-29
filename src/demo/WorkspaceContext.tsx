@@ -18,7 +18,8 @@ import {
 } from '../data/persistWorkspace'
 import type { DateSlot } from '../checklist/types'
 import type { Session } from '../data/types'
-import { listSessions } from '../data/api'
+import { getSettings, listSessions } from '../data/api'
+import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
   ROSTERS,
@@ -40,6 +41,10 @@ type WorkspaceValue = {
   /** Checklist date slots for a class — pulled Current, else demo. */
   datesFor: (k: ClassKey) => [DateSlot, DateSlot]
   rosterFor: (k: ClassKey) => RostersByClass[ClassKey]
+  /** Classes on the user's sheet (pulled/discovered). Empty until first Sync. */
+  classKeys: ClassKey[]
+  sheetTabs: DiscoveredTab[]
+  lastSyncAt?: string
   /** Reload marks/rosters from IDB (after sync pull). */
   reloadFromIdb: () => Promise<void>
 }
@@ -56,11 +61,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   })
   const [rosters, setRosters] = useState<RostersByClass>(() => ({ ...ROSTERS }))
   const [pulledSessions, setPulledSessions] = useState<Session[]>([])
+  const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
+  const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
   const persistTimer = useRef<number | null>(null)
   const pendingPersist = useRef<ClassKey | null>(null)
 
   const reloadFromIdb = useCallback(async () => {
     const loaded = await loadWorkspaceFromIdb()
+    const st = await getSettings()
+    setSheetTabs(st.discoveredTabs ?? [])
+    setLastSyncAt(st.lastSyncAt)
     setPulledSessions((await listSessions()).filter((s) => s.sessionId.endsWith('|current')))
     if (loaded.hasStudents) {
       setRosters(loaded.rosters)
@@ -117,9 +127,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     () =>
       pulledSessions.length
         ? sessionsFromIdb(pulledSessions, (k) => rosterFor(k).length)
-        : DEMO_SESSIONS,
+        : DEMO_SESSIONS.filter((s) => s.subject === 'Eng'), // no demo Math/Sci (t158u)
     [pulledSessions, rosterFor],
   )
+
+  const classKeys = useMemo<ClassKey[]>(() => {
+    const ks = new Set<ClassKey>()
+    for (const t of sheetTabs) ks.add(t.classKey)
+    for (const s of pulledSessions) ks.add(s.classKey)
+    return [...ks]
+  }, [sheetTabs, pulledSessions])
 
   const setMarksForClass = useCallback(
     (classKey: ClassKey, next: MarksMap | ((prev: MarksMap) => MarksMap)) => {
@@ -142,11 +159,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setMarksForClass,
       sessions,
       fromSheet: pulledSessions.length > 0,
+      classKeys,
+      sheetTabs,
+      lastSyncAt,
       datesFor,
       rosterFor,
       reloadFromIdb,
     }),
-    [ready, activeClassKey, marksByClass, setMarksForClass, sessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
+    [classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
