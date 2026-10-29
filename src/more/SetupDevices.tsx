@@ -120,7 +120,7 @@ export function PairHostPage(p: { url: string; token: string; onBack: () => void
   )
 }
 
-export function JoinPage(p: { initialUrl: string; onBack: () => void; onPaired: (url: string, token: string) => Promise<string> }) {
+export function JoinPage(p: { initialUrl: string; showUrlOverride?: boolean; onBack: () => void; onPaired: (url: string, token: string) => Promise<string> }) {
   const [url, setUrl] = useState(p.initialUrl)
   const [d, setD] = useState<string[]>(['', '', '', '', '', ''])
   const [busy, setBusy] = useState(false)
@@ -151,10 +151,12 @@ export function JoinPage(p: { initialUrl: string; onBack: () => void; onPaired: 
   return (
     <MoreChrome title="Join with a code" onBack={p.onBack}>
       <div className="more-card" style={{ padding: 0 }}>
-        <label className="sync-field">
-          Bridge URL
-          <input className="sync-input" name="sow-join-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" autoComplete="off" />
-        </label>
+        {p.showUrlOverride ? (
+          <label className="sync-field">
+            Bridge URL (Developer override)
+            <input className="sync-input" name="sow-join-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" autoComplete="off" />
+          </label>
+        ) : null}
         <div className="sync-field" style={{ paddingBottom: 0, borderBottom: 0 }}>6-digit code</div>
         <div className="sp-digits">
           {d.map((v, i) => (
@@ -178,7 +180,7 @@ export function JoinPage(p: { initialUrl: string; onBack: () => void; onPaired: 
       {done ? (
         <div className="more-card" role="status">
           <div className="sp-ok">✓ {done === 'Paired, syncing…' ? done : 'Paired'}</div>
-          <div className="sp-sm" style={{ paddingTop: 0 }}>{done === 'Paired, syncing…' ? 'URL and token saved on this device' : done}</div>
+          <div className="sp-sm" style={{ paddingTop: 0 }}>{done === 'Paired, syncing…' ? 'Token saved on this device' : done}</div>
         </div>
       ) : null}
     </MoreChrome>

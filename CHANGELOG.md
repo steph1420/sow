@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.34.1 — 2026-10-29 (Asia/Calcutta)
+
+Joining a device needs only the code (Steve t47u "Why does joining ask for bridge url... beats the purpose of code", t48u "Please do it"). Rollback: tag `v0.34.0` / `dfa7e68`.
+
+- Steve's bridge `/exec` address is built in (`src/sync/defaultBridge.ts`) and used whenever no URL is stored. Address only; the token is never built in and still arrives via pairClaim / setup file.
+- **Join with a code** shows only the six digit boxes. A Bridge URL override field appears there only with Developer options › Sync › "Bridge URL override on Join".
+- Sync status "Push: Connected" now also requires a token (the URL is always present now).
+- Tests: unit 167 (+5 `src/sync/defaultBridge.test.ts`). `setup-pair-probe` updated (no URL field; built-in URL saved) — 21/21; all non-sheet probes green at 412×915.
+
 ## 0.34.0 — 2026-10-29 (Asia/Calcutta)
 
 Set up another device without retyping the URL + token (Steve t36u setup file, t38u "Add the Pairdrop style as well please!"; mocks setuppair-mj1 **LOCKED t39u "Lock all"**). Turn t39u. Rollback: tag `v0.33.1` / `386a861` (app) — the old Code.gs keeps working with v0.34.0 apart from pairing/ping.

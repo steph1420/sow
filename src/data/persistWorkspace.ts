@@ -160,6 +160,6 @@ export async function readSyncStatus(): Promise<{
     lastSyncError: s.lastSyncError,
     syncDirty: s.syncDirty,
     connectedSheet: Boolean(s.sheetUrl && /spreadsheets/i.test(s.sheetUrl)),
-    connectedPush: Boolean(s.syncUrl && /script\.google\.com/i.test(s.syncUrl)),
+    connectedPush: Boolean(s.syncUrl && /script\.google\.com/i.test(s.syncUrl) && s.bridgeToken?.trim()),
   }
 }

@@ -1,6 +1,7 @@
 import { getDb } from './db'
 import type { ClassKey, Mark, RosterMeta, Session, Settings, Student } from './types'
 import { markId as makeMarkId, studentId } from './types'
+import { effectiveSyncUrl } from '../sync/defaultBridge'
 
 const now = () => new Date().toISOString()
 
@@ -26,7 +27,8 @@ export async function getSettings(): Promise<Settings> {
     syncUrl: '',
     theme: 'night',
   }
-  return s ? { ...base, ...s, id: 'app' } : base
+  const out = s ? { ...base, ...s, id: 'app' as const } : base
+  return { ...out, syncUrl: effectiveSyncUrl(out.syncUrl) }
 }
 
 export async function putSettings(patch: Partial<Omit<Settings, 'id'>>): Promise<Settings> {

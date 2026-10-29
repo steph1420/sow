@@ -5,6 +5,7 @@ import { readSyncStatus } from '../data/persistWorkspace'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
+import { usePrefs } from '../prefs/PrefsContext'
 import './more.css'
 import { haptic } from '../lib/haptics'
 import { ImportSheet, JoinPage, OtherDevicesCard, PairHostPage, exportSetup } from './SetupDevices'
@@ -32,6 +33,7 @@ function chipsFrom(tabs: DiscoveredTab[]): { subject: SubjectId; tabs: string[] 
  */
 export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const { reloadFromIdb } = useWorkspace()
+  const { prefs } = usePrefs()
   const [sheetUrl, setSheetUrl] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
   const [token, setToken] = useState('')
@@ -144,6 +146,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
     return (
       <JoinPage
         initialUrl={syncUrl}
+        showUrlOverride={!!prefs['sync.joinUrlOverride']}
         onBack={() => setView('main')}
         onPaired={async (url, tok) => {
           await putSettings({ syncUrl: url, bridgeToken: tok })

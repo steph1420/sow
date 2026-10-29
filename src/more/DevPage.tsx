@@ -108,6 +108,15 @@ export function DevPage({ onBack }: Props) {
             ))}
           </select>
         </label>
+        {/* v0.34.1 (t48u): bridge URL is built in; an override field on Join only when this is on. */}
+        <button
+          type="button"
+          className="more-row dev-join-url"
+          onClick={() => setPref('sync.joinUrlOverride', !prefs['sync.joinUrlOverride'])}
+        >
+          Bridge URL override on Join
+          <span className={`toggle${prefs['sync.joinUrlOverride'] ? ' on' : ''}`} aria-hidden />
+        </button>
       </div>
 
       <div className="more-sec">Chrome</div>

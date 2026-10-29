@@ -3,7 +3,8 @@
 // Export → .sowsetup download; Import → confirm sheet (masked token) → Apply after ping.
 const { phone } = require('./_launch.cjs');
 const url = process.argv[2] || 'http://localhost:4191/sow/';
-const EXEC = 'https://script.google.com/macros/s/AKfyPROBE_x/exec';
+// v0.34.1: Join uses the built-in bridge URL (no URL field).
+const EXEC = 'https://script.google.com/macros/s/AKfycbzmOQ__yxauJtrQ5LNxSqcEaDHjjbcZb-rzt0UuBQGVwXSURKRF1zbr6FvChAy7-hjqwA/exec';
 const TOK = 'probe-token-ABCD7Kq2';
 (async () => {
   const { b, ctx, p } = await phone({ acceptDownloads: true });
@@ -25,13 +26,13 @@ const TOK = 'probe-token-ABCD7Kq2';
   await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
   await go();
   const pairBtn = p.getByRole('button', { name: /Pair a device/ });
-  ok(await pairBtn.isDisabled(), 'Pair a device disabled without URL+token');
+  ok(await pairBtn.isDisabled(), 'Pair a device disabled without token');
   ok(await p.getByText('Other devices').isVisible(), 'Other devices card shown');
   ok(await p.getByText('Hidden · saved on this device only').isVisible(), 'token hint shown');
 
   // ── Join (new device)
   await tap(p.getByRole('button', { name: /Join with a code/ }));
-  await p.fill('input[name=sow-join-url]', EXEC);
+  ok(await p.locator('input[name=sow-join-url]').count() === 0, 'Join asks only for the code (no Bridge URL field)');
   code = '482913';
   await tap(p.getByLabel('Digit 1')); await p.keyboard.type('000000');
   await tap(p.getByRole('button', { name: 'Pair', exact: true }));
@@ -47,7 +48,7 @@ const TOK = 'probe-token-ABCD7Kq2';
   ok(calls.includes('pairClaim') && calls.includes('pull'), 'paired then synced via bridge: ' + calls.join(','));
   const saved = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open('sow-app'); r.onsuccess = () => { const db = r.result; const st = [...db.objectStoreNames].find((n) => /setting/i.test(n)); const g = db.transaction(st).objectStore(st).getAll(); g.onsuccess = () => res(g.result) } }));
   const s0 = Array.isArray(saved) ? saved[0] : {};
-  ok(s0 && s0.syncUrl === EXEC && s0.bridgeToken === TOK, 'URL + token saved on this device');
+  ok(s0 && s0.syncUrl === EXEC && s0.bridgeToken === TOK, 'built-in URL + token saved on this device');
 
   // ── Host
   await go();

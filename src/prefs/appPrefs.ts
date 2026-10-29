@@ -41,6 +41,8 @@ export type AppPrefs = {
   'share.includeClassPrefix': boolean
   /** v0.29.2 Q-FIX-6 (t3u): academic year start month (1–12) for sheet dates without a year. Dev option. */
   'sync.yearStartMonth': number
+  /** v0.34.1 (t48u): show a Bridge URL override on Join with a code. Dev option. */
+  'sync.joinUrlOverride': boolean
 }
 
 export const PREFS_DEFAULTS: AppPrefs = {
@@ -61,6 +63,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'share.lastUsedId': '',
   'share.includeClassPrefix': false,
   'sync.yearStartMonth': 4,
+  'sync.joinUrlOverride': false,
 }
 
 const STORE_KEY = 'sow-app.prefs.v1'
