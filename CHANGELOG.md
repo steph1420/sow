@@ -6,6 +6,8 @@ Apps Script fix found reading the live copy after Steve's setup (t23u). Rollback
 
 - **Fix: push would fail once Ticks passed 1000 rows** (new tabs are created with 1000 rows; about 15 more sessions). Writes, the Entry list and Remove-subject backups now add rows first. App code unchanged.
 - Live copy checked read-only: 89 pupils (KGA 44 / KGB 45), 4 subjects, 7 sessions, 311 ticks, 3 Left, Dashboard shows numbers with no formula errors, 3 swapped dates flagged in _Meta.
+- Bridge token field (Settings › Sync, from v0.33.0) ships ahead of its Night/Day mock by Steve's approval ("Ship v0.33.1 tonight, mock the token field later"); mock pending.
+- Live e2e on the copy: pull, push, revert and older-ignored verified; 22/22 probes green.
 - Tests: unit 148 (+1).
 
 ## 0.33.0 — 2026-10-29 (Asia/Calcutta)
