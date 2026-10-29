@@ -1,4 +1,4 @@
-# Setting of Work — Sheet mapping (Sync A · locked 2026-10-27)
+# Setting of Work — Sheet mapping (Sync A · locked 2026-10-27 · refreshed v0.26.0 2026-10-29)
 
 **Status:** Locked for Sync A — Eng tabs are source of truth for dates/ticks  
 **Workbook id:** `1SdbZP8dHmNl2xhd9_srt6n-U2gqkQH8Aj7du5B5Mviw`  
@@ -16,26 +16,38 @@ Extract id with: `/spreadsheets\/d\/([a-zA-Z0-9-_]+)/`
 | KGA_Eng_HW | KGA Eng HW     |
 | KGB_Eng_HW | KGB Eng HW     |
 
-### Layout (same on all four)
+### Layout (live 2026-10-29 · v0.26.0 parser)
 
 | Area | Cells | Meaning |
 |------|-------|---------|
-| Roster | A=roll, B=name from **row 4+** | Upsert students; skip empty names; roll → int |
-| Tick columns | Row **2** = date (D/M), row **3** = topic, row **4+** = TRUE/FALSE | Each non-empty date in row 2 is one mark column → app `set` |
-| Current | **F2**=Date label, **G2**=Topic label; **F3/G3** = date1/topic1; **F4/G4** = date2/topic2 when filled | Drive active session |
-| PENDING | From col **I** rightward (FILTER lists) | **Never** read or write |
-| Empty col E | spacer before Current | Ignore |
+| Roster | A=roll, B=name from first row with int roll + name (row **4** on CW/KGA HW, row **2** on collapsed KGB HW) | Upsert students; skip empty names; roll → int |
+| Tick columns | C..(Current−1) with ≥1 TRUE/FALSE on roster rows; header row = `Date / Topic` (**no d/m**) | Each tick column = one mark date → app `set` |
+| Current | `Date` label under Current (F2), then dates **down** F3, F4… (F4 may sit on first roster row) with topic in G | Drives Overview session + Checklist date pills |
+| Collapsed Current | `Current Date 30/9` in header F1, `Topic N n` in G1 | Single Current date; lower `Completed / Date` block is history → ignored |
+| PENDING | From col **I** rightward | **Never** read or write |
+| Empty col E | spacer before Current | Never a tick column (no TRUE/FALSE) |
 
-**Tick-column scan:** start at **C**, walk right; include columns whose row 2 is a non-empty date; **stop before** Current (col F). Do not treat F:G or I+ as ticks.
+**Tick-date rule (v0.26.0):**
+1. **Fallback first:** a tick column whose row 2 or header holds a `d/m` date uses it (old layout · KGB HW C=`30/9`).
+2. **Primary live rule:** remaining tick columns pair **by ordinal** with remaining Current dates (date1→C, date2→D).
+3. Mismatch (ticks without a Current date, or vice versa) → **warning**, pull intersection only, never invent marks.
+
+**Tab discovery (v0.26.0):** gviz returns the **default tab** (HTTP 200) for a missing `sheet=` name. App fingerprints a random missing name and rejects any candidate byte-identical to it (except the real first tab, `KGA Eng CW`). Tab names come from htmlview when reachable, else probing `KG[AB] (Eng|Math|Sci) (CW|HW)`. Sync chips = subjects with ≥1 discovered tab.
 
 **Join key:** `classKey` + `roll` (never name alone).
 
-**Eng ticks = `set` only.** There is no `submitted` column on Eng tabs; `submitted` stays app-local / `SoW_Marks`.
+**Eng ticks = `set` only.** No `submitted` column; `submitted` stays app-local and is **kept** on every pull.
 
-**Live snapshot (2026-10-27):**
-- KGA/KGB Eng CW: C=`28/10` D=`2/11` (topic Q)
-- KGA Eng HW: C=`7/10` D=`14/10` (topic P p)
-- KGB Eng HW: C=`30/9` only (topic N n)
+**Live snapshot (2026-10-29, verified pull):**
+| Tab | Current | Marks pulled | TRUE |
+|---|---|---|---|
+| KGA Eng CW | 28/10·Q, 2/11·Q | 88 (44×2) | 32 |
+| KGB Eng CW | 28/10·Q, 2/11·Q | 90 (45×2) | 58 |
+| KGA Eng HW | 7/10·P p, 14/10·P p | 88 (44×2) | 52 |
+| KGB Eng HW | 30/9·N n (collapsed) | 45 (C only; D unpaired → warning) | 40 |
+| Math / Sci | — not on sheet (gviz fallback rejected) | 0 | — |
+
+Other tabs: `SoW_Sessions`, `SoW_RosterMeta`, `SoW_Marks` (not pulled yet).
 
 **Roster refresh:** upsert students; never delete `SoW_RosterMeta.left` when a name disappears temporarily.
 

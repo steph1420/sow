@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { SubjectId } from '../data/types'
 import { useWorkspace } from '../demo/WorkspaceContext'
-import { progressForSession, WORKSPACE_DATES } from '../demo/workspaceData'
+import { progressForSession } from '../demo/workspaceData'
 import { SessionCard } from './SessionCard'
 import './overview.css'
 
@@ -18,7 +18,7 @@ type Props = {
  * Flat Classes list · expand in place · no Now-marking promote (Steve t142/t144).
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
-  const { sessions, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
+  const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey, activeClassKey } = useWorkspace()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [subject, setSubject] = useState<SubjectFilter>('All')
   const [dateF, setDateF] = useState<DateFilter>('All')
@@ -28,9 +28,9 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   })
 
   const dateChips = useMemo(() => {
-    const labels = WORKSPACE_DATES.map((d) => d.dayLabel)
+    const labels = [...new Set(sessions.map((s) => s.date.dayLabel))]
     return ['All', ...labels] as DateFilter[]
-  }, [])
+  }, [sessions])
 
   const filtered = useMemo(() => {
     return sessions.filter((s) => {
@@ -44,9 +44,10 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   }, [sessions, group, subject, dateF])
 
   const subLine = useMemo(() => {
-    const d = WORKSPACE_DATES[0]
-    return `${d.dayLabel} Oct · pick a class to mark`
-  }, [])
+    const d = sessions[0]?.date
+    if (!d) return 'No sessions yet · Sync to pull from the Sheet'
+    return `${d.dayNum} · pick a class to mark${fromSheet ? '' : ' · demo'}`
+  }, [sessions, fromSheet])
 
   const toggleExpand = (id: string) => {
     setExpandedId((cur) => (cur === id ? null : id))

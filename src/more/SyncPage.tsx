@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { SubjectId } from '../data/types'
+import type { DiscoveredTab, SubjectId } from '../data/types'
 import { getSettings, putSettings } from '../data'
 import { readSyncStatus } from '../data/persistWorkspace'
 import { useWorkspace } from '../demo/WorkspaceContext'
-import { probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
+import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
@@ -12,7 +12,16 @@ type Props = {
   onOpenSubjects?: () => void
 }
 
-const ALL_CHIPS: SubjectId[] = ['Eng', 'Math', 'Sci']
+/** Chips = subjects that have ≥1 real discovered tab (t152u) — never a hardcoded list. */
+function chipsFrom(tabs: DiscoveredTab[]): { subject: SubjectId; tabs: string[] }[] {
+  const out: { subject: SubjectId; tabs: string[] }[] = []
+  for (const t of tabs) {
+    const hit = out.find((c) => c.subject === t.subject)
+    if (hit) hit.tabs.push(t.name)
+    else out.push({ subject: t.subject, tabs: [t.name] })
+  }
+  return out
+}
 
 /**
  * Sync — Sync now primary · Test / Pull only ghosts · this-run subject chips.
@@ -26,10 +35,23 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<SyncReport | null>(null)
   /** This-run selection — not the forever catalog (Subjects owns that). */
-  const [selected, setSelected] = useState<SubjectId[]>(['Eng', 'Math'])
+  const [selected, setSelected] = useState<SubjectId[]>([])
+  const [tabs, setTabs] = useState<DiscoveredTab[]>([])
+  const [discovering, setDiscovering] = useState(false)
+  const chips = chipsFrom(tabs)
+
+  const applyTabs = useCallback((next: DiscoveredTab[]) => {
+    setTabs(next)
+    setSelected((cur) => {
+      const avail = [...new Set(next.map((t) => t.subject))]
+      const kept = cur.filter((s) => avail.includes(s))
+      return kept.length ? kept : avail
+    })
+  }, [])
 
   const refresh = useCallback(async () => {
     const s = await getSettings()
+    applyTabs(s.discoveredTabs ?? [])
     setSheetUrl(s.sheetUrl)
     setSyncUrl(s.syncUrl)
     setStatus(await readSyncStatus())
@@ -38,6 +60,25 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // Discover real tabs on open when a Sheet URL is set (chips follow the workbook).
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const s = await getSettings()
+      if (!s.sheetUrl) return
+      setDiscovering(true)
+      try {
+        const r = await discoverAndStore()
+        if (!cancelled && r.discovery) applyTabs(r.tabs)
+      } finally {
+        if (!cancelled) setDiscovering(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [applyTabs])
 
   const saveUrls = async () => {
     await putSettings({ sheetUrl: sheetUrl.trim(), syncUrl: syncUrl.trim() })
@@ -99,7 +140,9 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
               {status?.connectedSheet ? 'URL set' : 'Not set'}
             </span>
           </div>
-          <div className="more-row-sub">Eng · Math · shared roster</div>
+          <div className="more-row-sub">
+            {tabs.length ? tabs.map((t) => t.name).join(' · ') : 'Tabs not discovered yet'}
+          </div>
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Push bridge
@@ -138,15 +181,21 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
           />
         </label>
         <div className="pill-row">
-          {ALL_CHIPS.map((s) => (
+          {chips.length === 0 ? (
+            <span className="more-hint" style={{ margin: 0 }}>
+              {discovering ? 'Reading sheet tabs…' : 'No tabs found · Test sheet'}
+            </span>
+          ) : null}
+          {chips.map((c) => (
             <button
-              key={s}
+              key={c.subject}
               type="button"
-              className={`subj-pill${selected.includes(s) ? ' on' : ''}`}
-              onClick={() => toggleChip(s)}
+              className={`subj-pill${selected.includes(c.subject) ? ' on' : ''}`}
+              onClick={() => toggleChip(c.subject)}
               disabled={busy}
+              title={c.tabs.join(' · ')}
             >
-              {s}
+              {c.subject} · {c.tabs.length}
             </button>
           ))}
           <button
@@ -164,7 +213,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
       <button
         type="button"
         className="sync-cta"
-        disabled={busy}
+        disabled={busy || !selected.length}
         onClick={() => void run(() => syncNow(selected))}
       >
         <span className="spin" aria-hidden>
@@ -188,7 +237,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         <button
           type="button"
           className="ghost"
-          disabled={busy}
+          disabled={busy || !selected.length}
           onClick={() => void run(() => pullSubjects(selected))}
         >
           Pull only

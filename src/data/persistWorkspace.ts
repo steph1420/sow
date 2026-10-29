@@ -104,6 +104,7 @@ export async function persistClassMarks(
   classKey: ClassKey,
   marks: MarksMap,
   roster: StudentRow[],
+  slots: { date: string; topic: string }[] = WORKSPACE_DATES,
 ): Promise<void> {
   const ts = new Date().toISOString()
   const nameByRoll = new Map(roster.map((r) => [r.roll, r.name]))
@@ -112,12 +113,12 @@ export async function persistClassMarks(
     const date = k.split('|')[1]
     if (date) dates.add(date)
   }
-  for (const d of WORKSPACE_DATES) dates.add(d.date)
+  for (const d of slots) dates.add(d.date)
 
   for (const roll of nameByRoll.keys()) {
     for (const date of dates) {
       const cell = marks[markKey(roll, date)] ?? { set: false, submitted: false }
-      const topic = WORKSPACE_DATES.find((x) => x.date === date)?.topic ?? ''
+      const topic = slots.find((x) => x.date === date)?.topic ?? ''
       await putMark({
         markId: makeMarkId(classKey, roll, date),
         classKey,

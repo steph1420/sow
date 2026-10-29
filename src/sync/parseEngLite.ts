@@ -30,25 +30,61 @@ export function findRosterStart(rows: string[][]): number {
 
 export type LiteEngCurrent = { date1: string; topic1: string; date2: string; topic2: string }
 
-export function parseCurrentLite(rows: string[][]): LiteEngCurrent {
+export type CurrentEntry = { date: string; topic: string }
+
+export function findCurrentCol(rows: string[][]): number {
   const header = rows[0] ?? []
-  let currentCol = 5
   for (let c = 0; c < header.length; c++) {
-    if (/current/i.test(String(header[c] ?? ''))) {
-      currentCol = c
+    if (/current/i.test(String(header[c] ?? ''))) return c
+  }
+  return 5
+}
+
+/**
+ * Current block, ordered. Live layout: `Date` label under Current, then dates
+ * down the column (may overlap roster rows). Collapsed layout: `Current Date 30/9` in header.
+ */
+export function parseCurrentEntries(rows: string[][]): CurrentEntry[] {
+  const col = findCurrentCol(rows)
+  const header = rows[0] ?? []
+  const out: CurrentEntry[] = []
+  const headerDate = extractDate(header[col] ?? '')
+  if (headerDate) {
+    out.push({
+      date: headerDate,
+      topic: String(header[col + 1] ?? '').replace(/^\s*topic\s*/i, '').trim(),
+    })
+  }
+  let r = 1
+  // `Date` label must sit above the roster — lower blocks (e.g. "Completed / Date") are history.
+  const rosterStart = findRosterStart(rows)
+  const labelLimit = rosterStart < 0 ? Math.min(rows.length, 8) : rosterStart
+  for (let i = 1; i < labelLimit; i++) {
+    if (/^\s*date\s*$/i.test(String(rows[i]?.[col] ?? ''))) {
+      r = i + 1
       break
     }
   }
-  const topicCol = currentCol + 1
+  for (; r < rows.length; r++) {
+    const d = extractDate(rows[r]?.[col] ?? '')
+    if (!d) break
+    if (out.some((e) => e.date === d)) continue
+    out.push({ date: d, topic: String(rows[r]?.[col + 1] ?? '').trim() })
+  }
+  return out
+}
+
+export function parseCurrentLite(rows: string[][]): LiteEngCurrent {
+  const e = parseCurrentEntries(rows)
   return {
-    date1: extractDate(rows[2]?.[currentCol] ?? '') || extractDate(header[currentCol] ?? ''),
-    topic1: String(rows[2]?.[topicCol] ?? '').trim(),
-    date2: extractDate(rows[3]?.[currentCol] ?? ''),
-    topic2: String(rows[3]?.[topicCol] ?? '').trim(),
+    date1: e[0]?.date ?? '',
+    topic1: e[0]?.topic ?? '',
+    date2: e[1]?.date ?? '',
+    topic2: e[1]?.topic ?? '',
   }
 }
 
-/** Normalize sheet date d/m → ISO-ish storage used by demo (YYYY-MM-DD) when possible. */
+/** Normalize sheet date d/m → ISO (YYYY-MM-DD). */
 export function sheetDateToIso(dmy: string, year = 2026): string {
   const m = dmy.match(/^(\d{1,2})\/(\d{1,2})$/)
   if (!m) return dmy
@@ -57,71 +93,97 @@ export function sheetDateToIso(dmy: string, year = 2026): string {
   return `${year}-${mon}-${day}`
 }
 
+export type TickCol = { col: number; date: string; topic: string; source: 'row2' | 'current' }
+
 export function parseEngTabLite(
   classKey: ClassKey,
   rows: string[][],
   nowIso: string,
-): { students: Student[]; marks: Mark[]; current: LiteEngCurrent } {
+): {
+  students: Student[]
+  marks: Mark[]
+  current: LiteEngCurrent
+  entries: CurrentEntry[]
+  tickCols: TickCol[]
+  warnings: string[]
+} {
+  const year = Number.parseInt(nowIso.slice(0, 4), 10) || 2026
+  const entries = parseCurrentEntries(rows)
   const current = parseCurrentLite(rows)
   const start = findRosterStart(rows)
   const students: Student[] = []
   const marks: Mark[] = []
-  if (start < 0) return { students, marks, current }
+  const warnings: string[] = []
+  const tickCols: TickCol[] = []
+  if (start < 0) return { students, marks, current, entries, tickCols, warnings }
 
   const header = rows[0] ?? []
-  let currentCol = 5
-  for (let c = 0; c < header.length; c++) {
-    if (/current/i.test(String(header[c] ?? ''))) {
-      currentCol = c
-      break
+  const currentCol = findCurrentCol(rows)
+
+  // Tick col = has ≥1 TRUE/FALSE on roster rows (spacer E never qualifies).
+  const candidates: number[] = []
+  for (let col = 2; col < currentCol; col++) {
+    let hit = false
+    for (let r = start; r < rows.length && !hit; r++) {
+      if (parseBoolCell(rows[r]?.[col] ?? '') != null) hit = true
     }
+    if (hit) candidates.push(col)
   }
 
-  // Tick columns C..before Current; date from row2 or header
-  const tickCols: { col: number; date: string; topic: string }[] = []
-  for (let col = 2; col < currentCol; col++) {
-    const date = extractDate(rows[1]?.[col] ?? '') || extractDate(header[col] ?? '')
-    if (!date) continue
-    tickCols.push({
-      col,
-      date: sheetDateToIso(date),
-      topic: String(header[col] ?? '').replace(DATE_RE, '').trim(),
-    })
+  const topicFor = (d: string, col: number) =>
+    entries.find((e) => e.date === d)?.topic ||
+    String(header[col] ?? '')
+      .replace(DATE_RE, '')
+      .replace(/date\s*\/\s*topic/i, '')
+      .trim()
+
+  // Fallback first: explicit row2/header dates.
+  const used = new Set<string>()
+  const pending: number[] = []
+  for (const col of candidates) {
+    const d = extractDate(rows[1]?.[col] ?? '') || extractDate(header[col] ?? '')
+    if (d) {
+      tickCols.push({ col, date: d, topic: topicFor(d, col), source: 'row2' })
+      used.add(d)
+    } else pending.push(col)
   }
-  // Ensure Current dates exist as tick targets
-  if (current.date1 && !tickCols.some((t) => t.date === sheetDateToIso(current.date1))) {
-    tickCols.push({ col: -1, date: sheetDateToIso(current.date1), topic: current.topic1 })
+  // Primary live rule: remaining Current dates → remaining tick cols, by ordinal.
+  const free = entries.filter((e) => !used.has(e.date))
+  pending.forEach((col, i) => {
+    const e = free[i]
+    if (!e) {
+      warnings.push(`col ${String.fromCharCode(65 + col)} has ticks but no Current date`)
+      return
+    }
+    tickCols.push({ col, date: e.date, topic: e.topic || topicFor(e.date, col), source: 'current' })
+  })
+  if (free.length > pending.length) {
+    warnings.push(`${free.length - pending.length} Current date(s) without a tick column`)
   }
+  tickCols.sort((a, b) => a.col - b.col)
 
   for (let r = start; r < rows.length; r++) {
     const roll = Number.parseInt(String(rows[r]?.[0] ?? '').trim(), 10)
     const name = String(rows[r]?.[1] ?? '').trim()
     if (!Number.isFinite(roll) || roll <= 0 || !name) continue
     students.push({ id: studentId(classKey, roll), classKey, roll, name })
-
     for (const t of tickCols) {
-      let set = false
-      if (t.col >= 0) {
-        const b = parseBoolCell(rows[r]?.[t.col] ?? '')
-        if (b == null) continue
-        set = b
-      } else {
-        // Current-only date with no tick col — skip mark seed
-        continue
-      }
+      const b = parseBoolCell(rows[r]?.[t.col] ?? '')
+      if (b == null) continue
+      const date = sheetDateToIso(t.date, year)
       marks.push({
-        markId: markId(classKey, roll, t.date),
+        markId: markId(classKey, roll, date),
         classKey,
         roll,
         name,
-        date: t.date,
+        date,
         topic: t.topic,
-        set,
+        set: b,
         submitted: false,
         updatedAt: nowIso,
       })
     }
   }
 
-  return { students, marks, current }
+  return { students, marks, current, entries, tickCols, warnings }
 }

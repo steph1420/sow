@@ -6,19 +6,22 @@
  */
 import {
   CLASS_KEYS,
-  CLASS_LABELS,
-  ENG_CLASS_KEYS,
-  classKeysForSubject,
-  type ClassKey,
   type SubjectId,
+  deleteMark,
+  getMark,
+  getSession,
   getSettings,
+  listMarks,
   putMark,
+  putSession,
   putSettings,
   putStudent,
 } from '../data'
+import type { DiscoveredTab } from '../data/types'
 import { bridgePush } from './bridge'
-import { fetchSheetCsv, testSheetReadable } from './gviz'
-import { parseEngTabLite } from './parseEngLite'
+import { parseCsv } from './csv'
+import { discoverTabs, fetchSheetCsv, type Discovery } from './gviz'
+import { parseEngTabLite, sheetDateToIso } from './parseEngLite'
 import { extractSheetId } from './sheetId'
 
 export type SyncReport = {
@@ -30,143 +33,173 @@ export type SyncReport = {
   pushed: boolean
 }
 
-const TAB: Record<ClassKey, string> = {
-  KGA_Eng_CW: 'KGA Eng CW',
-  KGB_Eng_CW: 'KGB Eng CW',
-  KGA_Eng_HW: 'KGA Eng HW',
-  KGB_Eng_HW: 'KGB Eng HW',
-  KGA_Math_CW: 'KGA Math CW',
-  KGB_Math_HW: 'KGB Math HW',
+function hashRows(rows: string[][]): string {
+  let h = 5381
+  const s = rows.map((r) => r.join('\u0001')).join('\u0002')
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+const emptyReport = (mode: SyncReport['mode'], message: string, ok = false): SyncReport => ({
+  ok,
+  message,
+  mode,
+  pulledStudents: 0,
+  pulledMarks: 0,
+  pushed: false,
+})
+
+/** Discover real tabs and cache them in settings (chips + Subjects read this). */
+export async function discoverAndStore(): Promise<{ tabs: DiscoveredTab[]; discovery?: Discovery; error?: string }> {
+  const settings = await getSettings()
+  const id = extractSheetId(settings.sheetUrl)
+  if (!id) return { tabs: [], error: 'No Sheet URL in settings · local IDB only.' }
+  try {
+    const d = await discoverTabs(id)
+    await putSettings({ discoveredTabs: d.tabs, discoveredAt: new Date().toISOString() })
+    return { tabs: d.tabs, discovery: d }
+  } catch (e) {
+    return { tabs: settings.discoveredTabs ?? [], error: e instanceof Error ? e.message : String(e) }
+  }
 }
 
 export async function probeSheet(): Promise<SyncReport> {
-  const settings = await getSettings()
-  const id = extractSheetId(settings.sheetUrl)
-  if (!id) {
-    return {
-      ok: false,
-      message: 'No Sheet URL in settings · local IDB only.',
-      mode: 'probe',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
+  const r = await discoverAndStore()
+  if (r.error && !r.discovery) {
+    await putSettings({ lastSyncError: r.error })
+    return emptyReport('probe', r.error)
   }
-  const r = await testSheetReadable(id)
-  await putSettings({
-    lastSyncError: r.ok ? undefined : r.message,
-  })
-  return {
-    ok: r.ok,
-    message: r.message,
-    mode: 'probe',
-    pulledStudents: 0,
-    pulledMarks: 0,
-    pushed: false,
-  }
+  const d = r.discovery!
+  const ok = d.tabs.length > 0
+  const message = ok
+    ? `Workbook reachable · ${d.tabs.map((t) => t.name).join(' · ')}${d.rejected.length ? ` · not on sheet: ${d.rejected.join(', ')}` : ''}`
+    : 'Opened workbook but found no readable teaching tabs.'
+  await putSettings({ lastSyncError: ok ? undefined : message })
+  return emptyReport('probe', message, ok)
 }
 
-async function pullKeys(keys: ClassKey[]): Promise<SyncReport> {
+export type TabPullStat = { tab: string; students: number; marks: number; kept: number; warnings: string[] }
+
+/** Merge-pull discovered tabs. Never imports a tab that discovery rejected. */
+async function pullTabs(tabs: DiscoveredTab[], discovery?: Discovery): Promise<SyncReport & { perTab: TabPullStat[] }> {
   const settings = await getSettings()
   const id = extractSheetId(settings.sheetUrl)
   if (!id) {
     return {
-      ok: false,
-      message:
-        'Not connected · set a Google Sheet URL to pull subject tabs. Local marks stay in IDB.',
-      mode: 'pull',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
+      ...emptyReport('pull', 'Not connected · set a Google Sheet URL to pull subject tabs. Local marks stay in IDB.'),
+      perTab: [],
     }
   }
-
-  if (!keys.length) {
-    return {
-      ok: false,
-      message: 'No tabs for the selected subjects yet · marks stay on this device.',
-      mode: 'pull',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
+  if (!tabs.length) {
+    return { ...emptyReport('pull', 'No readable tabs for the selected subjects · marks stay on this device.'), perTab: [] }
   }
 
   const now = new Date().toISOString()
   let pulledStudents = 0
   let pulledMarks = 0
   const errors: string[] = []
+  const perTab: TabPullStat[] = []
+  const engSyncState = { ...(settings.engSyncState ?? {}) }
 
-  for (const key of keys) {
+  for (const tab of tabs) {
+    const key = tab.classKey
     try {
-      const rows = await fetchSheetCsv(id, TAB[key])
+      const cached = discovery?.csv.get(tab.name)
+      const rows = cached != null ? parseCsv(cached) : await fetchSheetCsv(id, tab.name)
       const parsed = parseEngTabLite(key, rows, now)
+      const prev = engSyncState[key]
+      const stat: TabPullStat = { tab: tab.name, students: 0, marks: 0, kept: 0, warnings: parsed.warnings }
+
       for (const s of parsed.students) {
         await putStudent(s)
-        pulledStudents++
+        stat.students++
       }
+
+      // First pull for this key: drop demo leftovers on dates the sheet doesn't have.
+      const pulledDates = new Set(parsed.marks.map((m) => m.date))
+      if (!prev && parsed.marks.length) {
+        for (const old of await listMarks(key)) {
+          if (!pulledDates.has(old.date)) await deleteMark(old.markId)
+        }
+      }
+
       for (const m of parsed.marks) {
-        await putMark({ ...m, updatedAt: m.updatedAt })
-        pulledMarks++
+        const existing = await getMark(key, m.roll, m.date)
+        // Sync A merge: local edit since last pull wins; submitted is app-only → always kept.
+        const localNewer =
+          !!prev && !!existing && existing.updatedAt > prev.lastSyncAt && existing.set !== m.set
+        if (localNewer) stat.kept++
+        await putMark({
+          ...m,
+          set: localNewer ? existing!.set : m.set,
+          submitted: existing?.submitted ?? false,
+          updatedAt: localNewer ? existing!.updatedAt : now,
+        })
+        stat.marks++
       }
+
+      if (parsed.current.date1) {
+        const year = Number.parseInt(now.slice(0, 4), 10)
+        const prevSession = await getSession(`${key}|current`)
+        await putSession({
+          sessionId: `${key}|current`,
+          classKey: key,
+          date1: sheetDateToIso(parsed.current.date1, year),
+          topic1: parsed.current.topic1,
+          date2: parsed.current.date2 ? sheetDateToIso(parsed.current.date2, year) : '',
+          topic2: parsed.current.topic2,
+          createdAt: prevSession?.createdAt ?? now,
+          updatedAt: now,
+        })
+      }
+
+      engSyncState[key] = { hash: hashRows(rows), sheetSeenAt: now, lastSyncAt: now }
+      pulledStudents += stat.students
+      pulledMarks += stat.marks
+      perTab.push(stat)
+      for (const w of parsed.warnings) errors.push(`${tab.name}: ${w}`)
     } catch (e) {
-      errors.push(`${CLASS_LABELS[key]}: ${e instanceof Error ? e.message : String(e)}`)
+      errors.push(`${tab.name}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
   const ok = pulledStudents > 0 || pulledMarks > 0
   const message = ok
-    ? `Pulled ${pulledStudents} students · ${pulledMarks} marks${errors.length ? ` · ${errors.length} tab warning(s)` : ''}`
+    ? `Pulled ${pulledStudents} students · ${pulledMarks} marks (${perTab.map((t) => `${t.tab} ${t.marks}`).join(' · ')})${errors.length ? ` · ${errors.length} tab warning(s)` : ''}`
     : errors[0] ?? 'Pull returned nothing · sheet may be private or tabs renamed.'
 
   await putSettings({
+    engSyncState,
     lastSyncAt: ok ? now : settings.lastSyncAt,
     lastSyncError: ok ? (errors.length ? errors.join('; ') : undefined) : message,
     syncDirty: ok ? false : settings.syncDirty,
   })
 
-  return {
-    ok,
-    message,
-    mode: 'pull',
-    pulledStudents,
-    pulledMarks,
-    pushed: false,
-  }
+  return { ok, message, mode: 'pull', pulledStudents, pulledMarks, pushed: false, perTab }
 }
 
-/** Pull Eng tabs only (internal name kept; UI says subject tabs). */
+/** Pull every discovered Eng tab. */
 export async function pullEng(): Promise<SyncReport> {
-  return pullKeys(ENG_CLASS_KEYS)
+  return pullSubjects(['Eng'])
 }
 
-/** Pull class keys for the selected this-run subjects. */
-export async function pullSubjects(subjects: SubjectId[]): Promise<SyncReport> {
-  const keys: ClassKey[] = []
-  const missing: string[] = []
-  for (const s of subjects) {
-    const ks = classKeysForSubject(s)
-    if (!ks.length) missing.push(s)
-    else keys.push(...ks)
-  }
-  if (!keys.length) {
-    return {
-      ok: false,
-      message: missing.length
+/** Pull discovered tabs for the selected this-run subjects (fresh discovery every run). */
+export async function pullSubjects(subjects: SubjectId[]): Promise<SyncReport & { perTab?: TabPullStat[] }> {
+  const r = await discoverAndStore()
+  if (r.error && !r.discovery) return emptyReport('pull', r.error)
+  const tabs = r.tabs.filter((t) => subjects.includes(t.subject))
+  const missing = subjects.filter((s) => !r.tabs.some((t) => t.subject === s))
+  if (!tabs.length) {
+    return emptyReport(
+      'pull',
+      missing.length
         ? `${missing.join(' · ')} not on sheet yet · marks stay on this device.`
         : 'Select at least one subject tab.',
-      mode: 'pull',
-      pulledStudents: 0,
-      pulledMarks: 0,
-      pushed: false,
-    }
+    )
   }
-  const report = await pullKeys(keys)
+  const report = await pullTabs(tabs, r.discovery)
   if (missing.length && report.ok) {
-    return {
-      ...report,
-      message: `${report.message} · ${missing.join(' · ')} skipped (no tabs yet)`,
-    }
+    return { ...report, message: `${report.message} · ${missing.join(' · ')} skipped (no tabs yet)` }
   }
   return report
 }

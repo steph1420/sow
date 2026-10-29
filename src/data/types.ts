@@ -114,6 +114,19 @@ export interface Settings {
   syncDirty?: boolean
   /** Sync A: Eng tick+Current hash + seen/sync times per classKey */
   engSyncState?: Partial<Record<ClassKey, EngSyncState>>
+  /** Real readable teaching tabs discovered on the workbook (v0.26 · t152u). */
+  discoveredTabs?: DiscoveredTab[]
+  discoveredAt?: string
+}
+
+export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }
+
+/** Sheet tab name → ClassKey (only keys the app models). */
+export function classKeyForTab(name: string): ClassKey | null {
+  const m = String(name).trim().match(/^(KG[AB])\s+(Eng|Math|Sci)\s+(CW|HW)$/i)
+  if (!m) return null
+  const key = `${m[1]!.toUpperCase()}_${m[2]![0]!.toUpperCase()}${m[2]!.slice(1).toLowerCase()}_${m[3]!.toUpperCase()}`
+  return (CLASS_KEYS as string[]).includes(key) ? (key as ClassKey) : null
 }
 
 export function studentId(classKey: ClassKey, roll: number): string {

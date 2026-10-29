@@ -1,4 +1,4 @@
-import type { ClassKey, SubjectId } from '../data/types'
+import type { ClassKey, Session, SubjectId } from '../data/types'
 import { CLASS_KEYS, prettyClassLabel, subjectOf } from '../data/types'
 import type { DateSlot, MarksMap, StudentRow } from '../checklist/types'
 import { markKey } from '../checklist/types'
@@ -219,3 +219,46 @@ export function progressForSession(
 }
 
 export { subjectOf }
+
+/** ISO date → DateSlot (DD/MM pill lock). */
+export function dateSlotFromIso(iso: string, topic: string): DateSlot {
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return { date: iso, topic, dayLabel: iso, dayNum: iso }
+  const wd = d.toLocaleDateString('en-GB', { weekday: 'short' })
+  return {
+    date: iso,
+    topic,
+    dayLabel: `${wd} ${d.getDate()}`,
+    dayNum: `${d.getDate()}/${d.getMonth() + 1}`,
+  }
+}
+
+/** Two Checklist slots from a pulled session (single-date session repeats slot 1). */
+export function datesFromSession(s: Session): [DateSlot, DateSlot] {
+  const a = dateSlotFromIso(s.date1, s.topic1)
+  const b = s.date2 ? dateSlotFromIso(s.date2, s.topic2) : a
+  return [a, b]
+}
+
+/** Overview cards from pulled IDB sessions (one per classKey, Current block). */
+export function sessionsFromIdb(rows: Session[], rosterSize: (k: ClassKey) => number): DemoSession[] {
+  const order = new Map(DEMO_SESSIONS.map((s, i) => [s.classKey, i]))
+  return rows
+    .filter((s) => s.date1)
+    .sort((a, b) => (order.get(a.classKey) ?? 99) - (order.get(b.classKey) ?? 99))
+    .map((s) => {
+      const [d1] = datesFromSession(s)
+      const kind = s.classKey.endsWith('_HW') ? 'HW' : 'CW'
+      return {
+        id: `${s.classKey}|${s.date1}`,
+        classKey: s.classKey,
+        label: prettyClassLabel(s.classKey),
+        group: s.classKey.startsWith('KGB') ? 'KGB' : 'KGA',
+        kind,
+        subject: subjectOf(s.classKey),
+        date: d1,
+        topics: [...new Set([s.topic1, s.topic2].filter(Boolean))],
+        rosterSize: rosterSize(s.classKey),
+      } satisfies DemoSession
+    })
+}

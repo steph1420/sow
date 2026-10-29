@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { prettyClassLabel, type ClassKey } from '../../data/types'
 import { useWorkspace } from '../../demo/WorkspaceContext'
-import { WORKSPACE_DATES } from '../../demo/workspaceData'
 import {
   canRedo,
   canUndo,
@@ -26,10 +25,10 @@ function classLabelOf(key: ClassKey): string {
 }
 
 export function useChecklistModel() {
-  const { activeClassKey, marksByClass, setMarksForClass, rosterFor } = useWorkspace()
+  const { activeClassKey, marksByClass, setMarksForClass, rosterFor, datesFor } = useWorkspace()
   const classKey = activeClassKey
   const classLabel = classLabelOf(classKey)
-  const dates: [DateSlot, DateSlot] = WORKSPACE_DATES
+  const dates: [DateSlot, DateSlot] = useMemo(() => datesFor(classKey), [datesFor, classKey])
   const roster: StudentRow[] = rosterFor(classKey)
   const marks = marksByClass[classKey]
 

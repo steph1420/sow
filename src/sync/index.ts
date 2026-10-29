@@ -1,6 +1,7 @@
 export { extractSheetId } from './sheetId'
 export { parseCsv } from './csv'
 export {
+  discoverAndStore,
   probeSheet,
   pullEng,
   pullSubjects,

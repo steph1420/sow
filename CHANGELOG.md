@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.26.0 — 2026-10-29 (Asia/Calcutta)
+
+### Sync accuracy — real sheet data, real tabs
+- **Parser**: tick dates from **Current** block paired by ordinal (date1→C, date2→D); row-2/header dates kept as fallback; collapsed KGB HW header parsed; unpaired columns warn instead of inventing marks. Live-shaped CSV fixtures in tests.
+- **Merge pull (Sync A)**: `submitted` always kept; local `set` edited since last pull wins; first pull per class drops demo marks on non-sheet dates; `engSyncState` stamps `hash` · `sheetSeenAt` · `lastSyncAt`.
+- **Sessions off IDB**: pull writes `putSession(<classKey>|current)`; Overview cards + Checklist date pills/topics bind pulled Current. Demo sessions only when nothing pulled.
+- **Tab discovery**: rejects gviz default-tab fallback fingerprint → missing Math/Sci tabs never import Eng data.
+- **Sync chips** from discovered tabs (`Eng · 4`), auto-discover on open; Subjects & sheets lists real tabs + "not on sheet".
+- Docs: `SHEET_MAPPING.md` refreshed · triangulation `docs/CODE_TRIANGULATION_v026.md`.
+- Still stub: push / `SoW_*` round-trip, `SoW_Marks` pull, year rollover (uses pull-clock year).
+- Live: https://steph1420.github.io/sow/
+- Rollback: git tag `v0.25.0` / `1160851`
+
 ## 0.25.0 — 2026-10-29 (Asia/Calcutta)
 
 ### Immersion pack — opaque chrome · A–Z mid-snap · Submitted purple · DD/MM

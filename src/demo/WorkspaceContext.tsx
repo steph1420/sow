@@ -16,7 +16,17 @@ import {
   type MarksByClass,
   type RostersByClass,
 } from '../data/persistWorkspace'
-import { DEMO_SESSIONS, ROSTERS, type DemoSession } from './workspaceData'
+import type { DateSlot } from '../checklist/types'
+import type { Session } from '../data/types'
+import { listSessions } from '../data/api'
+import {
+  DEMO_SESSIONS,
+  ROSTERS,
+  WORKSPACE_DATES,
+  datesFromSession,
+  sessionsFromIdb,
+  type DemoSession,
+} from './workspaceData'
 
 type WorkspaceValue = {
   ready: boolean
@@ -25,6 +35,10 @@ type WorkspaceValue = {
   marksByClass: MarksByClass
   setMarksForClass: (classKey: ClassKey, next: MarksMap | ((prev: MarksMap) => MarksMap)) => void
   sessions: DemoSession[]
+  /** True when Overview/Checklist bind pulled sheet sessions (not demo). */
+  fromSheet: boolean
+  /** Checklist date slots for a class — pulled Current, else demo. */
+  datesFor: (k: ClassKey) => [DateSlot, DateSlot]
   rosterFor: (k: ClassKey) => RostersByClass[ClassKey]
   /** Reload marks/rosters from IDB (after sync pull). */
   reloadFromIdb: () => Promise<void>
@@ -41,11 +55,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return empty
   })
   const [rosters, setRosters] = useState<RostersByClass>(() => ({ ...ROSTERS }))
+  const [pulledSessions, setPulledSessions] = useState<Session[]>([])
   const persistTimer = useRef<number | null>(null)
   const pendingPersist = useRef<ClassKey | null>(null)
 
   const reloadFromIdb = useCallback(async () => {
     const loaded = await loadWorkspaceFromIdb()
+    setPulledSessions((await listSessions()).filter((s) => s.sessionId.endsWith('|current')))
     if (loaded.hasStudents) {
       setRosters(loaded.rosters)
       setMarksByClass(loaded.marksByClass)
@@ -76,10 +92,33 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const key = pendingPersist.current
         if (!key) return
         const roster = rosters[key]?.length ? rosters[key] : ROSTERS[key]
-        void persistClassMarks(key, marks, roster)
+        void persistClassMarks(key, marks, roster, datesForRef.current(key))
       }, 280)
     },
     [rosters],
+  )
+
+  const datesFor = useCallback(
+    (k: ClassKey): [DateSlot, DateSlot] => {
+      const s = pulledSessions.find((x) => x.classKey === k)
+      return s ? datesFromSession(s) : WORKSPACE_DATES
+    },
+    [pulledSessions],
+  )
+  const datesForRef = useRef(datesFor)
+  datesForRef.current = datesFor
+
+  const rosterFor = useCallback(
+    (k: ClassKey) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
+    [rosters],
+  )
+
+  const sessions = useMemo(
+    () =>
+      pulledSessions.length
+        ? sessionsFromIdb(pulledSessions, (k) => rosterFor(k).length)
+        : DEMO_SESSIONS,
+    [pulledSessions, rosterFor],
   )
 
   const setMarksForClass = useCallback(
@@ -101,11 +140,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setActiveClassKey,
       marksByClass,
       setMarksForClass,
-      sessions: DEMO_SESSIONS,
-      rosterFor: (k) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
+      sessions,
+      fromSheet: pulledSessions.length > 0,
+      datesFor,
+      rosterFor,
       reloadFromIdb,
     }),
-    [ready, activeClassKey, marksByClass, setMarksForClass, rosters, reloadFromIdb],
+    [ready, activeClassKey, marksByClass, setMarksForClass, sessions, pulledSessions, datesFor, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
