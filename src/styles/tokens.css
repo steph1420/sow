@@ -9,7 +9,7 @@
   --hairline: rgba(255, 255, 255, 0.06);
   --text: #f2f3f5;
   --text-sec: #9aa0aa;
-  --text-ter: #5a616c;
+  --text-ter: #868d98; /* P1-5: was #5a616c (3.15:1) → 5.9:1 on bg, ≥4.9 on cards */
   --ok: #30d158;
   --sub: #8b7cf7; /* Submitted Quiet purple */
   --warn: #ff9f0a;
@@ -99,11 +99,12 @@ button {
   --border-soft: #e4e7ec;
   --hairline: rgba(0, 0, 0, 0.08);
   --text: #12141a;
-  --text-sec: #5a616c;
-  --text-ter: #8b919c;
-  --ok: #1a9f4b;
-  --warn: #c77700;
-  --danger: #d93025;
+  --text-sec: #4f5560; /* P1-5 keeps sec > ter */
+  --text-ter: #666c77; /* P1-5: was #8b919c (2.9:1) → 4.8:1 on bg, 5.3 on white */
+  --ok: #147a3a; /* P1-5: was #1a9f4b (3.1:1) → 5.0:1 — soft-green fills unchanged */
+  --sub: #5b4bd1; /* P1-5: Submitted purple, Day AA */
+  --warn: #9a5800; /* P1-5: was #c77700 (3.2:1) */
+  --danger: #c5221f; /* P1-5 */
   --sel: rgba(26, 159, 75, 0.1);
   --chrome-bar: rgba(255, 255, 255, 0.94);
   --accent-soft: rgba(26, 159, 75, 0.12);

@@ -215,7 +215,7 @@
   color: var(--text-ter);
   margin-bottom: 2px;
 }
-.ov-subj-tag.eng { color: rgba(48, 209, 88, 0.75); }
+.ov-subj-tag.eng { color: var(--ok); } /* P1-5: was 0.75α green (1.6:1 Day) */
 .ov-subj-tag.math { color: rgba(91, 141, 239, 0.85); }
 .ov-subj-tag.sci { color: rgba(52, 199, 181, 0.85); }
 

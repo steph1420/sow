@@ -356,11 +356,11 @@
   font-size: 14px;
   color: #fff;
 }
-.g-ico.green { background: linear-gradient(145deg, #2ecc71, #1fa855); }
-.g-ico.blue { background: linear-gradient(145deg, #5b8def, #3d6fd4); }
-.g-ico.orange { background: linear-gradient(145deg, #ff9f0a, #e88800); }
-.g-ico.violet { background: linear-gradient(145deg, #8b7cf7, #6c5ce7); }
-.g-ico.teal { background: linear-gradient(145deg, #34c7b5, #1fa894); }
+.g-ico.green { background: linear-gradient(145deg, #1e9a52, #17843f); } /* P1-5 glyph ≥3:1 */
+.g-ico.blue { background: linear-gradient(145deg, #4a7de0, #3d6fd4); }
+.g-ico.orange { background: linear-gradient(145deg, #d47200, #c26800); }
+.g-ico.violet { background: linear-gradient(145deg, #7566ee, #6c5ce7); }
+.g-ico.teal { background: linear-gradient(145deg, #179a89, #108574); }
 .g-ico.grey { background: linear-gradient(145deg, #5a616c, #3d434c); }
 .g-ico.soft {
   background: rgba(255, 255, 255, 0.06);

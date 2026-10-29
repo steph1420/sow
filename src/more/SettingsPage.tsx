@@ -33,7 +33,7 @@ export function SettingsPage({
       <div className="hero-grid">
         <button type="button" className="hero-card" onClick={onOpenSync}>
           <span className="glow" style={{ background: '#30d158' }} />
-          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#2ecc71,#1fa855)' }}>
+          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#1e9a52,#17843f)' }}>
             ⟳
           </div>
           <div>
@@ -45,7 +45,7 @@ export function SettingsPage({
         </button>
         <button type="button" className="hero-card" onClick={onOpenAppearance}>
           <span className="glow" style={{ background: '#8b7cf7' }} />
-          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#8b7cf7,#6c5ce7)' }}>
+          <div className="hc-ico" style={{ background: 'linear-gradient(145deg,#7566ee,#6c5ce7)' }}>
             ◐
           </div>
           <div>
