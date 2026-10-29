@@ -21,4 +21,9 @@ describe('P1-1 hash routes', () => {
     expect(parseRoute('')).toEqual({ tab: 'overview', stack: [] })
     expect(formatRoute({ tab: 'overview', stack: [] })).toBe('')
   })
+  it('v0.28 Settings → Sharing route survives reload', () => {
+    const r = parseRoute('#settings/sharing')
+    expect(r.stack).toEqual(['settings', 'sharing'])
+    expect(formatRoute(r)).toBe('#settings/sharing')
+  })
 })

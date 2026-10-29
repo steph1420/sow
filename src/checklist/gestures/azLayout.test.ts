@@ -15,7 +15,7 @@ describe('azLayout', () => {
   it('locks idle width and letter floor', () => {
     expect(AZ_IDLE_W).toBe(42)
     expect(AZ_LETTER_MIN_PX).toBeGreaterThanOrEqual(11)
-    expect(AZ_LETTERS).toHaveLength(27)
+    expect(AZ_LETTERS).toHaveLength(26)
   })
 
   it('absolute % slots are monotonic', () => {
@@ -32,14 +32,14 @@ describe('azLayout', () => {
   })
 
   it('letterAtY maps strip', () => {
-    expect(letterAtY(0, 0, 270)).toBe('*')
-    expect(letterAtY(135, 0, 270)).toBe('M')
+    expect(letterAtY(0, 0, 260)).toBe('A')
+    expect(letterAtY(135, 0, 260)).toBe('N')
   })
 
   it('letterAtY respects filtered letters (hide-dimmed)', () => {
-    const letters = ['*', 'A', 'B', 'D'] as const
-    expect(letterAtY(0, 0, 400, letters)).toBe('*')
-    expect(letterAtY(250, 0, 400, letters)).toBe('B')
+    const letters = ['A', 'B', 'D'] as const
+    expect(letterAtY(0, 0, 300, letters)).toBe('A')
+    expect(letterAtY(150, 0, 300, letters)).toBe('B')
   })
 
   it('jumpLetterToRoll latches next populated on empty letter', () => {
@@ -51,8 +51,18 @@ describe('azLayout', () => {
     expect(jumpLetterToRoll('A', rows)).toBe(1)
     expect(jumpLetterToRoll('C', rows)).toBe(8) // empty C → D
     expect(jumpLetterToRoll('F', rows)).toBe(11)
-    expect(jumpLetterToRoll('*', rows)).toBe(1)
     expect(letterEmpty('C', rows.map((r) => r.name))).toBe(true)
+    expect(letterEmpty('A', rows.map((r) => r.name))).toBe(false)
+  })
+
+  it('t166u: no top dot — strip is A–Z only; non-letter names fold into A', () => {
+    expect(AZ_LETTERS[0]).toBe('A')
+    expect((AZ_LETTERS as readonly string[]).includes('*')).toBe(false)
+    const rows = [
+      { roll: 1, name: '3rd Kid' },
+      { roll: 2, name: 'Bala' },
+    ]
+    expect(jumpLetterToRoll('A', rows)).toBe(1)
     expect(letterEmpty('A', rows.map((r) => r.name))).toBe(false)
   })
 })

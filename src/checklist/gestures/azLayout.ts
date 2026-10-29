@@ -1,11 +1,11 @@
 /** A–Z anti-squish layout — absolute % slots, idle 42, letter ≥11px. */
 
-export const AZ_LETTERS = [
-  '*',
-  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
-] as const
+/** t166u (v0.28): no top "•" slot — the strip no longer filters, so there is nothing to reset. */
+export const AZ_LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'] as const as readonly AzLetter[]
 
-export type AzLetter = (typeof AZ_LETTERS)[number]
+export type AzLetter =
+  | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+  | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
 
 export const AZ_IDLE_W = 42
 export const AZ_LETTER_MIN_PX = 11
@@ -20,10 +20,16 @@ export function firstLetterOfName(name: string): string {
   return /[A-Z]/.test(ch) ? ch : '*'
 }
 
+/** Strip letter a name belongs to — non-letter names ('*') fold into A (top of the strip). */
+function stripLetterOf(name: string): string {
+  const L = firstLetterOfName(name)
+  return L === '*' ? 'A' : L
+}
+
 /** Letters present in roster (for dim-missing). */
 export function presentLetters(names: string[]): Set<string> {
   const s = new Set<string>()
-  for (const n of names) s.add(firstLetterOfName(n))
+  for (const n of names) s.add(stripLetterOf(n))
   return s
 }
 
@@ -37,27 +43,23 @@ export function letterAtY(
   stripHeight: number,
   letters: readonly AzLetter[] = AZ_LETTERS,
 ): AzLetter {
-  if (stripHeight <= 0 || letters.length === 0) return '*'
+  if (stripHeight <= 0 || letters.length === 0) return 'A'
   const t = (clientY - stripTop) / stripHeight
   const i = Math.min(letters.length - 1, Math.max(0, Math.floor(t * letters.length)))
   return letters[i]!
 }
 
-/**
- * First row for letter; empty letter → latch next populated (immersion).
- * `*` → first row.
- */
+/** First row for letter; empty letter → latch next populated (immersion). */
 export function jumpLetterToRoll(
   letter: AzLetter,
   rows: { roll: number; name: string }[],
 ): number | null {
   if (!rows.length) return null
-  if (letter === '*') return rows[0]!.roll
   const start = AZ_LETTERS.indexOf(letter)
   if (start < 0) return null
   for (let i = start; i < AZ_LETTERS.length; i++) {
     const L = AZ_LETTERS[i]!
-    const hit = rows.find((r) => firstLetterOfName(r.name) === L)
+    const hit = rows.find((r) => stripLetterOf(r.name) === L)
     if (hit) return hit.roll
   }
   return null
@@ -65,6 +67,5 @@ export function jumpLetterToRoll(
 
 /** True when finger letter has no names (HUD should dim; latch still jumps next). */
 export function letterEmpty(letter: AzLetter, names: string[]): boolean {
-  if (letter === '*') return names.length === 0
   return !presentLetters(names).has(letter)
 }

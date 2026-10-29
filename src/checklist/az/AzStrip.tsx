@@ -33,7 +33,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
 
   const letters = useMemo(() => {
     if (!hideEmpty) return [...AZ_LETTERS]
-    return AZ_LETTERS.filter((L) => L === '*' || present.has(L))
+    return AZ_LETTERS.filter((L) => present.has(L))
   }, [hideEmpty, present])
 
   const scrub = useCallback(
@@ -67,7 +67,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
         <div
           className={`sw-az-hud${left ? ' left' : ''}${hudDim ? ' dim' : ''}${modeSub ? ' mode-sub' : ''}`}
         >
-          {hud === '*' ? '•' : hud}
+          {hud}
         </div>
       ) : null}
       <div
@@ -85,8 +85,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
         onPointerCancel={end}
       >
         {letters.map((L, i) => {
-          const isStar = L === '*'
-          const dim = !hideEmpty && !isStar && !present.has(L)
+          const dim = !hideEmpty && !present.has(L)
           const top = hideEmpty
             ? (i / letters.length) * 100
             : azSlotTopPercent(AZ_LETTERS.indexOf(L))
@@ -97,7 +96,7 @@ export function AzStrip({ names, rows, onJump, onScrubEnd, modeSub }: Props) {
               style={{ top: `${top}%`, height: hideEmpty ? `${100 / letters.length}%` : undefined }}
               data-letter={L}
             >
-              {isStar ? '•' : L}
+              {L}
             </div>
           )
         })}

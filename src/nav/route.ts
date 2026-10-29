@@ -8,7 +8,7 @@
 import { CLASS_KEYS, type ClassKey } from '../data/types'
 import type { MoreRouteId, MoreStack } from '../more/navStack'
 
-const MORE: MoreRouteId[] = ['roster', 'history', 'settings', 'dev', 'sync', 'appearance', 'subjects', 'about']
+const MORE: MoreRouteId[] = ['roster', 'history', 'settings', 'dev', 'sync', 'appearance', 'subjects', 'about', 'sharing']
 
 export type Route = { tab: 'overview' | 'checklist'; classKey?: ClassKey; stack: MoreStack }
 

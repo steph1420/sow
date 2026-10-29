@@ -9,6 +9,7 @@ export type MoreRouteId =
   | 'appearance'
   | 'subjects'
   | 'about'
+  | 'sharing'
 
 export type MoreStack = MoreRouteId[]
 
