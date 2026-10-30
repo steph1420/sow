@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { azKeyJump, gridMove, isTypingTarget, wideScale } from './keyboard'
+import { azKeyJump, gridMove, isDesk, isTypingTarget, wideScale } from './keyboard'
 
 const rows = [
   { roll: 1, name: 'Aarav Demo' }, { roll: 2, name: 'Bela Sample' }, { roll: 3, name: 'Diya Example' },
@@ -38,23 +38,23 @@ describe('v0.37.0 keyboard helpers (t62u/t64u)', () => {
     expect(isTypingTarget({ tagName: 'BUTTON' } as never)).toBe(false)
     expect(isTypingTarget(null)).toBe(false)
   })
-  it('widescreen scale: phone = 1; desktop scales by height/640; capped 2', () => {
+  it('widescreen scale: phones / portrait tablets unchanged; desktop by height/600, cap 2.4 (v0.40.2)', () => {
     expect(wideScale(412, 915)).toBe(1)
     expect(wideScale(360, 800)).toBe(1)
-    expect(wideScale(1920, 1080)).toBeCloseTo(1080 / 640, 2)
-    expect(wideScale(2560, 1080)).toBeCloseTo(1080 / 640, 2)
-    expect(wideScale(3840, 2160)).toBe(2)
-    expect(wideScale(600, 2000)).toBeCloseTo(600 / 412, 2)
-  })
-  it('v0.40.1 (t95u): real desktop viewports scale up (inner height is < 915 on laptops)', () => {
-    // browser chrome eats ~120px: these are typical innerWidth × innerHeight
-    expect(wideScale(1280, 680)).toBeGreaterThan(1)
-    expect(wideScale(1280, 800)).toBeCloseTo(800 / 640, 2)
-    expect(wideScale(1440, 900)).toBeCloseTo(900 / 640, 2)
-    expect(wideScale(1920, 960)).toBeCloseTo(960 / 640, 2)
-    expect(wideScale(2560, 1440)).toBe(2)
-    // phones in landscape and narrow windows stay 1
     expect(wideScale(915, 412)).toBe(1)
     expect(wideScale(800, 600)).toBe(1)
+    expect(wideScale(600, 2000)).toBeCloseTo(600 / 412, 2)
+    expect(wideScale(1440, 780)).toBeCloseTo(1.3, 2)
+    expect(wideScale(1280, 680)).toBeCloseTo(680 / 600, 2)
+    expect(wideScale(1512, 860)).toBeCloseTo(860 / 600, 2)
+    expect(wideScale(1728, 980)).toBeCloseTo(980 / 600, 2)
+    expect(wideScale(1024, 540)).toBe(1)
+    expect(wideScale(3840, 2160)).toBe(2.4)
+  })
+  it('desk = landscape ≥1000 wide (fill width); phones in landscape are not desk', () => {
+    expect(isDesk(1440, 780)).toBe(true)
+    expect(isDesk(1024, 540)).toBe(true)
+    expect(isDesk(932, 430)).toBe(false)
+    expect(isDesk(1024, 1366)).toBe(false)
   })
 })

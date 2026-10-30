@@ -64,4 +64,13 @@ describe('first install', () => {
     expect(reload).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
   })
+  it('v0.40.2: polls for a new build every 5 min while the tab is visible (open desktop tab)', () => {
+    const ev = () => new EventTarget()
+    const doc = Object.assign(ev(), { visibilityState: 'visible' })
+    let tick: (() => void) | null = null; let ms = 0; let n = 0
+    installUpdateFlow({ doc, win: ev(), sw: ev(), update: () => { n++ }, reload: () => {}, flush: () => {}, setInterval: (fn, m) => { tick = fn; ms = m } })
+    expect(ms).toBe(300000)
+    tick!(); expect(n).toBe(1)
+    doc.visibilityState = 'hidden'; tick!(); expect(n).toBe(1)
+  })
 })

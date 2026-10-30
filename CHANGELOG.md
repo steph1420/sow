@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.40.2 — 2026-10-30 (Asia/Calcutta)
+
+Fix (Steve t96u "Not there yet"): desktop still showed a narrow column. Rollback: tag `v0.40.1` / `0bff11e`. **No Code.js change.**
+
+- Root cause: v0.40.1 only scaled the 560 px phone column by height/640, so a maximised Mac/Brave window (~1440×780 inside) got ×1.2 and a ~670 px strip with big margins on every route — the column width was never allowed to fill the window.
+- Fix: a landscape window ≥ 1000 px wide is a desktop window: the same UI fills the full width (no 560 px cap, no separate layout) and scales by inner height / 600 (cap 2.4). Every route (Overview, Checklist, Settings, Sync, More) and the sheets scale. Phones (incl. landscape), portrait tablets and narrow windows are unchanged.
+- Measured: 1440×780 ×1.3 · 1280×680 ×1.13 · 1512×860 ×1.43 · 1728×980 ×1.63 · 1920×960 ×1.6 · 2560×1300 ×2.17 · 1024×540 ×1 (fills width, too short to enlarge) — 100 % width on every route.
+- Open tabs now check for a new build every 5 minutes while visible (a desktop tab that stays focused never fired the visibility/focus check), then reload onto it between taps.
+- Tests: unit `wideScale`/`isDesk`, `updateFlow` poll; e2e `wide-fill-probe` (7 sizes × 5 routes + Quick overview sheet).
+
 ## 0.40.1 — 2026-10-30 (Asia/Calcutta)
 
 Fix (Steve t95u): **not scaling to desktop screens.** Rollback: tag `v0.40.0` / `cbe7ada`. **No Code.js change.**

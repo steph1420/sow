@@ -2,7 +2,7 @@
  * v0.37.0 runtime a11y: dialog focus (move in · trap Tab · Esc dismiss · restore) and widescreen scale.
  * One global installer so every sheet in the app gets the same behaviour.
  */
-import { wideScale } from './keyboard'
+import { isDesk, wideScale } from './keyboard'
 
 const FOCUSABLE = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
 
@@ -66,6 +66,7 @@ export function installWideScale(): void {
     const s = wideScale(window.innerWidth, window.innerHeight)
     document.documentElement.style.setProperty('--wide-scale', String(s))
     document.documentElement.classList.toggle('wide', s > 1)
+    document.documentElement.classList.toggle('desk', isDesk(window.innerWidth, window.innerHeight))
   }
   apply()
   window.addEventListener('resize', apply)

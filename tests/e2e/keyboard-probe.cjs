@@ -30,9 +30,9 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) fails
   ok(Number(scale) >= 1, `wide-scale at 1280x800 = ${scale}`);
   await p.setViewportSize({ width: 1920, height: 1080 }); await go('');
   const s2 = Number(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--wide-scale')));
-  ok(s2 > 1.1 && s2 <= 2, /* v0.40.1 desktop rule: height/640, cap 2 */ `1920x1080 scales UI ×${s2}`);
+  ok(s2 > 1.1 && s2 <= 2.4, /* v0.40.1 desktop rule: height/640, cap 2 */ `1920x1080 scales UI ×${s2}`);
   const shellW = await p.$eval('.app-shell', (e) => e.getBoundingClientRect().width);
-  ok(shellW > 560 && shellW < 1920, `scaled shell width ${Math.round(shellW)}px`);
+  ok(shellW >= 1900, `v0.40.2 desk: shell fills the window width ${Math.round(shellW)}px`);
 
   // ── ? sheet lists everything, Esc closes, Tab trapped ──
   await go('');

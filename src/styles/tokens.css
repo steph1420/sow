@@ -105,6 +105,8 @@ button {
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
 /* v0.37.0 widescreen: the same phone UI, scaled to the viewport (--wide-scale from installWideScale). */
+/* v0.40.2: desktop windows — the same UI fills the width (no phone-width strip, no separate layout). */
+html.desk .app-shell { max-width: none; }
 html.wide #root {
   zoom: var(--wide-scale, 1);
   width: calc(100vw / var(--wide-scale, 1));

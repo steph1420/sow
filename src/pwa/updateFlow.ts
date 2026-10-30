@@ -17,6 +17,9 @@ export type UpdateFlowDeps = {
   /** false on a first install (no previous controller) → nothing to reload onto. */
   hadController?: boolean
   settleMs?: number
+  /** v0.40.2 (t96u): a desktop tab that stays open and focused never fires visibility/focus — poll too. */
+  intervalMs?: number
+  setInterval?: (fn: () => void, ms: number) => unknown
 }
 
 export function installUpdateFlow(d: UpdateFlowDeps): void {
@@ -35,6 +38,8 @@ export function installUpdateFlow(d: UpdateFlowDeps): void {
     if (d.doc.visibilityState === 'visible') check()
   })
   d.win.addEventListener('focus', check)
+  const every = d.intervalMs ?? 5 * 60_000
+  if (every > 0) (d.setInterval ?? ((fn, ms) => setInterval(fn, ms)))(() => { if (d.doc.visibilityState === 'visible') check() }, every)
 
   const go = () => {
     if (reloading) return
