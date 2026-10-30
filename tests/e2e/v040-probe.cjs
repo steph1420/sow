@@ -40,7 +40,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await tapEl('.sw-tickall >> nth=0');
   ok(await p.$$eval('[data-cell$="-0"]', (e) => e.every((x) => x.getAttribute('aria-checked') === 'false')), 'Untick all clears it');
   await tapEl('[aria-label="Undo"]'); await tapEl('[aria-label="Undo"]');
-  // date panel
+  // date panel — v0.41.0: the whole top area hides while scrolled down; scroll back up first
+  await p.$eval('.sw-list-wrap, .sw-scroll', (e) => { e.scrollTop = 0 }); await p.waitForTimeout(400);
   await tapEl('.sw-lean-dates');
   ok(await p.isVisible('[role=dialog][aria-label="Dates and topics"]'), 'tapping header dates opens Date panel');
   await tapEl('.dp-seg button >> nth=0');

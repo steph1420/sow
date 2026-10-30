@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Toast } from '../components/Toast'
 import { onExternalRoute, setRouteHash, useBackLayer, useExitToast } from '../nav/backStack'
 import { formatRoute, parseRoute } from '../nav/route'
 import { CheckMark } from '../components/CheckMark'
@@ -223,10 +224,12 @@ export function AppShell() {
   const canGoBack = () => stackRef.current.length > 0 || moreRef.current || tabRef.current === 'checklist'
 
   const exitToast = useExitToast()
-  const toast = exitToast ? (
-    <div className="exit-toast" role="status" aria-live="polite">
+  const [exitHidden, setExitHidden] = useState(false)
+  useEffect(() => { if (exitToast) setExitHidden(false) }, [exitToast])
+  const toast = exitToast && !exitHidden ? (
+    <Toast className="exit-toast" onDismiss={() => setExitHidden(true)}>
       Press back again to exit
-    </div>
+    </Toast>
   ) : null
 
   const top = topRoute(stack)

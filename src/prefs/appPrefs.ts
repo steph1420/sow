@@ -3,6 +3,7 @@
  * Safety floors (A–Z idle 42, letter ≥11, hideEmpty default off) are not undercut.
  */
 
+import { normalizeContrast } from '../theme/contrast'
 import { normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { normalizeSwipeStyle, type SwipeConfirmStyle } from '../checklist/gestures/swipeConfirm'
 import { migrateLegacyShare, SEED_TEMPLATES, type ShareTemplate } from '../share/shareTemplates'
@@ -13,6 +14,8 @@ export type AppPrefs = {
   theme: ThemeId
   /** Match phone dark/light when on. */
   'theme.followSystem': boolean
+  /** v0.41.0 (t102u): -1 Softer … 0 Default … +1 Stronger; one value for Night and Day. */
+  'appearance.contrast': number
   /** Sort/Filters FAB — Steve default hide (t118u). */
   'chrome.showFab': boolean
   /** Soft: less glow on stroke. */
@@ -50,6 +53,7 @@ export type AppPrefs = {
 export const PREFS_DEFAULTS: AppPrefs = {
   theme: 'night',
   'theme.followSystem': false,
+  'appearance.contrast': 0,
   'chrome.showFab': false,
   'chrome.reduceMotion': false,
   'az.leftSide': false,
@@ -104,6 +108,7 @@ export function loadPrefs(): AppPrefs {
     const parsed = raw ? (JSON.parse(raw) as Partial<AppPrefs>) : {}
     const hasShare = Array.isArray(parsed['share.templates']) && parsed['share.templates'].length > 0
     const merged = { ...freshDefaults(), ...parsed }
+    merged['appearance.contrast'] = normalizeContrast(merged['appearance.contrast'])
     merged['gestures.nameSwipeFrom'] = normalizeNameSwipe(merged['gestures.nameSwipeFrom'])
     merged['gestures.swipeConfirmStyle'] = normalizeSwipeStyle(merged['gestures.swipeConfirmStyle'])
     if (parsed['haptics.level'] == null && parsed['haptics.enabled'] === false) merged['haptics.level'] = 'off'

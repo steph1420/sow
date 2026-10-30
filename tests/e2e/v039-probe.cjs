@@ -20,7 +20,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(!(await p.isVisible('.sw-lean-count')), '"16/44 SET" removed');
   // v0.40.0 (t83u/t84u) superseded the count headers + header tick-all + date pills — see v040-probe.cjs.
   // Quick overview: Tools
-  await p.tap('.sw-tools-chip'); await p.waitForTimeout(150);
+  await p.tap('.sw-kebab'); await p.waitForTimeout(150);
   await p.tap('text=Quick overview'); await p.waitForTimeout(250);
   ok(await p.isVisible('[role=dialog][aria-label="Quick overview"]'), 'Tools › Quick overview opens sheet');
   const rows = await p.$$eval('.qo-date', (e) => e.map((x) => x.textContent));
@@ -44,7 +44,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.keyboard.press('Escape'); await p.waitForTimeout(250);
   ok(!(await p.isVisible('.qo-sheet')) && await p.evaluate(() => document.activeElement?.getAttribute('data-cell') === '0-0'), 'Esc closes, focus returns');
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.waitForTimeout(300);
-  await p.click('.sw-search-btn'); await p.keyboard.type('o'); await p.waitForTimeout(200);
+  await p.click('.sw-kebab'); await p.click('.sw-menu >> text=Filter by name'); await p.keyboard.type('o'); await p.waitForTimeout(200);
   ok(!(await p.isVisible('.qo-sheet')), 'O while typing does nothing');
   console.log(`RESULT ${fails} fails`); await b.close(); process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });

@@ -13,7 +13,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   const drag = async (x, y, dx, dy, steps = 8) => { await touch('touchStart', x, y); for (let i = 1; i <= steps; i++) { await touch('touchMove', x + (dx * i) / steps, y + (dy * i) / steps); await p.waitForTimeout(16); } await touch('touchEnd'); await p.waitForTimeout(350); };
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
   const openers = {
-    Tools: async () => { await tapSel('.sw-tools-chip'); await tapSel('.sw-tools-sheet .sw-tools-row'); },
+    Tools: async () => { await tapSel('.sw-kebab'); await tapSel('.sw-menu >> text=Quick overview'); },
     'swipe-up': async () => { const t = await p.$$eval('.tabbar .tab', (e) => { const r = e[1].getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }); await touch('touchStart', t[0], t[1]); for (let i = 1; i <= 8; i++) { await touch('touchMove', t[0], t[1] - i * 9); await p.waitForTimeout(16); } await touch('touchEnd'); await p.waitForTimeout(30); /* tap right away: the old bug */ },
     O: async () => { await p.keyboard.press('KeyO'); await p.waitForTimeout(300); },
   };
@@ -41,7 +41,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   }
   // other sheets: Tools, Copy (if present), More pop, Shortcuts, Share
   const others = [
-    ['Tools', '#checklist/KGB_Eng_CW', '.sw-tools-chip', '.sw-tools-sheet'],
+    ['⋮ menu', '#checklist/KGB_Eng_CW', '.sw-kebab', '.sw-menu'],
     ['More', '#checklist/KGB_Eng_CW', '.tabbar .tab:nth-child(3)', '.more-pop'],
   ];
   for (const [name, hash, opener, sheet] of others) {

@@ -47,7 +47,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   }
 
   // 3. Share sheet
-  const openTools = async () => { await p.click('.sw-tools-chip'); await p.click('.sw-tools-row.share'); await p.waitForSelector('.share-sheet'); await p.waitForTimeout(250); };
+  const openTools = async () => { await p.click('.sw-kebab'); await p.click('.sw-menu-row.share'); await p.waitForSelector('.share-sheet'); await p.waitForTimeout(250); };
   await fresh();
   await openTools();
   const txt = await p.$eval('.share-sheet', (e) => e.innerText);

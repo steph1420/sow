@@ -9,6 +9,8 @@ import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
 import { DatePanelSheet } from './chrome/DatePanelSheet'
+import { describeUndo } from '../lib/undoLabel'
+import { dateSlotFromIso } from '../demo/workspaceData'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
@@ -442,7 +444,27 @@ export function ChecklistPage(_props: Props) {
   const azRef = useRef<AzStripHandle>(null)
   const [kb, setKb] = useState<[number, number]>([0, 0])
   const [live, setLive] = useState('')
-  const { setPupilLeft, activeClassKey, rosterFor, setTopic } = useWorkspace()
+  const { setPupilLeft, activeClassKey, rosterFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession } = useWorkspace()
+  // v0.41.0 (t101u): Undo / Redo name what they did in a toast with the opposite action.
+  const doUndo = (kind: 'undo' | 'redo') => {
+    const e = kind === 'undo' ? m.undo() : m.redo()
+    if (!e) return
+    haptic('light')
+    const roster = rosterFor(activeClassKey)
+    const nameOf = (r: number) => roster.find((x) => x.roll === r)?.name ?? `Roll ${r}`
+    const dn = (iso: string) => dateSlotFromIso(iso, '').dayNum
+    const msg = describeUndo(e, kind, { name: nameOf, dayNum: dn, rosterSize: m.filteredRoster.length })
+    setLive(msg)
+    toast(msg, { action: kind === 'undo' ? { label: 'Redo', run: () => doUndoRef.current('redo') } : { label: 'Undo', run: () => doUndoRef.current('undo') } })
+  }
+  const doUndoRef = useRef(doUndo); doUndoRef.current = doUndo
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const menuPos = () => {
+    const r = menuBtnRef.current?.getBoundingClientRect()
+    const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wide-scale')) || 1
+    return r ? { top: (r.bottom + 6) / z, right: Math.max(8, (window.innerWidth - r.right) / z) } : undefined
+  }
+  const closeMenu = (refocus = false) => { setToolsOpen(false); if (refocus) requestAnimationFrame(() => menuBtnRef.current?.focus()) }
   const [qoOpen, setQoOpen] = useState(false)
   useBackLayer(qoOpen ? 1 : 0, () => setQoOpen(false))
   useEffect(() => {
@@ -564,7 +586,7 @@ export function ChecklistPage(_props: Props) {
         if (select.active || copyOpen || toolsOpen) e.preventDefault()
         setSelect(exitSelect())
         setCopyOpen(false)
-        setToolsOpen(false)
+        if (toolsOpen) { closeMenu(true); return }
         if (m.searchOpen) {
           m.setSearchOpen(false)
           m.setQuery('')
@@ -590,11 +612,11 @@ export function ChecklistPage(_props: Props) {
           focusCell(l.ri, kbCol)
           return
         }
-        if (e.shiftKey) m.redo(); else m.undo()
+        doUndoRef.current(e.shiftKey ? 'redo' : 'undo')
         return
       }
       if (isMod(e) && !e.altKey && !e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
-        e.preventDefault(); m.redo(); return
+        e.preventDefault(); doUndoRef.current('redo'); return
       }
       if ((e.key === 'o' || e.key === 'O') && !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector('[role="dialog"]')) {
         e.preventDefault()
@@ -624,9 +646,9 @@ export function ChecklistPage(_props: Props) {
         />
       ) : null}
 
-      <div className="sw-chrome" data-testid="sw-chrome">
+      <div className={`sw-chrome${leanHidden ? ' stuck' : ''}`} data-testid="sw-chrome">
       <div className="sw-lean">
-        <div className={`sw-lean-main${leanHidden ? ' is-hidden' : ''}`}>
+        <div className="sw-lean-main">
           {/* P2-3: title is read-only (was a full-width "Back to Overview" button); Back/tab bar navigate */}
           <div className="sw-lean-left">
             <div className="sw-lean-class">{m.classLabel}</div>
@@ -645,28 +667,25 @@ export function ChecklistPage(_props: Props) {
           {/* t76u: '16/44 SET' removed — per-date counts live in the column headers + Quick overview (O). */}
         </div>
 
+        {/* v0.41.0 (t89u/t103u LOCKED): undo · redo right-aligned just left of ⋮; Tools + search live in the ⋮ menu. */}
         <div className="sw-lean-tools">
-          <button type="button" className="sw-icon-btn" aria-label="Undo" disabled={!m.canUndo} onClick={() => { m.undo(); haptic('light') }}>
+          <span className="sw-lean-spacer" />
+          <button type="button" className="sw-icon-btn" aria-label="Undo" disabled={!m.canUndo} onClick={() => doUndo('undo')}>
             ↶
           </button>
-          <button type="button" className="sw-icon-btn" aria-label="Redo" disabled={!m.canRedo} onClick={() => { m.redo(); haptic('light') }}>
+          <button type="button" className="sw-icon-btn" aria-label="Redo" disabled={!m.canRedo} onClick={() => doUndo('redo')}>
             ↷
           </button>
-          <span className="sw-lean-spacer" />
           <button
+            ref={menuBtnRef}
             type="button"
-            className={`sw-chip sw-tools-chip${toolsOpen ? ' on' : ''}`}
-            onClick={() => setToolsOpen(true)}
+            className={`sw-kebab${toolsOpen ? ' on' : ''}`}
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={toolsOpen}
+            onClick={() => setToolsOpen((v) => !v)}
           >
-            Tools ▾
-          </button>
-          <button
-            type="button"
-            className={`sw-search-btn${m.searchOpen ? ' on' : ''}`}
-            aria-label="Search"
-            onClick={() => m.setSearchOpen((v) => !v)}
-          >
-            ⌕
+            ⋮
           </button>
         </div>
 
@@ -712,6 +731,22 @@ export function ChecklistPage(_props: Props) {
           onView={(p) => m.setPills(p)}
           onSaveTopic={(date, topic) => { setTopic(activeClassKey, date, topic); haptic('success') }}
           onClose={() => setDpOpen(false)}
+          sessions={sessionDatesFor(activeClassKey)}
+          picked={!!pickedFor(activeClassKey)}
+          onPick={(iso) => {
+            const map = sessionDatesFor(activeClassKey)
+            pickDate(activeClassKey, dateSlotFromIso(iso, map.get(iso) ?? ''))
+            if (!m.showTwoCol) m.setPills(iso < m.dates[0].date ? [true, false] : [false, true])
+            haptic('success'); setDpOpen(false)
+          }}
+          onAddSession={(iso, topic) => {
+            addSession(activeClassKey, iso, topic)
+            pickDate(activeClassKey, dateSlotFromIso(iso, topic.trim()))
+            if (!m.showTwoCol) m.setPills(iso < m.dates[0].date ? [true, false] : [false, true])
+            haptic('success'); setDpOpen(false)
+            toast(`Session added · ${dateSlotFromIso(iso, '').dayNum} · syncs on next Sync`)
+          }}
+          onReset={() => { pickDate(activeClassKey, null); setDpOpen(false) }}
         />
       ) : null}
       {qoOpen ? (
@@ -847,7 +882,7 @@ export function ChecklistPage(_props: Props) {
         />
         {showFab ? (
           <div className={`sw-fab${azLeft ? ' az-left' : ''}`}>
-            <button type="button" onClick={() => m.setPendingOnly((v) => !v)}>
+            <button type="button" onClick={() => { closeMenu(); m.setPendingOnly((v) => !v) }}>
               Filters
             </button>
             <button type="button" onClick={() => { /* sort stub */ }}>
@@ -859,74 +894,58 @@ export function ChecklistPage(_props: Props) {
 
       {toolsOpen ? (
         <>
-          <button
-            type="button"
-            className="sw-copy-scrim"
-            aria-label="Dismiss Tools"
-            onClick={() => setToolsOpen(false)}
-          />
-          <div className="sw-tools-sheet" role="dialog" aria-label="Tools">
-            <div className="sw-tools-lbl">Mode</div>
-            <div className="sw-modebar">
-              <button
-                type="button"
-                className={m.mode === 'set' ? 'on' : ''}
-                onClick={() => { if (m.mode !== 'set') haptic('medium'); m.setMode('set') }}
-              >
-                Set
-              </button>
-              <button
-                type="button"
-                className={m.mode === 'submitted' ? 'on' : ''}
-                onClick={() => { if (m.mode !== 'submitted') haptic('medium'); m.setMode('submitted') }}
-              >
-                Submitted
-              </button>
+          <button type="button" className="sw-menu-scrim" aria-label="Close menu" tabIndex={-1} onClick={() => closeMenu()} />
+          <div
+            className="sw-menu"
+            style={menuPos()}
+            role="menu"
+            aria-label="Checklist actions"
+            ref={(el) => { if (el && document.documentElement.dataset.input === 'kbd' && !el.contains(document.activeElement)) el.querySelector<HTMLElement>('[role^=menuitem]')?.focus() }}
+            onKeyDown={(e) => {
+              const items = [...e.currentTarget.querySelectorAll<HTMLElement>('[role^=menuitem]')]
+              const i = items.indexOf(document.activeElement as HTMLElement)
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus() }
+              else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus() }
+              else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus() }
+              else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMenu(true) }
+              else if (e.key === 'Tab') { closeMenu() }
+            }}
+          >
+            <div className="sw-menu-lbl" aria-hidden>Mode</div>
+            <div className="sw-menu-seg" role="group" aria-label="Mode">
+              {(['set', 'submitted'] as const).map((md) => (
+                <button key={md} type="button" role="menuitemradio" aria-checked={m.mode === md} data-mode={md}
+                  className={m.mode === md ? 'on' : ''}
+                  onClick={() => { if (m.mode !== md) haptic('medium'); m.setMode(md) }}>
+                  {md === 'set' ? 'Set' : 'Submitted'}
+                </button>
+              ))}
             </div>
-            <button type="button" className="sw-tools-row" onClick={() => { setToolsOpen(false); setQoOpen(true) }}>
-              <span className="dot">▤</span> Quick overview
-              <span className="chev">O</span>
+            <hr />
+            <button type="button" role="menuitem" className="sw-menu-row" onClick={() => { closeMenu(); qsReturn.current = menuBtnRef.current; setQsOpen(true) }}>
+              <span className="ic" aria-hidden data-ic="⌕" /><span className="tx">Find pupil</span><span className="k" aria-hidden>/</span>
             </button>
-            <button
-              type="button"
-              className={`sw-tools-row${m.pendingOnly ? ' on' : ''}`}
-              onClick={() => m.setPendingOnly((v) => !v)}
-            >
-              <span className="dot">●</span> Pending only
-              <span className="chev">{m.pendingOnly ? 'On' : 'Off'}</span>
+            <button type="button" role="menuitem" className="sw-menu-row" onClick={() => { closeMenu(); m.setSearchOpen(true); requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.sw-search input')?.focus()) }}>
+              <span className="ic" aria-hidden data-ic="≡" /><span className="tx">Filter by name</span><span className="k" aria-hidden>{navigator.platform.includes('Mac') ? '⌘F' : 'Ctrl+F'}</span>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked={m.pendingOnly} data-item="pending" className={`sw-menu-row${m.pendingOnly ? ' on' : ''}`} onClick={() => { closeMenu(); m.setPendingOnly((v) => !v) }}>
+              <span className="ic" aria-hidden data-ic="●" /><span className="tx">Pending only</span><span className="k" aria-hidden>{m.pendingOnly ? 'On' : 'Off'}</span>
+            </button>
+            <hr />
+            <button type="button" role="menuitem" className="sw-menu-row" onClick={() => { closeMenu(); setQoOpen(true) }}>
+              <span className="ic" aria-hidden data-ic="▤" /><span className="tx">Quick overview</span><span className="k" aria-hidden>O</span>
             </button>
             {m.dates.length === 2 ? (
-              <button
-                type="button"
-                className="sw-tools-row"
-                onClick={() => {
-                  setToolsOpen(false)
-                  setCopyOpen(true)
-                }}
-              >
-                ⎘ Copy marks…
-                <span className="chev">›</span>
+              <button type="button" role="menuitem" className="sw-menu-row" onClick={() => { closeMenu(); setCopyOpen(true) }}>
+                <span className="ic" aria-hidden data-ic="⎘" /><span className="tx">Copy marks…</span><span className="k" aria-hidden>›</span>
               </button>
             ) : null}
-            {/* v0.28 (mock share-mj2): one-word Share — current class + shown date */}
-            <button
-              type="button"
-              className="sw-tools-row share"
-              onClick={() => {
-                setToolsOpen(false)
-                openShare({ classKey: m.classKey, date: echoDate, dates: m.showTwoCol ? m.visibleDates : undefined })
-              }}
-            >
-              Share
-              <span className="chev">›</span>
-            </button>
-            <button type="button" className="sw-tools-row mute" onClick={() => setToolsOpen(false)}>
-              Done
+            <button type="button" role="menuitem" className="sw-menu-row share" onClick={() => { closeMenu(); openShare({ classKey: m.classKey, date: echoDate, dates: m.showTwoCol ? m.visibleDates : undefined }) }}>
+              <span className="ic" aria-hidden data-ic="↗" /><span className="tx">Share</span><span className="k" aria-hidden>›</span>
             </button>
           </div>
         </>
       ) : null}
-
       {copyOpen ? (
         <>
           <button type="button" className="sw-copy-scrim" aria-label="Dismiss" onClick={() => setCopyOpen(false)} />

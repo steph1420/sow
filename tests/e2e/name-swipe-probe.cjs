@@ -70,7 +70,7 @@ const STYLES = ['blue', 'tint', 'ghost', 'sliver', 'wash', 'ghostTint'];
   // 10. all 6 confirm styles × Set/Submitted: no cue before crossing, cue after, only crossed box commits
   for (const mode of ['set', 'submitted']) for (const style of STYLES) {
     await fresh({ 'gestures.swipeConfirmStyle': style });
-    if (mode === 'submitted') { await p.click('.sw-tools-chip'); await p.click('.sw-modebar button:nth-child(2)'); await p.click('.sw-tools-row.mute'); await p.waitForTimeout(200); }
+    if (mode === 'submitted') { await p.click('.sw-kebab'); await p.click('.sw-menu [data-mode=submitted]'); await p.keyboard.press('Escape'); await p.waitForTimeout(200); }
     roll = await pick(); g = await geo(roll); s0 = await state(roll);
     const xs = g.nl + g.nw * 0.6;
     await touch('touchStart', xs, g.cy); await touch('touchMove', xs + 14, g.cy); await touch('touchMove', g.c[0][0] - 6, g.cy); await p.waitForTimeout(30);

@@ -16,7 +16,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
   await at('reload on Checklist');
   await tap('[data-cell="0-0"]'); await at('tick');
-  await tap('.sw-tools-chip'); await at('Tools sheet open'); await tap('.sw-copy-scrim'); await at('Tools sheet closed');
+  await tap('.sw-kebab'); await at('Tools sheet open'); await p.touchscreen.tap(20, 300); await p.waitForTimeout(250); await at('Tools sheet closed');
   await tap('.tabbar .tab >> nth=0'); await at('Overview');
   ok((await p.$$eval('.ov-card.exp', (e) => e.length)) === 0, 'BUG t75u: Overview after navigation — no card auto-expanded');
   await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);

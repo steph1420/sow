@@ -1,6 +1,7 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
+- v0.41.0: a date added with "Add session" exists only on this device until the next Sync. A picked date is kept for the current run only and resets to the sheet dates on reload. On the dials, the year changes only through the Year dropdown: turning Month past Dec wraps to Jan of the same year.
 - v0.36.1 clock guard covers clocks that are *ahead*; a phone that is *behind* can still lose to older-looking stamps until v0.37.0 (op log). Needs Steve's Code.js paste to take effect.
 - v0.36.0 settings sync needs Steve to re-paste Code.js + New version; not yet verified on the copy sheet. Device clocks decide newer-wins. `hideLeft` in IDB settings is unused by the UI and not synced. Choosing Not now on the first-join sheet turns settings sync off on that device (turn it back on in Sync).
 - v0.35.0 themes: on a cold start the Default palette shows for a moment until IndexedDB loads the saved theme. Mode keeps the existing Day/Night phone pickers (mock showed plain rows). A few secondary tints (Submitted mode, Overview bars) keep their fixed colours by design.

@@ -7,6 +7,7 @@ import {
   popRedo,
   popUndo,
   pushUndo,
+  type UndoEntry,
   type MarkSnap,
 } from '../../lib/undoStack'
 import type { ColPills, DateSlot, MarkMode, MarksMap, StudentRow } from '../types'
@@ -150,18 +151,21 @@ export function useChecklistModel() {
     [roster, marks, mode, commitMarks],
   )
 
-  const undo = useCallback(() => {
+  /** v0.41.0: return the entry so the page can name it in a toast (t101u). */
+  const undo = useCallback((): UndoEntry | null => {
     const e = popUndo(classKey)
-    if (!e) return
+    if (!e) return null
     applySnaps(e.undo)
     setUndoTick((t) => t + 1)
+    return e
   }, [classKey, applySnaps])
 
-  const redo = useCallback(() => {
+  const redo = useCallback((): UndoEntry | null => {
     const e = popRedo(classKey)
-    if (!e) return
+    if (!e) return null
     applySnaps(e.redo)
     setUndoTick((t) => t + 1)
+    return e
   }, [classKey, applySnaps])
 
   const filteredRoster = useMemo(() => {

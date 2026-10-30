@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { DatePicker } from './DatePicker'
+import { fromIso, MONTHS, weekdayShort } from '../../dates/dial'
 import type { DateSlot } from '../types'
 
 type Props = {
@@ -8,10 +10,22 @@ type Props = {
   onView: (pills: [boolean, boolean]) => void
   onSaveTopic: (date: string, topic: string) => void
   onClose: () => void
+  /** v0.41.0 any-date picker */
+  sessions: Map<string, string>
+  picked: boolean
+  onPick: (iso: string) => void
+  onAddSession: (iso: string, topic: string) => void
+  onReset: () => void
 }
 
 /** v0.40.0 (t83u) Date panel — pick 1 or 2 dates and view / edit each session's topic. Opened from the header dates. */
-export function DatePanelSheet({ classLabel, dates, pills, onView, onSaveTopic, onClose }: Props) {
+export function DatePanelSheet({ classLabel, dates, pills, onView, onSaveTopic, onClose, sessions, picked, onPick, onAddSession, onReset }: Props) {
+  const [sel, setSel] = useState(dates[1].date)
+  const [newTopic, setNewTopic] = useState('')
+  const addRef = useRef<HTMLInputElement>(null)
+  const ymd = fromIso(sel)
+  const selLabel = `${weekdayShort(ymd)} ${ymd.d} ${MONTHS[ymd.m - 1]}`
+  const selHas = sessions.has(sel)
   const same = dates[0].date === dates[1].date
   const two = pills[0] && pills[1] && !same
   const [draft, setDraft] = useState<string[]>(() => dates.map((d) => d.topic))
@@ -71,6 +85,39 @@ export function DatePanelSheet({ classLabel, dates, pills, onView, onSaveTopic, 
             </div>
           )
         })}
+        <h3 className="dp-sub">Pick a date</h3>
+        <DatePicker
+          start={dates[1].date}
+          sessions={sessions}
+          onChange={(iso) => { setSel(iso); setNewTopic('') }}
+          onEnter={(iso) => { setSel(iso); if (sessions.has(iso)) onPick(iso); else addRef.current?.focus() }}
+        />
+        <div className="dp-pick-card" aria-live="polite">
+          {selHas ? (
+            <>
+              <div className="t">{selLabel} · session</div>
+              <div className="s">{sessions.get(sel) || 'No topic'}</div>
+              <div className="dp-row2">
+                <button type="button" className="p" onClick={() => onPick(sel)} disabled={sel === dates[0].date || sel === dates[1].date}>
+                  {sel === dates[0].date || sel === dates[1].date ? 'Already shown' : 'Open this date'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="t">{selLabel} · no session</div>
+              <div className="s">Nothing was set on this date. Add one so you can tick it?</div>
+              <input ref={addRef} className="dp-input dp-add-topic" placeholder="Topic (optional)" maxLength={200} value={newTopic}
+                onChange={(e) => setNewTopic(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddSession(sel, newTopic) } }} />
+              <div className="dp-row2">
+                <button type="button" onClick={() => { setSel(dates[1].date) }}>Cancel</button>
+                <button type="button" className="p" onClick={() => onAddSession(sel, newTopic)}>Add session</button>
+              </div>
+            </>
+          )}
+          <div className="s dp-note">{two ? 'Replaces date 2' : 'Shown on its own'} · dates stay oldest first</div>
+        </div>
+        {picked ? <button type="button" className="dp-reset" onClick={onReset}>Back to sheet dates</button> : null}
         <button type="button" className="qo-close" data-dialog-close onClick={onClose}>Done</button>
       </div>
     </>

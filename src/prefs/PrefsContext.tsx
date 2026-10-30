@@ -17,6 +17,7 @@ import {
 } from './appPrefs'
 import { setHapticsLevel } from '../lib/haptics'
 import { applyPalette } from '../theme/palettes'
+import { installContrast } from '../theme/contrast'
 import { getSettings, putSettings } from '../data/api'
 import { PREFS_APPLIED_EVENT } from '../sync/prefsRunner'
 
@@ -72,6 +73,10 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [prefs, palette])
+
+  // v0.41.0: contrast mixes on <body>; observer re-applies after theme/palette writes on <html>.
+  const contrast = prefs['appearance.contrast'] ?? 0
+  useEffect(() => installContrast(() => contrast), [contrast])
 
   useEffect(() => {
     savePrefs(prefs)

@@ -72,10 +72,10 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   // 5 Checklist Tools → Share
   await tap('.ov-act-open', 0); await p.waitForTimeout(300);
   ok(await has('.sw-list-wrap'), 'Open → Checklist');
-  await tap('.sw-tools-chip');
-  ok((await txt('.sw-tools-row.share'))?.startsWith('Share'), 'Tools menu has one-word Share');
-  await tap('.sw-tools-row.share');
-  ok(!(await has('.sw-tools-sheet')) && (await has('.share-sheet')), 'Tools → Share closes Tools, opens chooser');
+  await tap('.sw-kebab');
+  ok((await txt('.sw-menu-row.share'))?.startsWith('Share'), 'Tools menu has one-word Share');
+  await tap('.sw-menu-row.share');
+  ok(!(await has('.sw-menu')) && (await has('.share-sheet')), 'Tools → Share closes Tools, opens chooser');
   ok((await txt('.share-ctx'))?.startsWith('KGA Eng CW'), 'chooser bound to current class');
   await back();
   ok(!(await has('.share-sheet')) && (await has('.sw-list-wrap')), 'back closes sheet, stays on Checklist');

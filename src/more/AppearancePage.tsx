@@ -91,6 +91,24 @@ export function AppearancePage({ onBack, onOpenAzDev }: Props) {
         </button>
       </div>
 
+      <div className="more-sec">Contrast</div>
+      <div className="more-card contrast-card">
+        <div className="contrast-row">
+          <input
+            type="range"
+            min={-10}
+            max={10}
+            step={1}
+            aria-label="Contrast"
+            aria-valuetext={(() => { const v = Math.round((prefs['appearance.contrast'] ?? 0) * 10); return v === 0 ? 'Default' : v < 0 ? `Softer ${-v}` : `Stronger ${v}` })()}
+            value={Math.round((prefs['appearance.contrast'] ?? 0) * 10)}
+            onChange={(e) => setPref('appearance.contrast', Number(e.currentTarget.value) / 10)}
+          />
+          <div className="contrast-lbls" aria-hidden><span>Softer</span><span>Default</span><span>Stronger</span></div>
+          <div className="g-sub">One setting for Night and Day · text and lines only, accent colours stay the same</div>
+        </div>
+      </div>
+
       <div className="more-sec">Checklist feel</div>
       <div className="more-card">
         <button

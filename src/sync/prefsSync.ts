@@ -8,7 +8,7 @@ export type CatId = 'appearance' | 'mode' | 'checklist' | 'gestures' | 'share' |
 export type Category = { id: CatId; label: string; sub: string; keys: string[]; always?: boolean; defaultOn: boolean }
 
 export const CATEGORIES: Category[] = [
-  { id: 'appearance', label: 'Appearance', sub: 'Colour theme · Follow system', keys: ['palette', 'theme.followSystem'], defaultOn: true },
+  { id: 'appearance', label: 'Appearance', sub: 'Colour theme · Follow system · Contrast', keys: ['palette', 'theme.followSystem', 'appearance.contrast'], defaultOn: true },
   { id: 'mode', label: 'Night / Day', sub: 'Same mode on every device', keys: ['theme'], defaultOn: true },
   { id: 'checklist', label: 'Checklist feel', sub: 'Sort button · A–Z hide dimmed', keys: ['chrome.showFab', 'az.hideEmpty'], defaultOn: true },
   { id: 'gestures', label: 'Gestures', sub: 'Swipe from name · confirm style · one row only', keys: ['gestures.nameSwipeFrom', 'gestures.swipeConfirmStyle', 'gestures.swipeSingleRow'], defaultOn: true },

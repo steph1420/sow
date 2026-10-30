@@ -236,9 +236,9 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) fails
   }
 
   // ── Tools sheet: Esc + focus restore ──
-  await p.focus('.sw-tools-chip'); await press('Enter'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => !!document.activeElement?.closest('[role=dialog]')), 'Tools sheet takes focus');
-  await press('Escape'); ok(!(await p.isVisible('.sw-tools-sheet')), 'Esc closes Tools');
+  await p.focus('.sw-kebab'); await press('Enter'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !!document.activeElement?.closest('.sw-menu')), '⋮ menu takes focus');
+  await press('Escape'); ok(!(await p.isVisible('.sw-menu')), 'Esc closes Tools');
 
   console.log(`RESULT ${fails} fails`); await b.close(); process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.41.0 — 2026-10-30 (Asia/Calcutta)
+
+Feature release for Steve's locked v2 mocks plus the v4 date picker (t101u–t108u, "LLooks perfect!!!"). Rollback: tag `v0.40.2` / `2fb2ff7`, or branch `backup/pre-v0.41.0`. **No Code.js change**: the bridge already creates missing session rows from tick and sessions ops.
+
+- **⋮ menu:** Tools and the search icon move into one ⋮ menu (`role=menu`). The Set/Submitted switch is at the top, then Find pupil (/), Filter by name (Ctrl/⌘+F) and Pending only, then Quick overview (O), Copy marks… and Share. The dates chip stays outside the menu, on the right. Undo and redo sit right-aligned, just left of ⋮. Keyboard: Enter opens the menu, arrow keys and Home/End move, Esc closes it and returns focus to ⋮. One tap outside or hardware back also closes it.
+- **Scrolling:** scrolling down hides the whole top area. The table header then sits flush at the top: opaque, with a soft shadow and a thin border. Scrolling up brings the top area back.
+- **Depth:** one shared set of depth levels (`--depth-1/2/3`, separate Night and Day values) for top bars, sheets, menus, cards and toasts.
+- **Undo/redo toasts:** each undo or redo names what changed, e.g. "Undid tick · Name · 28/10" with a Redo button, or "Redid tick all · 2/11 · 44 pupils" with an Undo button. This also works for Ctrl/⌘+Z and Ctrl/⌘+Shift+Z.
+- **Dismissing toasts:** every toast can be swiped sideways or tapped to dismiss.
+- **Contrast:** one Contrast slider in Settings › Appearance, from Softer to Stronger, for both Night and Day. It changes secondary text, tertiary text and hairlines only; accent colours are untouched. It syncs with the Appearance settings.
+- **Any-date picker:** the Dates panel gains a "Pick a date" section.
+  - A Year dropdown sits above Month, Date and Day dials. Day turns by itself to the matching weekday.
+  - Session dates are dotted. Turn a dial by dragging or with the mouse wheel.
+  - Keyboard: ↑/↓ turn the focused dial (PgUp/PgDn by 7), Tab moves between dials, Enter picks.
+  - A picked date replaces date 2, and the two dates stay oldest first. "Back to sheet dates" resets the pair.
+  - A date with no session offers "Add session" with an optional topic. The new session goes up on the next Sync.
+- **Tests:** unit tests for `dial`, `pickDate`, `undoLabel` and `contrast`. New e2e `v041-probe` (52 checks, real touch via CDP plus keyboard). The older probes now open the ⋮ menu instead of Tools.
+
 ## 0.40.2 — 2026-10-30 (Asia/Calcutta)
 
 Fix (Steve t96u "Not there yet"): desktop still showed a narrow column. Rollback: tag `v0.40.1` / `0bff11e`. **No Code.js change.**

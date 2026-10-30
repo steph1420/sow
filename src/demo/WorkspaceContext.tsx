@@ -22,6 +22,7 @@ import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
 import { getSettings, listSessions, putSettings, setLeft } from '../data/api'
 import { applyTopicEdits, topicKey, type TopicEdits } from '../sync/topicEdits'
+import { applyPick } from '../checklist/pickDate'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
@@ -57,6 +58,13 @@ type WorkspaceValue = {
   setPupilLeft: (k: ClassKey, roll: number, left: boolean) => void
   /** v0.40.0 (t83u): edit a session topic locally (synced to the Sessions tab on next Sync). */
   setTopic: (k: ClassKey, date: string, topic: string) => void
+  /** v0.41.0 (t103u/t108u): any date — a picked date replaces date 2 (calendar order kept). null = sheet dates. */
+  pickDate: (k: ClassKey, slot: DateSlot | null) => void
+  pickedFor: (k: ClassKey) => DateSlot | null
+  /** Session dates known for a class (sheet history, current, added) → topic. */
+  sessionDatesFor: (k: ClassKey) => Map<string, string>
+  /** Add a session on a date with no session (pushed as a sessions op on the next Sync). */
+  addSession: (k: ClassKey, date: string, topic: string) => void
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
@@ -76,6 +84,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
   const [topicEdits, setTopicEdits] = useState<TopicEdits>({})
+  const [picked, setPicked] = useState<Partial<Record<ClassKey, DateSlot>>>({})
   useEffect(() => { void getSettings().then((s) => setTopicEdits(s.topicEdits ?? {})).catch(() => {}) }, [])
 
   const marksRef = useRef(marksByClass)
@@ -144,10 +153,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const datesFor = useCallback(
     (k: ClassKey): [DateSlot, DateSlot] => {
       const s = pulledSessions.find((x) => x.classKey === k)
-      const base = s ? datesFromSession(s) : WORKSPACE_DATES
+      const base0 = s ? datesFromSession(s) : WORKSPACE_DATES
+      const pk = picked[k]
+      const base = pk ? applyPick(base0, pk) : base0
       return applyTopicEdits(k, base, topicEdits) as [DateSlot, DateSlot]
     },
-    [pulledSessions, topicEdits],
+    [pulledSessions, topicEdits, picked],
   )
   const datesForRef = useRef(datesFor)
   datesForRef.current = datesFor
@@ -171,6 +182,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [])
 
+  const addSession = useCallback((k: ClassKey, date: string, topic: string) => {
+    const edit = { topic: topic.trim().slice(0, 200), updatedAt: new Date().toISOString() }
+    setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
+    void getSettings()
+      .then((s) => putSettings({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true }))
+      .catch(() => {})
+  }, [])
+  const pickDate = useCallback((k: ClassKey, slot: DateSlot | null) => {
+    setPicked((prev) => { const n = { ...prev }; if (slot) n[k] = slot; else delete n[k]; return n })
+  }, [])
+  const pickedFor = useCallback((k: ClassKey) => picked[k] ?? null, [picked])
+
   const rosterFor = useCallback(
     (k: ClassKey) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
     [rosters],
@@ -188,6 +211,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     () => (pulledSessions.length ? historyFromIdb(pulledSessions, (k) => rosterFor(k).length) : sessions),
     [pulledSessions, rosterFor, sessions],
   )
+
+  const sessionDatesFor = useCallback((k: ClassKey) => {
+    const m = new Map<string, string>()
+    for (const h of historySessions) if (h.classKey === k) m.set(h.date.date, h.date.topic)
+    const s = pulledSessions.find((x) => x.classKey === k)
+    for (const d of s ? datesFromSession(s) : WORKSPACE_DATES) m.set(d.date, d.topic)
+    for (const [key, e] of Object.entries(topicEdits)) { const [ck, date] = key.split('|'); if (ck === k && date) m.set(date, e.topic) }
+    return m
+  }, [historySessions, pulledSessions, topicEdits])
 
   const classKeys = useMemo<ClassKey[]>(() => {
     const ks = new Set<ClassKey>()
@@ -231,11 +263,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       lastSyncAt,
       datesFor,
       setTopic,
+      pickDate,
+      pickedFor,
+      sessionDatesFor,
+      addSession,
       rosterFor,
       reloadFromIdb,
       setPupilLeft,
     }),
-    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, rosterFor, reloadFromIdb],
+    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

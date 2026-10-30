@@ -12,9 +12,9 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   // Overview -> Checklist -> Tools -> back closes tools -> back to Overview
   await p.locator('.tabbar .tab').nth(1).click(); await p.waitForTimeout(300);
   ok(await isList(), 'checklist open');
-  await p.locator('.sw-tools-chip').click(); await p.waitForTimeout(200);
-  ok(!!(await p.$('.sw-tools-row')), 'tools open');
-  await back(); ok(!(await p.$('.sw-tools-row')) && await isList(), 'back #1 closes Tools, stays on Checklist');
+  await p.locator('.sw-kebab').click(); await p.waitForTimeout(200);
+  ok(!!(await p.$('.sw-menu-row')), 'tools open');
+  await back(); ok(!(await p.$('.sw-menu-row')) && await isList(), 'back #1 closes Tools, stays on Checklist');
   await back(); ok(!(await isList()) && p.url().startsWith(url), 'back #2 → Overview');
   // More -> Settings -> Sync -> back x3
   await p.locator('.tabbar .tab').nth(2).click(); await p.waitForTimeout(200);

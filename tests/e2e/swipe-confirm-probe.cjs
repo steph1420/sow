@@ -15,7 +15,7 @@ const MODE_RGB = { set: 'rgb(48, 209, 88)', submitted: 'rgb(139, 124, 247)' };
     await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   };
-  const setMode = async (mode) => { if (mode === 'set') return; await p.click('.sw-tools-chip'); await p.click('.sw-modebar button:nth-child(2)'); await p.click('.sw-tools-row.mute'); await p.waitForTimeout(200); };
+  const setMode = async (mode) => { if (mode === 'set') return; await p.click('.sw-kebab'); await p.click('.sw-menu [data-mode=submitted]'); await p.keyboard.press('Escape'); await p.waitForTimeout(200); };
   // first visible row that has an unticked box (so the swipe ticks → ghost ✓ previews)
   const pickRow = () => p.$$eval('.sw-row', (rows) => { const r = rows.find((x) => x.getBoundingClientRect().top > 220 && x.getBoundingClientRect().bottom < 700 && x.querySelector('.sw-check:not(.on)')); return +r.dataset.roll; });
   const cell = (roll, col) => p.$eval(`.sw-row[data-roll="${roll}"]`, (r, col) => { const c = r.querySelectorAll('.sw-check-hit')[col].getBoundingClientRect(); const rr = r.getBoundingClientRect(); return [c.left + c.width / 2, c.top + c.height / 2, rr.height]; }, col);
