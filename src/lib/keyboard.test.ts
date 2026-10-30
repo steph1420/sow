@@ -38,12 +38,23 @@ describe('v0.37.0 keyboard helpers (t62u/t64u)', () => {
     expect(isTypingTarget({ tagName: 'BUTTON' } as never)).toBe(false)
     expect(isTypingTarget(null)).toBe(false)
   })
-  it('widescreen scale: phone = 1; 1920×1080 and 2560×1080 = 1.18; capped 1.6', () => {
+  it('widescreen scale: phone = 1; desktop scales by height/640; capped 2', () => {
     expect(wideScale(412, 915)).toBe(1)
     expect(wideScale(360, 800)).toBe(1)
-    expect(wideScale(1920, 1080)).toBeCloseTo(1.18, 2)
-    expect(wideScale(2560, 1080)).toBeCloseTo(1.18, 2)
-    expect(wideScale(3840, 2160)).toBe(1.6)
+    expect(wideScale(1920, 1080)).toBeCloseTo(1080 / 640, 2)
+    expect(wideScale(2560, 1080)).toBeCloseTo(1080 / 640, 2)
+    expect(wideScale(3840, 2160)).toBe(2)
     expect(wideScale(600, 2000)).toBeCloseTo(600 / 412, 2)
+  })
+  it('v0.40.1 (t95u): real desktop viewports scale up (inner height is < 915 on laptops)', () => {
+    // browser chrome eats ~120px: these are typical innerWidth × innerHeight
+    expect(wideScale(1280, 680)).toBeGreaterThan(1)
+    expect(wideScale(1280, 800)).toBeCloseTo(800 / 640, 2)
+    expect(wideScale(1440, 900)).toBeCloseTo(900 / 640, 2)
+    expect(wideScale(1920, 960)).toBeCloseTo(960 / 640, 2)
+    expect(wideScale(2560, 1440)).toBe(2)
+    // phones in landscape and narrow windows stay 1
+    expect(wideScale(915, 412)).toBe(1)
+    expect(wideScale(800, 600)).toBe(1)
   })
 })

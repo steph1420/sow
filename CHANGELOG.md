@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.40.1 — 2026-10-30 (Asia/Calcutta)
+
+Fix (Steve t95u): **not scaling to desktop screens.** Rollback: tag `v0.40.0` / `cbe7ada`. **No Code.js change.**
+
+- Root cause: the v0.37.0 widescreen scale was `min(innerHeight / 915, innerWidth / 412, 1.6)`. On laptops and most desktop windows the browser's inner height is below 915 px (1280×800, 1440×900, and 1920×1080 minus browser chrome ≈ 950), so the scale stayed 1 or barely above it. Not a v0.39/v0.40 change, not the service worker (live served the current bundle), not zoom.
+- Fix: landscape windows ≥ 1000 px wide scale by `innerHeight / 640` (cap 2). Measured: 1280×800 ×1.25 · 1440×900 ×1.41 · 1920×1080 ×1.69 · 2560×1440 ×2. Phones, tablets in portrait and narrow windows are unchanged.
+- Tests: unit `wideScale` (desktop viewports, phone landscape stays 1); e2e `wide-shots` fails if any of the four desktop sizes is unscaled; `keyboard-probe` range updated.
+
 ## 0.40.0 — 2026-10-30 (Asia/Calcutta)
 
 Checklist header rework + topic editing + sheet feel (Steve t83u, t84u, t85u–t88u). Rollback: tag `v0.39.0` / `607312c`. **Code.js changed (bridge 0.40.0, backward compatible)** — re-paste + New version to sync topics; until then topic edits stay on the phone with a note. CRDT op log renumbered to v0.41.0.

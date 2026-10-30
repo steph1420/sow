@@ -53,8 +53,12 @@ export function isTypingTarget(el: (Partial<HTMLElement> & { type?: string }) | 
 
 /** Widescreen (Q-WIDE-1 option i): same phone UI scaled to fit the height, never above 1.6×, never below 1. */
 export const PHONE_W = 412, PHONE_H = 915, WIDE_MAX = 1.6
+/** v0.40.1 (t95u): desktop windows (≥1000 wide, landscape) scale by height against a 640px design
+ *  height — laptops' inner height is < 915, so the phone-height rule never scaled them. */
+export const DESK_W = 1000, DESK_H = 640, DESK_MAX = 2
 export function wideScale(w: number, h: number): number {
-  const s = Math.min(h / PHONE_H, w / PHONE_W, WIDE_MAX)
+  const desk = w >= DESK_W && w > h
+  const s = desk ? Math.min(h / DESK_H, w / PHONE_W, DESK_MAX) : Math.min(h / PHONE_H, w / PHONE_W, WIDE_MAX)
   return s <= 1.0001 ? 1 : Math.round(s * 1000) / 1000
 }
 
