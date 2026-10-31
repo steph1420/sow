@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.43.0 — 2026-10-31 (Asia/Calcutta) · Beta
+
+Date popover + Add/Edit popup (t18u, t21u, t25u–t33u; t34u "Looks good. Lock it."). Rollback: tag `v0.42.0` / `3a8a39b`, or branch `backup/pre-v0.43.0`. **No Code.js change in this release** (bridge rename/delete still needed — see BUGS).
+
+- **Tap a date header** → popover listing the class's sessions, oldest first. Tap a row = show that date in that column. **Hold** a row or **swipe it left** to edit; the EDIT tab slides over the topic only, so the date stays visible. **＋ Add Date** pill at the bottom. A `1 | 2` switch sets how many dates show — remembered on this device only.
+- **Add popup** (centred, dim backdrop, tap outside cancels): squircle cards starting with today; ＋ right of the last adds another (next day); the focused card is edited with the topic box and the Month/Date/Day dials; ✓ saves all.
+- **Edit popup:** the date big at top, topic, dials; ✓ saves, 🗑 deletes.
+- **Marks move with the date** (Q-V43-3, app-side): moving a session re-keys its ticks to the new date and clears the old date's cells.
+- **Clash blocks Save:** moving/adding onto a date that already has a session (or picking the same date twice) greys ✓ and says why.
+- **Delete with marks** (t21u): "Delete 2/11 Mon? N marks will be deleted. You can undo." with the real count; a snapshot is kept and the toast offers Undo (restores topic, marks and picked pair).
+- **Year bug fixed** — root cause: the Month dial wrapped Dec↔Jan without carrying the year, so the Year showed 2025 beside a 2026 date. Month now carries the year; the popup shows the year in the title instead of a dropdown.
+- **Touch:** popover list and popup scroll with a finger (`touch-action: pan-y`, v0.42 lesson).
+- Desktop: popup centred under `--wide-scale` zoom.
+
 ## 0.42.0 — 2026-10-31 (Asia/Calcutta) · Beta
 
 Dates sheet fixes plus Option A (t2u, t4u, t5u "Mock A." LOCKED Q-DATES-A, t6u). Rollback: tag `v0.41.0` / `2ed120f`, or branch `backup/pre-v0.42.0`. **No Code.js change**: the bridge already returns all Sessions rows.

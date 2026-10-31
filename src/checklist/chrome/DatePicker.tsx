@@ -9,10 +9,12 @@ type Props = {
   sessions: Map<string, string>
   onChange?: (iso: string) => void
   onEnter: (iso: string) => void
+  /** v0.43.0 popup: no Year row (Month dial carries the year; year shown in the date title). */
+  compact?: boolean
 }
 const ROW = 44
 
-export function DatePicker({ start, sessions, onChange, onEnter }: Props) {
+export function DatePicker({ start, sessions, onChange, onEnter, compact }: Props) {
   const [v, setV] = useState<Ymd>(() => fromIso(start))
   const set = (n: Ymd) => { setV(n); onChange?.(toIso(n)) }
   const years = yearOptions(new Date().getFullYear(), [...sessions.keys(), start])
@@ -74,12 +76,12 @@ export function DatePicker({ start, sessions, onChange, onEnter }: Props) {
   }
   return (
     <div className="dp-picker" data-iso={toIso(v)}>
-      <div className="dp-picker-top">
+      {compact ? null : <div className="dp-picker-top">
         <select className="dp-year" aria-label="Year" value={v.y} onChange={(e) => set(setYear(v, Number(e.target.value)))}>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
         <span className="dp-keys" aria-hidden><kbd>↑</kbd><kbd>↓</kbd> turn · <kbd>Tab</kbd> next · <kbd>Enter</kbd> pick</span>
-      </div>
+      </div>}
       <div className="dp-dial-heads" aria-hidden><span>Month</span><span>Date</span><span>Day · auto</span></div>
       <div className="dp-dials">
         <div className="dp-band" aria-hidden />

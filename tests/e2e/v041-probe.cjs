@@ -77,7 +77,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await tapEl('.toast-msg');
   ok(!(await p.isVisible('.toast')), 'tap on a toast dismisses it');
   // other toasts (topic toast) also swipe / tap
-  await tapEl('.sw-dh-btn >> nth=0'); ok(await p.isVisible('.toast'), 'topic toast uses the same toast');
+  // v0.43.0: header tap opens the date popover now (t18u) — use the no-change Edit ✓ 'Saved' toast instead
+  await tapEl('.sw-dh-btn >> nth=0'); await p.$eval('.dpo-row.cur .dpo-edit', (e) => e.click()); await tapEl('.dem-ok'); await p.waitForTimeout(150); ok(await p.isVisible('.toast'), 'topic toast uses the same toast');
   await tapEl('.toast-msg'); ok(!(await p.isVisible('.toast')), 'topic toast tap-dismisses');
 
   // ── date dials (v4)

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { DATE_COLS_KEY, readDateCols } from '../../dates/sessionEdit'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { prettyClassLabel, type ClassKey } from '../../data/types'
 import { useWorkspace } from '../../demo/WorkspaceContext'
 import {
@@ -41,7 +42,9 @@ export function useChecklistModel() {
   )
 
   const [mode, setMode] = useState<MarkMode>('set')
-  const [pills, setPills] = useState<ColPills>([true, true])
+  // v0.43.0 (Q-V43 #7): 1|2 date view is remembered on this device only.
+  const [pills, setPills] = useState<ColPills>(() => { try { return readDateCols(localStorage.getItem(DATE_COLS_KEY)) === 1 ? [false, true] : [true, true] } catch { return [true, true] } })
+  useEffect(() => { try { localStorage.setItem(DATE_COLS_KEY, pills[0] && pills[1] ? '2' : '1') } catch { /* private mode */ } }, [pills])
   const [pendingOnly, setPendingOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)

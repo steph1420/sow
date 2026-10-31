@@ -12,11 +12,11 @@ describe('v0.41.0 date dials (t108u v4)', () => {
     expect(fromIso('2026-10-28')).toEqual({ y: 2026, m: 10, d: 28 })
     expect(toIso({ y: 2026, m: 1, d: 5 })).toBe('2026-01-05')
   })
-  it('Date dial wraps within the month; Month dial wraps the year round, year stays (Year is its own dropdown)', () => {
+  it('Date dial wraps within the month; Month dial carries the year (v0.43 Year-bug fix)', () => {
     expect(turn({ y: 2026, m: 10, d: 31 }, 'date', 1)).toEqual({ y: 2026, m: 10, d: 1 })
     expect(turn({ y: 2026, m: 10, d: 1 }, 'date', -1)).toEqual({ y: 2026, m: 10, d: 31 })
-    expect(turn({ y: 2026, m: 12, d: 5 }, 'month', 1)).toEqual({ y: 2026, m: 1, d: 5 })
-    expect(turn({ y: 2026, m: 1, d: 5 }, 'month', -1)).toEqual({ y: 2026, m: 12, d: 5 })
+    expect(turn({ y: 2026, m: 12, d: 5 }, 'month', 1)).toEqual({ y: 2027, m: 1, d: 5 })
+    expect(turn({ y: 2026, m: 1, d: 5 }, 'month', -1)).toEqual({ y: 2025, m: 12, d: 5 })
   })
   it('turning the month clamps the date (31 Oct → 30 Nov, 31 Jan → 28 Feb)', () => {
     expect(turn({ y: 2026, m: 10, d: 31 }, 'month', 1)).toEqual({ y: 2026, m: 11, d: 30 })

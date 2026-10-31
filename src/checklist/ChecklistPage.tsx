@@ -9,6 +9,10 @@ import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
 import { DatePanelSheet } from './chrome/DatePanelSheet'
+import { DatePopover, dm } from './chrome/DatePopover'
+import { DateEditModal } from './chrome/DateEditModal'
+import { countMarks } from '../dates/sessionEdit'
+import { retarget, type Pair } from './pickDate'
 import { describeUndo } from '../lib/undoLabel'
 import { dateSlotFromIso } from '../demo/workspaceData'
 import { SelectBar } from './chrome/SelectBar'
@@ -444,7 +448,21 @@ export function ChecklistPage(_props: Props) {
   const azRef = useRef<AzStripHandle>(null)
   const [kb, setKb] = useState<[number, number]>([0, 0])
   const [live, setLive] = useState('')
-  const { setPupilLeft, activeClassKey, rosterFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession } = useWorkspace()
+  const { setPupilLeft, activeClassKey, rosterFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, marksByClass } = useWorkspace()
+  // ── v0.43.0 Beta: tap a date header → popover; Edit/Add → centred popup (t18u–t34u LOCKED) ──
+  const [popCol, setPopCol] = useState<number | null>(null)
+  const [dem, setDem] = useState<{ mode: 'add' | 'edit'; from?: string } | null>(null)
+  useBackLayer(popCol != null || dem ? 1 : 0, () => { setPopCol(null); setDem(null) })
+  const slotOf = (ci: number): 0 | 1 => (m.showTwoCol ? (ci === 0 ? 0 : 1) : m.activeDateIndex)
+  const popSlot = useRef<0 | 1>(1)
+  const popTop = useRef(150)
+  const showIso = (iso: string, slot: 0 | 1) => {
+    const pair: Pair = [m.dates[0].date, m.dates[1].date]
+    const next = retarget(pair, slot, iso)
+    pickDate(activeClassKey, next)
+    if (!m.showTwoCol) m.setPills(next[0] === next[1] || iso === next[0] ? [true, false] : [false, true])
+  }
+  const todayIso = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   // v0.41.0 (t101u): Undo / Redo name what they did in a toast with the opposite action.
   const doUndo = (kind: 'undo' | 'redo') => {
     const e = kind === 'undo' ? m.undo() : m.redo()
@@ -711,8 +729,10 @@ export function ChecklistPage(_props: Props) {
                   <button
                     type="button"
                     className="sw-dh-btn"
-                    aria-label={`${d.dayLabel}, topic: ${d.topic || 'none'} — show full topic`}
-                    onClick={() => toast(d.topic ? `${d.dayNum} · ${d.topic}` : `${d.dayNum} · no topic`)}
+                    aria-label={`${d.dayLabel}, topic: ${d.topic || 'none'} — change date`}
+                    aria-haspopup="dialog"
+                    data-col={ci}
+                    onClick={(e) => { const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wide-scale')) || 1; popTop.current = (e.currentTarget.getBoundingClientRect().bottom + 6) / z; popSlot.current = slotOf(ci); setPopCol(ci) }}
                   >
                     <span className="sw-dh-date">{d.dayNum}</span>
                     <span className="sw-dh-topic">{d.topic || '—'}</span>
@@ -741,6 +761,55 @@ export function ChecklistPage(_props: Props) {
             if (isNew) toast(`Session added · ${dateSlotFromIso(iso, '').dayNum} · syncs on next Sync`)
           }}
           onReset={() => { pickDate(activeClassKey, null); setDpOpen(false) }}
+        />
+      ) : null}
+      {popCol != null ? (
+        <DatePopover
+          classLabel={m.classLabel}
+          sessions={sessionDatesFor(activeClassKey)}
+          shown={m.visibleDates.map((d) => d.date)}
+          current={m.dates[popSlot.current].date}
+          cols={m.showTwoCol ? 2 : 1}
+          onCols={(n) => m.setPills(n === 2 ? [true, true] : popSlot.current === 0 ? [true, false] : [false, true])}
+          onPick={(iso) => { showIso(iso, popSlot.current); haptic('light'); setPopCol(null) }}
+          onEdit={(iso) => { haptic('medium'); setPopCol(null); setDem({ mode: 'edit', from: iso }) }}
+          onAdd={() => { setPopCol(null); setDem({ mode: 'add' }) }}
+          onClose={() => setPopCol(null)}
+          top={popTop.current}
+        />
+      ) : null}
+      {dem ? (
+        <DateEditModal
+          mode={dem.mode}
+          classLabel={m.classLabel}
+          sessions={sessionDatesFor(activeClassKey)}
+          from={dem.from}
+          today={todayIso}
+          markCount={dem.from ? countMarks(marksByClass[activeClassKey] ?? {}, dem.from) : 0}
+          onClose={() => setDem(null)}
+          onSave={(items) => {
+            const k = activeClassKey
+            if (dem.mode === 'add') {
+              for (const it of items) addSession(k, it.iso, it.topic)
+              const last = items[items.length - 1]!.iso
+              showIso(last, popSlot.current)
+              toast(items.length > 1 ? `${items.length} dates added · syncs on next Sync` : `Added ${dm(last)} · syncs on next Sync`)
+            } else if (dem.from) {
+              const it = items[0]!
+              const n = countMarks(marksByClass[k] ?? {}, dem.from)
+              moveSession(k, dem.from, it.iso, it.topic)
+              if (it.iso !== dem.from) toast(`Moved ${dm(dem.from)} → ${dm(it.iso)}${n ? ` · ${n} mark${n === 1 ? '' : 's'} moved` : ''}`)
+              else toast('Saved')
+            }
+            haptic('success'); setDem(null)
+          }}
+          onDelete={() => {
+            if (!dem.from) return
+            const n = countMarks(marksByClass[activeClassKey] ?? {}, dem.from)
+            const snap = deleteSession(activeClassKey, dem.from)
+            setDem(null); haptic('heavy')
+            toast(`Deleted ${dm(snap.date)}${n ? ` · ${n} mark${n === 1 ? '' : 's'}` : ''}`, { action: { label: 'Undo', run: () => { restoreSession(snap); toast(`Restored ${dm(snap.date)}`) } } })
+          }}
         />
       ) : null}
       {qoOpen ? (

@@ -135,6 +135,8 @@ export interface Settings {
   topicEdits?: Record<string, { topic: string; updatedAt: string }>
   /** v0.42.0 (Q-DATES-A): the picked Date 1 / Date 2 pair per classKey (oldest first); survives reload. */
   pickedPairs?: Record<string, [string, string]>
+  /** v0.43.0: sessions deleted on this device per `classKey|date` → ISO time (bridge delete pending, see CHANGELOG). */
+  deletedSessions?: Record<string, string>
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

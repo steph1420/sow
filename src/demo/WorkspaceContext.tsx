@@ -23,6 +23,7 @@ import type { Session } from '../data/types'
 import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } from '../data/api'
 import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
 import type { Pair } from '../checklist/pickDate'
+import { dropMarks, moveMarks, pairAfterDelete, pairAfterMove } from '../dates/sessionEdit'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
@@ -66,7 +67,13 @@ type WorkspaceValue = {
   sessionDatesFor: (k: ClassKey) => Map<string, string>
   /** Add a session on a date with no session (pushed as a sessions op on the next Sync). */
   addSession: (k: ClassKey, date: string, topic: string) => void
+  /** v0.43.0: move a session to another date (marks move with it) and/or change its topic. */
+  moveSession: (k: ClassKey, from: string, to: string, topic: string) => void
+  /** v0.43.0: delete a session and its marks; returns a snapshot for Undo. */
+  deleteSession: (k: ClassKey, date: string) => SessionSnap
+  restoreSession: (snap: SessionSnap) => void
 }
+export type SessionSnap = { k: ClassKey; date: string; topic: string; marks: MarksMap; pair: Pair | null }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 
@@ -86,7 +93,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
   const [topicEdits, setTopicEdits] = useState<TopicEdits>({})
   const [picked, setPicked] = useState<Partial<Record<ClassKey, Pair>>>({})
-  useEffect(() => { void getSettings().then((s) => { setTopicEdits(s.topicEdits ?? {}); setPicked((s.pickedPairs ?? {}) as Partial<Record<ClassKey, Pair>>) }).catch(() => {}) }, [])
+  const [deleted, setDeleted] = useState<Record<string, string>>({})
+  useEffect(() => { void getSettings().then((s) => { setTopicEdits(s.topicEdits ?? {}); setDeleted(s.deletedSessions ?? {}); setPicked((s.pickedPairs ?? {}) as Partial<Record<ClassKey, Pair>>) }).catch(() => {}) }, [])
 
   const marksRef = useRef(marksByClass)
   useEffect(() => {
@@ -151,7 +159,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     queueRef.current?.schedule(classKey, marks)
   }, [])
 
-  const datesFor = useCallback((k: ClassKey): [DateSlot, DateSlot] => datesForImpl.current(k), [pulledSessions, topicEdits, picked]) // eslint-disable-line react-hooks/exhaustive-deps
+  const datesFor = useCallback((k: ClassKey): [DateSlot, DateSlot] => datesForImpl.current(k), [pulledSessions, topicEdits, picked, deleted]) // eslint-disable-line react-hooks/exhaustive-deps
   const datesForImpl = useRef<(k: ClassKey) => [DateSlot, DateSlot]>(() => [WORKSPACE_DATES[0]!, WORKSPACE_DATES[1] ?? WORKSPACE_DATES[0]!])
   const datesForRef = useRef(datesFor)
   datesForRef.current = datesFor
@@ -173,9 +181,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
     void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).catch(() => {})
   }, [])
+  const markDeleted = useCallback((k: ClassKey, date: string, on: boolean) => {
+    const key = topicKey(k, date)
+    const apply = (prev: Record<string, string>) => { const n = { ...prev }; if (on) n[key] = new Date().toISOString(); else delete n[key]; return n }
+    setDeleted(apply)
+    void updateSettings((s) => ({ deletedSessions: apply(s.deletedSessions ?? {}), syncDirty: true })).catch(() => {})
+  }, [])
+  /** Force-write a topic for a (re)created session (writeEdit skips unchanged/empty). */
+  const forceTopic = useCallback((k: ClassKey, date: string, topic: string) => {
+    const edit = { topic: topic.trim().slice(0, 200), updatedAt: new Date().toISOString() }
+    setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
+    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).catch(() => {})
+  }, [])
   // v0.42.0: one rule (topicEditFor) — empty/unchanged never wipes a session topic; a new session may be blank.
   const setTopic = writeEdit
-  const addSession = writeEdit
+  const addSession = useCallback((k: ClassKey, date: string, topic: string) => {
+    if (deletedRef.current[topicKey(k, date)]) { markDeleted(k, date, false); forceTopic(k, date, topic) } else writeEdit(k, date, topic)
+  }, [writeEdit, markDeleted, forceTopic])
+  const deletedRef = useRef(deleted); deletedRef.current = deleted
+  const pickedRef = useRef(picked); pickedRef.current = picked
   const pickDate = useCallback((k: ClassKey, pair: Pair | null) => {
     setPicked((prev) => { const n = { ...prev }; if (pair) n[k] = pair; else delete n[k]; return n })
     void putPickedPair(k, pair).catch(() => {})
@@ -206,8 +230,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const s = pulledSessions.find((x) => x.classKey === k)
     for (const d of s ? datesFromSession(s) : WORKSPACE_DATES) m.set(d.date, d.topic)
     for (const [key, e] of Object.entries(topicEdits)) { const [ck, date] = key.split('|'); if (ck === k && date) m.set(date, e.topic) }
+    for (const key of Object.keys(deleted)) { const [ck, date] = key.split('|'); if (ck === k && date) m.delete(date) }
     return m
-  }, [historySessions, pulledSessions, topicEdits])
+  }, [historySessions, pulledSessions, topicEdits, deleted])
   sessionDatesRef.current = sessionDatesFor
   datesForImpl.current = (k: ClassKey): [DateSlot, DateSlot] => {
     const s = pulledSessions.find((x) => x.classKey === k)
@@ -245,6 +270,43 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [flushPersist],
   )
 
+  const clearOld = (marks: MarksMap, from: MarksMap) => { const n = { ...marks }; for (const key of Object.keys(from)) n[key] = { set: false, submitted: false }; return n }
+  const moveSession = useCallback((k: ClassKey, from: string, to: string, topic: string) => {
+    if (from === to) { setTopic(k, from, topic); return }
+    const cur = marksRef.current[k] ?? {}
+    const { removed } = dropMarks(cur, from)
+    // marks move with the date (Q-V43-3, app-side re-key): new date gets them, old date cells are cleared so they push as clears.
+    const moved = moveMarks(cur, from, to)
+    setMarksForClass(k, clearOld(moved, removed))
+    markDeleted(k, from, true)
+    if (deletedRef.current[topicKey(k, to)]) markDeleted(k, to, false)
+    forceTopic(k, to, topic)
+    const pk = pickedRef.current[k] ?? (datesForRef.current(k).map((d) => d.date) as Pair)
+    const np = pairAfterMove(pk, from, to)
+    if (np !== pk) pickDate(k, np)
+  }, [setMarksForClass, markDeleted, forceTopic, pickDate, setTopic])
+  const deleteSession = useCallback((k: ClassKey, date: string): SessionSnap => {
+    const cur = marksRef.current[k] ?? {}
+    const { next, removed } = dropMarks(cur, date)
+    const pk = pickedRef.current[k] ?? null
+    const snap: SessionSnap = { k, date, topic: sessionDatesRef.current(k).get(date) ?? '', marks: removed, pair: pk }
+    setMarksForClass(k, clearOld(next, removed))
+    markDeleted(k, date, true)
+    const base = pk ?? (datesForRef.current(k).map((d) => d.date) as Pair)
+    if (base.includes(date)) {
+      const left = pairAfterDelete(base, date)
+      const rest = [...sessionDatesRef.current(k).keys()].filter((d) => d !== date).sort()
+      pickDate(k, left ?? (rest.length ? [rest[rest.length - 1]!, rest[rest.length - 1]!] : null))
+    }
+    return snap
+  }, [setMarksForClass, markDeleted, pickDate])
+  const restoreSession = useCallback((snap: SessionSnap) => {
+    markDeleted(snap.k, snap.date, false)
+    forceTopic(snap.k, snap.date, snap.topic)
+    setMarksForClass(snap.k, (prev) => ({ ...prev, ...snap.marks }))
+    pickDate(snap.k, snap.pair)
+  }, [markDeleted, forceTopic, setMarksForClass, pickDate])
+
   const value = useMemo<WorkspaceValue>(
     () => ({
       ready,
@@ -264,11 +326,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       pickedFor,
       sessionDatesFor,
       addSession,
+      moveSession,
+      deleteSession,
+      restoreSession,
       rosterFor,
       reloadFromIdb,
       setPupilLeft,
     }),
-    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, rosterFor, reloadFromIdb],
+    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
