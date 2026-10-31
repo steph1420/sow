@@ -105,7 +105,7 @@ export async function persistClassMarks(
   marks: MarksMap,
   roster: StudentRow[],
   slots: { date: string; topic: string }[] = WORKSPACE_DATES,
-): Promise<void> {
+): Promise<number> {
   const ts = new Date().toISOString()
   const nameByRoll = new Map(roster.map((r) => [r.roll, r.name]))
   const dates = new Set<string>()
@@ -142,6 +142,7 @@ export async function persistClassMarks(
     }
   }
   if (changed) await putSettings({ syncDirty: true })
+  return changed
 }
 
 export async function readSyncStatus(): Promise<{

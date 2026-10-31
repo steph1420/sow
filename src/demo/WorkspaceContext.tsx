@@ -19,6 +19,7 @@ import {
 } from '../data/persistWorkspace'
 import type { DateSlot } from '../checklist/types'
 import { createPersistQueue, type PersistQueue } from './persistQueue'
+import { autoSaver, installAutoSave, noteChange } from '../sync/autoSaveRuntime'
 import type { Session } from '../data/types'
 import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } from '../data/api'
 import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
@@ -142,11 +143,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const rostersRef = useRef(rosters)
   rostersRef.current = rosters
   const queueRef = useRef<PersistQueue<ClassKey, MarksMap> | null>(null)
+  const inflight = useRef(0)
+  // v0.45.0: auto-save (A) — reload sheet state after a sync only when no local edit is waiting.
+  useEffect(() => {
+    installAutoSave()
+    const onSynced = () => {
+      if (inflight.current || queueRef.current?.size() || autoSaver.state().pending) return
+      void reloadFromIdb().then(() => getSettings()).then((st) => { setDeleted(st.deletedSessions ?? {}); setPicked((st.pickedPairs ?? {}) as Partial<Record<ClassKey, Pair>>) }).catch(() => {})
+    }
+    const onRestored = () => { void reloadFromIdb() }
+    window.addEventListener('sow:synced', onSynced)
+    window.addEventListener('sow:restored', onRestored)
+    return () => { window.removeEventListener('sow:synced', onSynced); window.removeEventListener('sow:restored', onRestored) }
+  }, [reloadFromIdb])
   if (!queueRef.current) {
     queueRef.current = createPersistQueue<ClassKey, MarksMap>((key, marks) => {
       const r = rostersRef.current[key]
       const roster = r?.length ? r : ROSTERS[key]
+      inflight.current++
       void persistClassMarks(key, marks, roster, datesForRef.current(key))
+        .then((n) => { if (n) noteChange(n) })
+        .catch(() => {})
+        .finally(() => { inflight.current-- })
     }, 280)
   }
   useEffect(() => {
@@ -187,22 +205,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const edit = topicEditFor(topic, { exists: map.has(date), current: map.get(date) ?? '' }, new Date().toISOString())
     if (!edit) return
     setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
-    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).catch(() => {})
+    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).then(() => noteChange(1)).catch(() => {})
   }, [])
   const markDeleted = useCallback((k: ClassKey, date: string, on: boolean) => {
     const key = topicKey(k, date)
     const apply = (prev: Record<string, string>) => { const n = { ...prev }; if (on) n[key] = new Date().toISOString(); else delete n[key]; return n }
     setDeleted(apply)
-    void updateSettings((s) => ({ deletedSessions: apply(s.deletedSessions ?? {}), syncDirty: true })).catch(() => {})
+    void updateSettings((s) => ({ deletedSessions: apply(s.deletedSessions ?? {}), syncDirty: true })).then(() => noteChange(1)).catch(() => {})
   }, [])
   const queue = useCallback((op: Parameters<typeof queueStruct>[1]) => {
-    void updateSettings((s) => ({ structOps: queueStruct(s.structOps ?? [], op), syncDirty: true })).catch(() => {})
+    void updateSettings((s) => ({ structOps: queueStruct(s.structOps ?? [], op), syncDirty: true })).then(() => noteChange(1)).catch(() => {})
   }, [])
   /** Force-write a topic for a (re)created session (writeEdit skips unchanged/empty). */
   const forceTopic = useCallback((k: ClassKey, date: string, topic: string) => {
     const edit = { topic: topic.trim().slice(0, 200), updatedAt: new Date().toISOString() }
     setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
-    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).catch(() => {})
+    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).then(() => noteChange(1)).catch(() => {})
   }, [])
   // v0.42.0: one rule (topicEditFor) — empty/unchanged never wipes a session topic; a new session may be blank.
   const setTopic = writeEdit

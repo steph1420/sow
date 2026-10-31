@@ -2,6 +2,7 @@ import { versionLabel } from '../lib/appVersion'
 import { MoreChrome } from './MoreChrome'
 import { InstallSection } from '../pwa/InstallUI'
 import './more.css'
+import { BackupsSection } from '../backup/Backups'
 
 type Props = {
   onBack: () => void
@@ -103,6 +104,9 @@ export function SettingsPage({
           <span className="chev">›</span>
         </button>
       </div>
+
+      {/* v0.45.0: Backups — automatic snapshots, Back up now, restore. */}
+      <BackupsSection />
 
       {/* v0.35.1 (t52u): Settings › App — Install as app; hidden once installed. */}
       <InstallSection />

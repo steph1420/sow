@@ -1,0 +1,54 @@
+/* v0.45.0 auto-save icon (LOCKED) */
+.as{position:relative;width:30px;height:30px;display:inline-grid;place-items:center;margin-right:2px;color:var(--text-sec);flex:none;background:none;border:0;padding:0;animation:as-in .25s ease both}
+.as.as-rest{opacity:0;pointer-events:none;animation:none}
+.as svg{width:18px;height:18px;overflow:visible}
+.as .ring{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:30 60;transform-origin:9px 9px;animation:as-spin 1s linear infinite}
+.as .trk{fill:none;stroke:var(--hairline);stroke-width:2}
+.as .tk{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16;animation:as-draw .35s ease both}
+.as.as-saved{animation:as-fade 1.6s ease both}
+.as.as-off{opacity:.6}
+.as .cnt{position:absolute;right:-3px;top:1px;font:700 9.5px/1 system-ui;padding:2px 3.5px;border-radius:7px;background:var(--text-ter);color:var(--bg,#000);font-variant-numeric:tabular-nums}
+.as.fail{color:#e0a030;border-radius:50%;box-shadow:0 0 0 1px rgba(224,160,48,.35) inset;cursor:pointer}
+@keyframes as-spin{to{transform:rotate(360deg)}}
+@keyframes as-draw{from{stroke-dashoffset:16}to{stroke-dashoffset:0}}
+@keyframes as-in{from{opacity:0}to{opacity:1}}
+@keyframes as-fade{0%,55%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  .as.as-saving{opacity:0}
+  .as .ring{animation:none}
+  .as .tk{animation:none}
+}
+:root[data-reduce-motion='1'] .as.as-saving{opacity:0}
+:root[data-reduce-motion='1'] .as .ring,:root[data-reduce-motion='1'] .as .tk{animation:none}
+
+/* Backups */
+.bk-auto{display:flex;flex-direction:column;gap:4px;padding:14px 16px}
+.bk-on{display:inline-block;margin-left:8px;font:700 12px system-ui;color:var(--accent);border:1.5px solid var(--accent);border-radius:8px;padding:1px 7px}
+.bk-sub{color:var(--text-sec);font-size:13.5px;line-height:1.4}
+.bk-now{display:block;width:100%;margin:14px 0 6px;padding:14px;border:0;border-radius:14px;background:var(--accent);color:#06210f;font:700 16px system-ui;cursor:pointer}
+.bk-now:disabled{opacity:.6}
+.bk-list{padding:0}
+.bk-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--hairline)}
+.bk-row:first-child{border-top:0}
+.bk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bk-when{font-weight:700;font-size:15.5px}
+.bk-when small{font-weight:500;color:var(--text-ter);font-size:12px;margin-left:3px}
+.bk-tag{display:inline-block;font:700 11.5px system-ui;border-radius:7px;padding:1px 6px;margin-right:6px;border:1.5px solid var(--accent);color:var(--accent)}
+.bk-tag.manual{border-color:#5b9cf5;color:#5b9cf5}
+.bk-tag.before{border-color:#e0a030;color:#e0a030}
+.bk-tag.latest{margin-left:8px}
+.bk-meta{color:var(--text-sec);font-size:13px}
+.bk-go{min-height:44px;min-width:44px;background:none;border:0;color:var(--accent);font:600 14.5px system-ui;padding:8px 4px;cursor:pointer;white-space:nowrap}
+.bk-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300}
+.bk-sheet{position:fixed;left:50%;bottom:0;translate:-50% 0;width:min(560px,100%);max-height:88vh;overflow:auto;z-index:301;background:var(--surface,var(--bg));border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.35)}
+.bk-sheet h2{margin:4px 0 4px;font-size:20px}
+.bk-grab{width:40px;height:4px;border-radius:2px;background:var(--hairline);margin:0 auto 10px}
+.bk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.bk-stat{border:1px solid var(--hairline);border-radius:12px;padding:12px 6px;text-align:center}
+.bk-stat b{display:block;font-size:20px}
+.bk-stat span{font-size:12.5px;color:var(--text-sec)}
+.bk-stat.now b{color:var(--text-sec)}
+.bk-warn{border:1px solid rgba(224,160,48,.55);background:rgba(224,160,48,.12);border-radius:12px;padding:12px;font-size:14px;line-height:1.45;margin-bottom:14px}
+.bk-amber{display:block;width:100%;padding:14px;border:0;border-radius:14px;background:#e0a030;color:#2a1a00;font:700 16px system-ui;margin-bottom:10px;cursor:pointer}
+.bk-cancel{display:block;width:100%;padding:13px;border:1px solid var(--hairline);border-radius:14px;background:none;color:var(--text);font:600 16px system-ui;cursor:pointer}
+:root[data-theme='day'] .bk-now{color:#fff}

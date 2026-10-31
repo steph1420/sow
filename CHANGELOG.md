@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.45.0 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Steve t61u (auto-save A, lock icon, restore updates sheet). Rollback: commit `6ea96a1`, branch `backup/pre-v0.45.0`, or `/workspace/sow-pwa-pre-v0.45.0.tgz`. **Code.js change: NO** (per-tick newer-wins already handles restored clears).
+- Auto-save: push 2s after ticking stops (max 30s while ticking), flush on pagehide/hidden, queue offline and send on reconnect, pull on open and on return to foreground. Newer timestamp wins.
+- Autosave icon left of Undo: hidden at rest, ring → tick fade, dim cloud + count offline, amber on error (tap = retry), reduce-motion = tick fade only.
+- Snapshots per channel (IndexedDB v3 `snapshots`): after each change batch, on open, before sync/update. Keep last 50 + one per day for 30 days. Settings › Backups (Back up now, list), ⋮ › Restore snapshot…, amber confirm with ticks then/now and count to undo. Restore saves "Before restore", rewrites phone + sheet with newer stamps, toast "Restored HH:MM · N ticks undone · Undo".
+- Fix: first bridge pull of a class replaces local marks (sheet wins), so stale demo/seed ticks no longer leak to the sheet.
+- Undo history is cleared by a pull only when the pull changed something.
+- Probes: new v045-probe, v045-sync-probe (TEST copy), v0450-shots; topic-sync, sheet-tap, setup-pair probes updated.
+
 ## 0.44.5 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Steve t57u/t58u/t61u. Rollback: commit `0d804ca`, branch `backup/pre-v0.44.5`, or `/workspace/sow-pwa-pre-v0.44.5.tgz`. **Code.js change: NO**.

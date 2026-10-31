@@ -88,7 +88,9 @@ const TOK = 'probe-token-ABCD7Kq2';
   await tap(p.getByRole('button', { name: 'Apply', exact: true }));
   await p.getByText('Setup imported · tap Sync now').waitFor({ timeout: 8000 });
   ok(calls.filter((c) => c === 'ping').length === 1, 'Apply pinged the bridge');
+  await p.locator('input[name=sow-sync-url]').focus(); await p.waitForTimeout(150); // v0.44.5: masked unless editing
   ok(await p.locator('input[name=sow-sync-url]').inputValue() === EXEC, 'imported URL in field');
+  await p.locator('input[name=sow-sync-url]').blur();
   await p.locator('[data-testid=setup-file]').setInputFiles({ name: 'x.sowsetup', mimeType: 'text/plain', buffer: Buffer.from('nope') });
   ok(await p.getByText('Not a SoW setup file').isVisible(), 'junk file rejected');
   await p.screenshot({ path: '/tmp/setup-pair-probe.png' });

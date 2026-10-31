@@ -1,6 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import { currentChannel, dbNameFor } from '../sync/channel'
 import type { Mark, RosterMeta, Session, Settings, Student } from './types'
+import type { SnapshotRow } from '../backup/snapshots'
 
 export type SyncQueueRow = {
   id: string
@@ -22,11 +23,13 @@ interface SowDB extends DBSchema {
   }
   settings: { key: string; value: Settings }
   syncQueue: { key: string; value: SyncQueueRow }
+  /** v0.45.0: on-device snapshots (per data source, since the DB is). */
+  snapshots: { key: string; value: SnapshotRow }
 }
 
 // v0.44.0: one IndexedDB per data source (Stable = LIVE, Beta = TEST copy) — data never mixes.
 const DB_NAME = dbNameFor(currentChannel())
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 let dbPromise: Promise<IDBPDatabase<SowDB>> | null = null
 
@@ -54,6 +57,9 @@ export function getDb(): Promise<IDBPDatabase<SowDB>> {
           if (!db.objectStoreNames.contains('syncQueue')) {
             db.createObjectStore('syncQueue', { keyPath: 'id' })
           }
+        }
+        if (oldVersion < 3) {
+          if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots', { keyPath: 'id' })
         }
       },
     })

@@ -1,6 +1,7 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
+- v0.45.0: "Before update" snapshot is best-effort (page reloads immediately after sow:flush). Snapshots are device-local (not on the sheet). FIXED first bridge pull keeping a stale seed tick (left TEST at 217; reset to 216).
 - v0.44.5: FIXED date popover heavy green fill (t57u → option A), past-view header strip untinted, Connections showing the Beta URL (now masked when not editing), stale probes v040/sync-flow/offline-sync/sw-update/v042-shots. sync-flow/offline-sync now need SOW_TEST_BRIDGE_TOKEN and run on Beta against the TEST copy only.
 - v0.44.4: FIXED t56u 2-date view showing one column after the v0.44.3 heal (stored pair [x,x] collapsed). Healed pair is now filled with the nearest date and saved. The 0.43 rule "other column's date collapses to one" is replaced by a swap.
 - v0.44.3: FIXED t55u header columns multiplying / deleted date stuck in header. Persisted pairs are healed at render time (stored value rewritten next time a date is picked).

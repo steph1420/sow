@@ -13,6 +13,8 @@ import { DateEditModal } from './chrome/DateEditModal'
 import { countMarks } from '../dates/sessionEdit'
 import { retarget, retarget2, type Pair } from './pickDate'
 import { describeUndo } from '../lib/undoLabel'
+import { AutoSaveIcon } from '../backup/AutoSaveIcon'
+import { RestoreSheet } from '../backup/Backups'
 import { dateSlotFromIso } from '../demo/workspaceData'
 import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
@@ -67,6 +69,7 @@ export function ChecklistPage(_props: Props) {
   const [select, setSelect] = useState<SelectModel>(() => createSelectModel())
   const [glowRolls, setGlowRolls] = useState<Set<number>>(() => new Set())
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [restoreOpen, setRestoreOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
   const [leanHidden, setLeanHidden] = useState(false)
   const [azFocusRoll, setAzFocusRoll] = useState<number | null>(null)
@@ -699,6 +702,7 @@ export function ChecklistPage(_props: Props) {
         {/* v0.41.0 (t89u/t103u LOCKED): undo · redo right-aligned just left of ⋮; Tools + search live in the ⋮ menu. */}
         <div className="sw-lean-tools">
           <span className="sw-lean-spacer" />
+          <AutoSaveIcon />
           <button type="button" className="sw-icon-btn" aria-label="Undo" disabled={!m.canUndo} onClick={() => doUndo('undo')}>
             ↶
           </button>
@@ -997,9 +1001,13 @@ export function ChecklistPage(_props: Props) {
             <button type="button" role="menuitem" className="sw-menu-row share" onClick={() => { closeMenu(); openShare({ classKey: m.classKey, date: echoDate, dates: m.showTwoCol ? m.visibleDates : undefined }) }}>
               <span className="ic" aria-hidden data-ic="↗" /><span className="tx">Share</span><span className="k" aria-hidden>›</span>
             </button>
+            <button type="button" role="menuitem" className="sw-menu-row" data-item="restore" onClick={() => { closeMenu(); setRestoreOpen(true) }}>
+              <span className="ic" aria-hidden data-ic="⟲" /><span className="tx">Restore snapshot…</span><span className="k" aria-hidden>›</span>
+            </button>
           </div>
         </>
       ) : null}
+      {restoreOpen ? <RestoreSheet onClose={() => setRestoreOpen(false)} /> : null}
       {copyOpen ? (
         <>
           <button type="button" className="sw-copy-scrim" aria-label="Dismiss" onClick={() => setCopyOpen(false)} />

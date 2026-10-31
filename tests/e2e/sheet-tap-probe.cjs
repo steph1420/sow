@@ -50,6 +50,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
     await tapXY(200, 60); ok(!(await p.isVisible(sheet)), `${name}: ONE backdrop tap closes`);
   }
   await p.goto(url + '#settings', { waitUntil: 'networkidle' }); await p.waitForTimeout(400);
+  await p.locator('text=Keyboard shortcuts').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); // v0.45.0: Backups section sits above
   await tapSel('text=Keyboard shortcuts'); ok(await p.isVisible('.kb-sheet'), 'Shortcuts opens');
   await tapXY(200, 30); ok(!(await p.isVisible('.kb-sheet')), 'Shortcuts: ONE backdrop tap closes');
   console.log(`RESULT ${fails} fails`); await b.close(); process.exit(fails ? 1 : 0);

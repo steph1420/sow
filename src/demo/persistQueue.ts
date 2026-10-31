@@ -6,6 +6,7 @@
 export type PersistQueue<K, V> = {
   schedule: (key: K, payload: V) => void
   flushAll: () => void
+  size: () => number
 }
 
 export function createPersistQueue<K, V>(write: (key: K, payload: V) => void, delayMs: number): PersistQueue<K, V> {
@@ -23,5 +24,5 @@ export function createPersistQueue<K, V>(write: (key: K, payload: V) => void, de
     if (timer) clearTimeout(timer)
     timer = setTimeout(flushAll, delayMs)
   }
-  return { schedule, flushAll }
+  return { schedule, flushAll, size: () => pending.size }
 }

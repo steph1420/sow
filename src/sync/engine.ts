@@ -332,7 +332,7 @@ export async function syncNow(subjects: SubjectId[]): Promise<SyncReport> {
 export { CLASS_KEYS }
 
 /** Apply sheet state: per tick, a local tick newer than the sheet's survives (and is pushed next); else the sheet wins. */
-async function applyBridgeState(state: BridgeState): Promise<{ students: number; marks: number; kept: number; skipped: string[] }> {
+async function applyBridgeState(state: BridgeState): Promise<{ students: number; marks: number; kept: number; changed: number; skipped: string[] }> {
   const a = stateToApp(state)
   const db = await getDb()
   // Roster is the sheet's: a pupil row gone from Roster is gone from the class (ticks kept).
@@ -348,12 +348,21 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
     await db.put('rosterMeta', { ...l, id })
   }
   let kept = 0
+  let changed = 0
+  // v0.45.0: first bridge pull of a class on this device → the sheet wins entirely (P0-1, as the gviz pull):
+  // demo/seed ticks stamped "now" would otherwise beat older sheet ticks and later be pushed.
+  const prior = (await getSettings()).engSyncState ?? {}
+  for (const t of a.tabs) {
+    if (prior[t.classKey]) continue
+    for (const old of await listMarks(t.classKey)) { await deleteMark(old.markId, { fromSheet: true }); if (old.set) changed++ }
+  }
   for (const m of a.marks) {
     const cur = await getMark(m.classKey, m.roll, m.date)
     if (cur && cur.updatedAt > m.updatedAt && cur.set !== m.set) {
       kept++
       continue
     }
+    if (!cur || cur.set !== m.set) changed++
     await putMark({ ...m, name: m.name || cur?.name || '', submitted: cur?.submitted ?? false }, { fromSheet: true })
   }
   for (const se of a.sessions) await putSession(se, { fromSheet: true, keepUpdatedAt: true })
@@ -364,7 +373,7 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
     confirmedMissing: CLASS_KEYS.filter((k) => !onSheet.has(k)).map((k) => CLASS_LABELS[k]),
     pulled,
   })
-  return { students: a.students.length, marks: a.marks.length, kept, skipped: a.skipped }
+  return { students: a.students.length, marks: a.marks.length, kept, changed, skipped: a.skipped }
 }
 
 /** v0.33.0 — push changed ticks/Left to the bridge, then apply the sheet state it returns. Falls back to a gviz read. */
@@ -404,7 +413,8 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const tabs = stateToApp(state).tabs
   const engSyncState = { ...(settings.engSyncState ?? {}) }
   for (const t of tabs) engSyncState[t.classKey] = { hash: 'bridge', sheetSeenAt: started, lastSyncAt: started }
-  clearUndoStacks()
+  // v0.45.0: auto-save syncs every few seconds → only a pull that changed a tick on this phone clears Undo.
+  if (a.changed) clearUndoStacks()
   const rejected = res?.rejected ?? []
   const latestAll = await getSettings()
   const structOps = res && structs.length ? remainingStructs(latestAll.structOps ?? [], structs, res.structApplied) : (latestAll.structOps ?? [])
