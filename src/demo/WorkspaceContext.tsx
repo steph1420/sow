@@ -26,7 +26,7 @@ import { healPair, type Pair } from '../checklist/pickDate'
 import { queueStruct } from '../sync/structOps'
 import { pushUndo, purgeDate, remapDate, takeEntry, type UndoEntry } from '../lib/undoStack'
 import { fromIso, weekdayShort } from '../dates/dial'
-import { dropMarks, moveMarks, pairAfterDelete, pairAfterMove } from '../dates/sessionEdit'
+import { DATE_COLS_KEY, dropMarks, moveMarks, pairAfterDelete, pairAfterMove, readDateCols } from '../dates/sessionEdit'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
@@ -262,7 +262,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const base = s ? datesFromSession(s) : (WORKSPACE_DATES as [DateSlot, DateSlot])
     const map = sessionDatesFor(k)
     // v0.44.3 (t55u): heal stale/bad stored pairs (deleted, nonexistent, duplicate, unsorted dates).
-    const pk = map.size ? healPair(picked[k], (d) => map.has(d)) : picked[k]
+    // v0.44.4 (t56u): in 2-date mode a collapsed pair takes the nearest other date, and the healed pair is saved.
+    let two = true; try { two = readDateCols(localStorage.getItem(DATE_COLS_KEY)) === 2 } catch { /* private mode */ }
+    const pk = map.size ? healPair(picked[k], (d) => map.has(d), { two, all: [...map.keys()] }) : picked[k]
+    const was = picked[k]
+    if (was && map.size && (!pk || pk[0] !== was[0] || pk[1] !== was[1])) queueMicrotask(() => { const cur = pickedRef.current[k]; if (cur === was) pickDate(k, pk ?? null) })
     if (!pk) {
       const all = applyTopicEdits(k, base, topicEdits) as DateSlot[]
       const live = all.filter((d) => !deleted[topicKey(k, d.date)])

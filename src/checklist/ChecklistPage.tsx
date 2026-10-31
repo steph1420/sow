@@ -11,7 +11,7 @@ import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
 import { DatePopover, dm } from './chrome/DatePopover'
 import { DateEditModal } from './chrome/DateEditModal'
 import { countMarks } from '../dates/sessionEdit'
-import { retarget, type Pair } from './pickDate'
+import { retarget, retarget2, type Pair } from './pickDate'
 import { describeUndo } from '../lib/undoLabel'
 import { dateSlotFromIso } from '../demo/workspaceData'
 import { SelectBar } from './chrome/SelectBar'
@@ -462,7 +462,7 @@ export function ChecklistPage(_props: Props) {
   }
   const showIso = (iso: string, slot: 0 | 1) => {
     const pair: Pair = [m.dates[0].date, m.dates[1].date]
-    const next = retarget(pair, slot, iso)
+    const next = m.showTwoCol ? retarget2(pair, slot, iso, [...sessionDatesFor(activeClassKey).keys()]) : retarget(pair, slot, iso)
     pickDate(activeClassKey, next)
     if (!m.showTwoCol) m.setPills(next[0] === next[1] || iso === next[0] ? [true, false] : [false, true])
   }

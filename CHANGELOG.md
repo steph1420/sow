@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.44.4 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Steve t56u. Rollback: commit `36b2427`, branch `backup/pre-v0.44.4`, or `/workspace/sow-pwa-pre-v0.44.4.tgz`. **Code.js change: NO**.
+
+- 2-date mode never drops to one column while the class has 2+ dates: a collapsed saved pair (e.g. [2/11, 2/11]) takes the nearest other date (latest earlier date, else next later), oldest first, and the healed pair is saved.
+- Picking, in one header column, the other column's date swaps the columns instead of collapsing them to one.
+- One column only when the device is set to 1 date or the class has just one date.
+- `healPair.test.ts` + `header-dup-probe.cjs` extended (exactly 2 columns, swap pick, reload).
+
 ## 0.44.3 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Steve t55u. Rollback: commit `270b529`, branch `backup/pre-v0.44.3`, or `/workspace/sow-pwa-pre-v0.44.3.tgz`. **Code.js change: NO** (bridge stays 0.44.0).
