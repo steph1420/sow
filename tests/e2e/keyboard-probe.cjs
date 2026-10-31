@@ -3,8 +3,8 @@
 const pillToggle = async (p, hide) => { // v0.40.0: date chips moved into the Dates panel — same toggle semantics
   const two = (await p.$$eval('.sw-colhead .sw-dh', (e) => e.length)) === 2;
   await p.$eval('.sw-lean-dates', (e) => e.click()); await p.waitForTimeout(200); // header may be auto-hidden after scrolling
-  if (two) { await p.click('.dp-seg button >> nth=0'); if (hide === 1) await p.click('.dp-pick >> nth=0'); }
-  else await p.click('.dp-seg button >> nth=1');
+  if (two) { await p.click(`.dp-slot >> nth=${hide === 1 ? 0 : 1}`); await p.click('.dp-one'); } // v0.42.0 Q-DATES-A: target a slot, then "1 date only"
+  else await p.click('.dp-one'); // reads "2 dates" in 1-date view
   await p.click('.dp-sheet .qo-close'); await p.waitForTimeout(150);
 };
 

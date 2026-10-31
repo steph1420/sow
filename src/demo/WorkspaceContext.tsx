@@ -20,15 +20,16 @@ import {
 import type { DateSlot } from '../checklist/types'
 import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
-import { getSettings, listSessions, putSettings, setLeft } from '../data/api'
-import { applyTopicEdits, topicKey, type TopicEdits } from '../sync/topicEdits'
-import { applyPick } from '../checklist/pickDate'
+import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } from '../data/api'
+import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
+import type { Pair } from '../checklist/pickDate'
 import type { DiscoveredTab } from '../data/types'
 import {
   DEMO_SESSIONS,
   ROSTERS,
   WORKSPACE_DATES,
   datesFromSession,
+  dateSlotFromIso,
   sessionsFromIdb,
   historyFromIdb,
   type DemoSession,
@@ -58,9 +59,9 @@ type WorkspaceValue = {
   setPupilLeft: (k: ClassKey, roll: number, left: boolean) => void
   /** v0.40.0 (t83u): edit a session topic locally (synced to the Sessions tab on next Sync). */
   setTopic: (k: ClassKey, date: string, topic: string) => void
-  /** v0.41.0 (t103u/t108u): any date — a picked date replaces date 2 (calendar order kept). null = sheet dates. */
-  pickDate: (k: ClassKey, slot: DateSlot | null) => void
-  pickedFor: (k: ClassKey) => DateSlot | null
+  /** v0.42.0 (Q-DATES-A): the picked Date 1 / Date 2 pair (oldest first, saved in IDB). null = sheet dates. */
+  pickDate: (k: ClassKey, pair: Pair | null) => void
+  pickedFor: (k: ClassKey) => Pair | null
   /** Session dates known for a class (sheet history, current, added) → topic. */
   sessionDatesFor: (k: ClassKey) => Map<string, string>
   /** Add a session on a date with no session (pushed as a sessions op on the next Sync). */
@@ -84,8 +85,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [sheetTabs, setSheetTabs] = useState<DiscoveredTab[]>([])
   const [lastSyncAt, setLastSyncAt] = useState<string | undefined>()
   const [topicEdits, setTopicEdits] = useState<TopicEdits>({})
-  const [picked, setPicked] = useState<Partial<Record<ClassKey, DateSlot>>>({})
-  useEffect(() => { void getSettings().then((s) => setTopicEdits(s.topicEdits ?? {})).catch(() => {}) }, [])
+  const [picked, setPicked] = useState<Partial<Record<ClassKey, Pair>>>({})
+  useEffect(() => { void getSettings().then((s) => { setTopicEdits(s.topicEdits ?? {}); setPicked((s.pickedPairs ?? {}) as Partial<Record<ClassKey, Pair>>) }).catch(() => {}) }, [])
 
   const marksRef = useRef(marksByClass)
   useEffect(() => {
@@ -150,16 +151,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     queueRef.current?.schedule(classKey, marks)
   }, [])
 
-  const datesFor = useCallback(
-    (k: ClassKey): [DateSlot, DateSlot] => {
-      const s = pulledSessions.find((x) => x.classKey === k)
-      const base0 = s ? datesFromSession(s) : WORKSPACE_DATES
-      const pk = picked[k]
-      const base = pk ? applyPick(base0, pk) : base0
-      return applyTopicEdits(k, base, topicEdits) as [DateSlot, DateSlot]
-    },
-    [pulledSessions, topicEdits, picked],
-  )
+  const datesFor = useCallback((k: ClassKey): [DateSlot, DateSlot] => datesForImpl.current(k), [pulledSessions, topicEdits, picked]) // eslint-disable-line react-hooks/exhaustive-deps
+  const datesForImpl = useRef<(k: ClassKey) => [DateSlot, DateSlot]>(() => [WORKSPACE_DATES[0]!, WORKSPACE_DATES[1] ?? WORKSPACE_DATES[0]!])
   const datesForRef = useRef(datesFor)
   datesForRef.current = datesFor
 
@@ -172,25 +165,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     void setLeft(k, roll, left, name).catch(() => {})
   }, [])
 
-  const setTopic = useCallback((k: ClassKey, date: string, topic: string) => {
-    const t = topic.trim().slice(0, 200)
-    if (!t) return
-    const edit = { topic: t, updatedAt: new Date().toISOString() }
+  const sessionDatesRef = useRef<(k: ClassKey) => Map<string, string>>(() => new Map())
+  const writeEdit = useCallback((k: ClassKey, date: string, topic: string) => {
+    const map = sessionDatesRef.current(k)
+    const edit = topicEditFor(topic, { exists: map.has(date), current: map.get(date) ?? '' }, new Date().toISOString())
+    if (!edit) return
     setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
-    void getSettings()
-      .then((s) => putSettings({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true }))
-      .catch(() => {})
+    void updateSettings((s) => ({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true })).catch(() => {})
   }, [])
-
-  const addSession = useCallback((k: ClassKey, date: string, topic: string) => {
-    const edit = { topic: topic.trim().slice(0, 200), updatedAt: new Date().toISOString() }
-    setTopicEdits((prev) => ({ ...prev, [topicKey(k, date)]: edit }))
-    void getSettings()
-      .then((s) => putSettings({ topicEdits: { ...(s.topicEdits ?? {}), [topicKey(k, date)]: edit }, syncDirty: true }))
-      .catch(() => {})
-  }, [])
-  const pickDate = useCallback((k: ClassKey, slot: DateSlot | null) => {
-    setPicked((prev) => { const n = { ...prev }; if (slot) n[k] = slot; else delete n[k]; return n })
+  // v0.42.0: one rule (topicEditFor) — empty/unchanged never wipes a session topic; a new session may be blank.
+  const setTopic = writeEdit
+  const addSession = writeEdit
+  const pickDate = useCallback((k: ClassKey, pair: Pair | null) => {
+    setPicked((prev) => { const n = { ...prev }; if (pair) n[k] = pair; else delete n[k]; return n })
+    void putPickedPair(k, pair).catch(() => {})
   }, [])
   const pickedFor = useCallback((k: ClassKey) => picked[k] ?? null, [picked])
 
@@ -220,6 +208,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     for (const [key, e] of Object.entries(topicEdits)) { const [ck, date] = key.split('|'); if (ck === k && date) m.set(date, e.topic) }
     return m
   }, [historySessions, pulledSessions, topicEdits])
+  sessionDatesRef.current = sessionDatesFor
+  datesForImpl.current = (k: ClassKey): [DateSlot, DateSlot] => {
+    const s = pulledSessions.find((x) => x.classKey === k)
+    const base = s ? datesFromSession(s) : (WORKSPACE_DATES as [DateSlot, DateSlot])
+    const pk = picked[k]
+    if (!pk) return applyTopicEdits(k, base, topicEdits) as [DateSlot, DateSlot]
+    const map = sessionDatesFor(k)
+    return [dateSlotFromIso(pk[0], map.get(pk[0]) ?? ''), dateSlotFromIso(pk[1], map.get(pk[1]) ?? '')]
+  }
 
   const classKeys = useMemo<ClassKey[]>(() => {
     const ks = new Set<ClassKey>()

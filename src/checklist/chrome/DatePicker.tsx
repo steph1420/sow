@@ -73,7 +73,7 @@ export function DatePicker({ start, sessions, onChange, onEnter }: Props) {
     )
   }
   return (
-    <div className="dp-picker">
+    <div className="dp-picker" data-iso={toIso(v)}>
       <div className="dp-picker-top">
         <select className="dp-year" aria-label="Year" value={v.y} onChange={(e) => set(setYear(v, Number(e.target.value)))}>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}

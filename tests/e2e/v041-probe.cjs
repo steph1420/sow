@@ -95,7 +95,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const [dx, dy] = await ctr('.dp-dials [data-dial=date]');
   await drag(dx, dy, 0, -88, 10);
   ok((await val('date')) === '4' && (await val('day')) === 'Wed', `touch: Date dial turned 2 steps, Day auto → Wed (${await val('date')} ${await val('day')})`);
-  ok(/no session/i.test(await p.textContent('.dp-pick-card')) && await p.isVisible('.dp-pick-card >> text=Add session'), 'non-session date offers Add session');
+  ok(/has no session — Save adds one/.test(await p.textContent('.dp-note')) && /Save Date 2/.test(await p.textContent('.dp-save-main')), 'non-session date: Save adds one');
   // keyboard: Tab between dials, arrows turn, Enter picks
   await p.focus('.dp-dials [data-dial=month]');
   await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
@@ -104,15 +104,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.evaluate(() => document.activeElement?.dataset.dial === 'date'), 'Tab moves to the Date dial (Day is skipped)');
   for (let i = 0; i < 24; i++) await p.keyboard.press('ArrowDown');
   ok((await val('date')) === '28' && (await val('day')) === 'Wed', `arrows reach 28 Oct, Day Wed (${await val('date')} ${await val('day')})`);
-  ok(/session/i.test(await p.textContent('.dp-pick-card')) && !/no session/i.test(await p.textContent('.dp-pick-card')), 'session date card');
+  ok(/has a session/.test(await p.textContent('.dp-note')), 'session date note');
   await p.keyboard.press('ArrowUp'); await p.waitForTimeout(80); // 27 Oct (no session)
-  await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  ok(/no session/i.test(await p.textContent('.dp-pick-card')), 'Enter on a non-session date asks to Add session (does not invent one)');
-  await p.fill('.dp-pick-card input', 'Demo added topic');
-  await tapEl('.dp-pick-card >> text=Add session');
+  ok(/has no session/.test(await p.textContent('.dp-note')), 'non-session date is not invented until Save');
+  ok(/Date 2 will become Date 1/.test(await p.textContent('.dp-note')), 'reorder note before 28 Oct');
+  await p.fill('.dp-topic', 'Demo added topic');
+  await tapEl('.dp-save-main');
   await p.waitForTimeout(300);
   const heads = await p.$$eval('.sw-dh-date', (e) => e.map((x) => x.textContent));
-  ok(heads.join() === '27/10,28/10', `picked date replaced date 2, calendar order kept (${heads})`);
+  ok(heads.join() === '27/10,28/10', `targeted Date 2 changed, oldest first kept (${heads})`);
+  await tapEl('.dp-sheet .qo-close');
   const pend = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open('sow-app'); r.onsuccess = () => { const g = r.result.transaction('settings').objectStore('settings').get('app'); g.onsuccess = () => res(g.result?.topicEdits ?? {}); }; }));
   ok(JSON.stringify(pend).includes('KGB_Eng_CW|2026-10-27'), 'Add session stored as a pending session for the next Sync');
   // session date pick via button

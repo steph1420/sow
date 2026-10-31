@@ -142,6 +142,7 @@ export function stateToApp(s: BridgeState): AppState {
       topic1: mine[0]!.topic,
       date2: mine[1]?.date ?? '',
       topic2: mine[1]?.topic ?? '',
+      others: mine.slice(2).map((x) => ({ date: x.date, topic: x.topic })),
       createdAt: mine[0]!.updatedAt,
       updatedAt: mine[0]!.updatedAt,
     })

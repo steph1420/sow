@@ -1,4 +1,4 @@
-import { APP_VERSION } from '../lib/appVersion'
+import { APP_CHANNEL, APP_VERSION } from '../lib/appVersion'
 import { MoreChrome } from './MoreChrome'
 import './more.css'
 
@@ -14,7 +14,7 @@ export function AboutPage({ onBack }: Props) {
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Version
-          <span className="meta">{APP_VERSION}</span>
+          <span className="meta">{APP_VERSION} {APP_CHANNEL}</span>
         </div>
         <div className="more-row" style={{ cursor: 'default' }}>
           Craft

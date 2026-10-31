@@ -729,22 +729,16 @@ export function ChecklistPage(_props: Props) {
           dates={m.dates}
           pills={m.pills}
           onView={(p) => m.setPills(p)}
-          onSaveTopic={(date, topic) => { setTopic(activeClassKey, date, topic); haptic('success') }}
           onClose={() => setDpOpen(false)}
           sessions={sessionDatesFor(activeClassKey)}
           picked={!!pickedFor(activeClassKey)}
-          onPick={(iso) => {
-            const map = sessionDatesFor(activeClassKey)
-            pickDate(activeClassKey, dateSlotFromIso(iso, map.get(iso) ?? ''))
-            if (!m.showTwoCol) m.setPills(iso < m.dates[0].date ? [true, false] : [false, true])
-            haptic('success'); setDpOpen(false)
-          }}
-          onAddSession={(iso, topic) => {
-            addSession(activeClassKey, iso, topic)
-            pickDate(activeClassKey, dateSlotFromIso(iso, topic.trim()))
-            if (!m.showTwoCol) m.setPills(iso < m.dates[0].date ? [true, false] : [false, true])
-            haptic('success'); setDpOpen(false)
-            toast(`Session added · ${dateSlotFromIso(iso, '').dayNum} · syncs on next Sync`)
+          onSave={(pair, iso, topic, isNew) => {
+            if (isNew) addSession(activeClassKey, iso, topic)
+            else setTopic(activeClassKey, iso, topic)
+            pickDate(activeClassKey, pair)
+            if (!m.showTwoCol) m.setPills(pair[0] === pair[1] || iso === pair[0] ? [true, false] : [false, true])
+            haptic('success')
+            if (isNew) toast(`Session added · ${dateSlotFromIso(iso, '').dayNum} · syncs on next Sync`)
           }}
           onReset={() => { pickDate(activeClassKey, null); setDpOpen(false) }}
         />

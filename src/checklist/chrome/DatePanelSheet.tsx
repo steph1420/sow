@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { DatePicker } from './DatePicker'
 import { fromIso, MONTHS, weekdayShort } from '../../dates/dial'
+import { reorderNote, retarget, type Pair } from '../pickDate'
 import type { DateSlot } from '../types'
 
 type Props = {
@@ -8,35 +9,49 @@ type Props = {
   dates: [DateSlot, DateSlot]
   pills: [boolean, boolean]
   onView: (pills: [boolean, boolean]) => void
-  onSaveTopic: (date: string, topic: string) => void
   onClose: () => void
-  /** v0.41.0 any-date picker */
   sessions: Map<string, string>
   picked: boolean
-  onPick: (iso: string) => void
-  onAddSession: (iso: string, topic: string) => void
+  /** Save the targeted slot: adds a session if the date has none, else updates its topic; returns nothing. */
+  onSave: (pair: Pair, iso: string, topic: string, isNew: boolean) => void
   onReset: () => void
 }
 
-/** v0.40.0 (t83u) Date panel — pick 1 or 2 dates and view / edit each session's topic. Opened from the header dates. */
-export function DatePanelSheet({ classLabel, dates, pills, onView, onSaveTopic, onClose, sessions, picked, onPick, onAddSession, onReset }: Props) {
-  const [sel, setSel] = useState(dates[1].date)
-  const [newTopic, setNewTopic] = useState('')
-  const addRef = useRef<HTMLInputElement>(null)
-  const ymd = fromIso(sel)
-  const selLabel = `${weekdayShort(ymd)} ${ymd.d} ${MONTHS[ymd.m - 1]}`
-  const selHas = sessions.has(sel)
-  const same = dates[0].date === dates[1].date
-  const two = pills[0] && pills[1] && !same
-  const [draft, setDraft] = useState<string[]>(() => dates.map((d) => d.topic))
-  const [saved, setSaved] = useState<string | null>(null)
-  const save = (i: 0 | 1) => {
-    const t = draft[i]!.trim()
-    if (!t || t === dates[i].topic) return
-    onSaveTopic(dates[i].date, t)
-    setSaved(dates[i].date)
+const label = (iso: string) => { const y = fromIso(iso); return `${weekdayShort(y)} ${y.d} ${MONTHS[y.m - 1]}` }
+
+/** v0.42.0 (t5u Q-DATES-A LOCKED, mock dates-v1/A-slot-chips): Date 1 / Date 2 cards (oldest left) — tap one to target it;
+ *  the Year dropdown + Month / Date / Day dials edit only that slot; one topic box; one primary "Save Date N". */
+export function DatePanelSheet({ classLabel, dates, pills, onView, onClose, sessions, picked, onSave, onReset }: Props) {
+  const pair: Pair = [dates[0].date, dates[1].date]
+  const single = pair[0] === pair[1]
+  const [target, setTarget] = useState<0 | 1>(single ? 0 : 1)
+  const [sel, setSel] = useState(pair[target])
+  const [draft, setDraft] = useState(sessions.get(pair[target]) ?? '')
+  const [saved, setSaved] = useState(false)
+  const choose = (i: 0 | 1) => { setTarget(i); const iso = single && i === 1 ? pair[0] : pair[i]; setSel(iso); setDraft(sessions.get(iso) ?? ''); setSaved(false) }
+  const has = sessions.has(sel)
+  const cur = single && target === 1 ? '' : pair[target]
+  const dirty = sel !== cur || (draft.trim() !== (sessions.get(sel) ?? '') && (!has || !!draft.trim()))
+  const note = reorderNote(pair, target, sel)
+  const save = () => {
+    if (!dirty) return
+    const next = retarget(pair, target, sel)
+    onSave(next, sel, draft, !has)
+    const t = next[0] === next[1] ? 0 : next.indexOf(sel) as 0 | 1
+    setTarget(t); setSaved(true)
   }
-  const slots = (same ? [0] : [0, 1]) as (0 | 1)[]
+  const two = pills[0] && pills[1] && !single
+  const card = (i: 0 | 1) => {
+    const none = single && i === 1
+    const d = dates[i]
+    return (
+      <button type="button" key={i} className={`dp-slot${target === i ? ' on' : ''}`} aria-pressed={target === i} onClick={() => choose(i)}>
+        <span className="k">Date {i + 1}{target === i ? ' · Editing' : ''}</span>
+        <span className="d">{none ? 'None' : label(d.date)}</span>
+        <span className="t">{none ? 'Tap to add a second date' : d.topic || 'No topic'}</span>
+      </button>
+    )
+  }
   return (
     <>
       <button type="button" className="qo-scrim dp-scrim" aria-label="Dismiss dates" onClick={onClose} />
@@ -46,76 +61,37 @@ export function DatePanelSheet({ classLabel, dates, pills, onView, onSaveTopic, 
           <h2>Dates</h2>
           <span className="qo-class">{classLabel}</span>
         </div>
-        {same ? null : (
-          <div className="dp-seg" role="group" aria-label="View">
-            <button type="button" aria-pressed={!two} className={!two ? 'on' : ''} onClick={() => onView([false, true])}>1 date</button>
-            <button type="button" aria-pressed={two} className={two ? 'on' : ''} onClick={() => onView([true, true])}>2 dates</button>
-          </div>
-        )}
-        {slots.map((i) => {
-          const d = dates[i]
-          const shown = pills[i]
-          const dirty = draft[i]!.trim() !== d.topic && !!draft[i]!.trim()
-          return (
-            <div className={`qo-date dp-date${shown ? ' shown' : ''}`} key={d.date}>
-              <div className="qo-top">
-                <b>{d.dayLabel} · {d.dayNum}</b>
-                {same ? null : two ? (
-                  <span className="qo-count">Shown</span>
-                ) : (
-                  <button type="button" className={`dp-pick${shown ? ' on' : ''}`} aria-pressed={shown} onClick={() => onView(i === 0 ? [true, false] : [false, true])}>
-                    {shown ? 'Showing' : 'Show'}
-                  </button>
-                )}
-              </div>
-              <label className="dp-label" htmlFor={`dp-topic-${i}`}>Topic</label>
-              <div className="dp-edit">
-                <input
-                  id={`dp-topic-${i}`}
-                  className="dp-input"
-                  value={draft[i]}
-                  maxLength={200}
-                  enterKeyHint="done"
-                  onChange={(e) => { const v = e.target.value; setDraft((p) => p.map((x, j) => (j === i ? v : x))); setSaved(null) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(i) } }}
-                />
-                <button type="button" className="dp-save" disabled={!dirty} onClick={() => save(i)}>Save</button>
-              </div>
-              {saved === d.date ? <div className="qo-sub dp-saved" role="status">Saved · syncs to the sheet on next Sync</div> : null}
-            </div>
-          )
-        })}
-        <h3 className="dp-sub">Pick a date</h3>
+        <div className="dp-slots" role="group" aria-label="Which date to change">{card(0)}{card(1)}</div>
+        <div className="dp-hint">Tap a date to change it. The dials below edit <b>Date {target + 1}</b>.</div>
         <DatePicker
-          start={dates[1].date}
+          key={`${target}|${pair.join()}`}
+          start={sel}
           sessions={sessions}
-          onChange={(iso) => { setSel(iso); setNewTopic('') }}
-          onEnter={(iso) => { setSel(iso); if (sessions.has(iso)) onPick(iso); else addRef.current?.focus() }}
+          onChange={(iso) => { setSel(iso); setDraft(sessions.get(iso) ?? ''); setSaved(false) }}
+          onEnter={(iso) => { setSel(iso); save() }}
         />
-        <div className="dp-pick-card" aria-live="polite">
-          {selHas ? (
-            <>
-              <div className="t">{selLabel} · session</div>
-              <div className="s">{sessions.get(sel) || 'No topic'}</div>
-              <div className="dp-row2">
-                <button type="button" className="p" onClick={() => onPick(sel)} disabled={sel === dates[0].date || sel === dates[1].date}>
-                  {sel === dates[0].date || sel === dates[1].date ? 'Already shown' : 'Open this date'}
-                </button>
-              </div>
-            </>
+        <input
+          className="dp-input dp-topic"
+          aria-label={`Topic for Date ${target + 1}`}
+          placeholder={has ? 'Topic' : 'Topic (optional)'}
+          value={draft}
+          maxLength={200}
+          enterKeyHint="done"
+          onChange={(e) => { setDraft(e.target.value); setSaved(false) }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save() } }}
+        />
+        <div className="dp-note" aria-live="polite">
+          {note ? <b className="dp-warn">{note} · dates stay oldest first. </b> : null}
+          ● session on the sheet · {label(sel)} {has ? 'has a session' : 'has no session — Save adds one'}
+        </div>
+        {saved ? <div className="qo-sub dp-saved" role="status">Saved · syncs to the sheet on next Sync</div> : null}
+        <div className="dp-row2">
+          {single ? null : two ? (
+            <button type="button" className="dp-one" onClick={() => onView(target === 0 ? [true, false] : [false, true])}>1 date only</button>
           ) : (
-            <>
-              <div className="t">{selLabel} · no session</div>
-              <div className="s">Nothing was set on this date. Add one so you can tick it?</div>
-              <input ref={addRef} className="dp-input dp-add-topic" placeholder="Topic (optional)" maxLength={200} value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddSession(sel, newTopic) } }} />
-              <div className="dp-row2">
-                <button type="button" onClick={() => { setSel(dates[1].date) }}>Cancel</button>
-                <button type="button" className="p" onClick={() => onAddSession(sel, newTopic)}>Add session</button>
-              </div>
-            </>
+            <button type="button" className="dp-one" onClick={() => onView([true, true])}>2 dates</button>
           )}
-          <div className="s dp-note">{two ? 'Replaces date 2' : 'Shown on its own'} · dates stay oldest first</div>
+          <button type="button" className="p dp-save-main" disabled={!dirty} onClick={save}>Save Date {target + 1}</button>
         </div>
         {picked ? <button type="button" className="dp-reset" onClick={onReset}>Back to sheet dates</button> : null}
         <button type="button" className="qo-close" data-dialog-close onClick={onClose}>Done</button>

@@ -24,3 +24,12 @@ describe('topic edits (v0.40.0)', () => {
     expect(applyTopicEdits('KGB_Eng_CW', [...slots] as never, edits).map((d: { topic: string }) => d.topic)).toEqual(['Q', 'R'])
   })
 })
+
+import { topicEditFor } from './topicEdits'
+describe('v0.42.0: addSession / setTopic empty-topic consistency', () => {
+  const at = '2026-10-31T04:00:00.000Z'
+  it('trims and caps at 200', () => expect(topicEditFor('  Nouns  ', { exists: true, current: 'x' }, at)).toEqual({ topic: 'Nouns', updatedAt: at }))
+  it('empty never wipes an existing session topic', () => expect(topicEditFor('   ', { exists: true, current: 'Nouns' }, at)).toBeNull())
+  it('unchanged topic ⇒ no edit', () => expect(topicEditFor('Nouns', { exists: true, current: 'Nouns' }, at)).toBeNull())
+  it('new session may have an empty topic', () => expect(topicEditFor('', { exists: false, current: '' }, at)).toEqual({ topic: '', updatedAt: at }))
+})

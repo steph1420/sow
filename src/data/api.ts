@@ -31,12 +31,21 @@ export async function getSettings(): Promise<Settings> {
   return { ...out, syncUrl: effectiveSyncUrl(out.syncUrl) }
 }
 
+// v0.42.0: settings writes are read-modify-write; serialise them so concurrent patches (topic edit + picked pair) don't drop each other.
+let settingsChain: Promise<unknown> = Promise.resolve()
+export function updateSettings(fn: (cur: Settings) => Partial<Omit<Settings, 'id'>>): Promise<Settings> {
+  const run = settingsChain.then(async () => {
+    const db = await getDb()
+    const cur = await getSettings()
+    const next: Settings = { ...cur, ...fn(cur), id: 'app' }
+    await db.put('settings', next)
+    return next
+  })
+  settingsChain = run.catch(() => {})
+  return run
+}
 export async function putSettings(patch: Partial<Omit<Settings, 'id'>>): Promise<Settings> {
-  const db = await getDb()
-  const cur = await getSettings()
-  const next: Settings = { ...cur, ...patch, id: 'app' }
-  await db.put('settings', next)
-  return next
+  return updateSettings(() => patch)
 }
 
 export async function putStudent(s: Student): Promise<void> {
@@ -77,6 +86,16 @@ export async function setLeft(classKey: ClassKey, roll: number, left: boolean, n
     roll,
     name: name || existing?.name || '',
     left,
+  })
+}
+
+/** v0.42.0: persist (or clear) a class's picked date pair. */
+export async function putPickedPair(classKey: string, pair: [string, string] | null): Promise<void> {
+  await updateSettings((s) => {
+    const cur = { ...(s.pickedPairs ?? {}) }
+    if (pair) cur[classKey] = pair
+    else delete cur[classKey]
+    return { pickedPairs: cur }
   })
 }
 

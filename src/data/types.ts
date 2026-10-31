@@ -78,6 +78,8 @@ export interface Session {
   topic1: string
   date2: string
   topic2: string
+  /** v0.42.0: every other open session the bridge returned (older than date2), so dots/topics survive sync. */
+  others?: { date: string; topic: string }[]
   createdAt: string
   updatedAt: string
 }
@@ -131,6 +133,8 @@ export interface Settings {
   mergeV2At?: string
   /** v0.40.0 (t83u): topic edits per `classKey|date`, pending until a v0.40+ bridge confirms. */
   topicEdits?: Record<string, { topic: string; updatedAt: string }>
+  /** v0.42.0 (Q-DATES-A): the picked Date 1 / Date 2 pair per classKey (oldest first); survives reload. */
+  pickedPairs?: Record<string, [string, string]>
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

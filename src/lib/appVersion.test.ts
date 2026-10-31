@@ -10,7 +10,7 @@ const SOURCES = import.meta.glob('../**/*.tsx', { query: '?raw', import: 'defaul
 describe('app version', () => {
   it('equals package.json version', () => {
     expect(APP_VERSION).toBe(pkg.version)
-    expect(versionLabel()).toBe(`v${pkg.version} · Quiet Lucid`)
+    expect(versionLabel()).toBe(`v${pkg.version} Beta · Quiet Lucid`) // v0.42.0: Beta label (Rule 15)
   })
   it('no hardcoded version literal in UI code (outside comments)', () => {
     const files = Object.keys(SOURCES).filter((f) => !/\.test\./.test(f))

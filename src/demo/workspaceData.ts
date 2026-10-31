@@ -272,6 +272,7 @@ export function historyFromIdb(rows: Session[], rosterSize: (k: ClassKey) => num
     const kind = s.classKey.endsWith('_HW') ? 'HW' : 'CW'
     const slots = [dateSlotFromIso(s.date1, s.topic1)]
     if (s.date2 && s.date2 !== s.date1) slots.push(dateSlotFromIso(s.date2, s.topic2))
+    for (const o of s.others ?? []) if (o.date && o.date !== s.date1 && o.date !== s.date2) slots.push(dateSlotFromIso(o.date, o.topic))
     for (const d of slots) {
       out.push({
         id: `${s.classKey}|${d.date}`,

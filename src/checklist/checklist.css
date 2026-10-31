@@ -882,7 +882,18 @@
 @media (prefers-reduced-motion: reduce) { .sw-chrome .sw-lean { transition: none; } }
 
 /* Dates panel · any-date picker (mock v4) */
-.dp-sheet { max-height: 92%; overflow: auto; overscroll-behavior: contain; }
+.dp-sheet { max-height: 92%; overflow: auto; overscroll-behavior: contain; touch-action: pan-y; /* v0.42.0: was none via .qo-sheet → no finger scroll */ }
+.dp-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 6px; }
+.dp-slot { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-height: 56px; padding: 9px 12px; border-radius: 14px; border: 1.5px solid var(--hairline); background: none; color: var(--text); font: inherit; cursor: pointer; min-width: 0; }
+.dp-slot.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.dp-slot .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-ter); font-weight: 700; }
+.dp-slot.on .k { color: var(--accent); }
+.dp-slot .d { font-size: 16px; font-weight: 700; }
+.dp-slot .t { font-size: 12px; color: var(--text-sec); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-hint { font-size: 13px; color: var(--text-sec); margin: 6px 0 10px; }
+.dp-topic { width: 100%; box-sizing: border-box; margin-top: 12px; }
+.dp-note { font-size: 11px; color: var(--text-ter); margin-top: 8px; }
+.dp-warn { color: var(--warn, #e0a030); font-weight: 650; }
 .dp-sub { font-size: 15px; margin: 16px 0 8px; }
 .dp-picker-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .dp-year { min-height: 44px; padding: 0 30px 0 14px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--surface, var(--bg)); color: var(--text); font: inherit; font-size: 18px; font-weight: 700; box-shadow: var(--depth-1); }
@@ -893,7 +904,7 @@
 .dp-dials { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; height: 220px; border-radius: 14px; background: color-mix(in srgb, var(--text) 4%, transparent); overflow: hidden; }
 .dp-band { position: absolute; left: 6px; right: 6px; top: 88px; height: 44px; border-radius: 10px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; }
 .dp-dial { position: relative; display: flex; flex-direction: column; align-items: center; touch-action: none; cursor: ns-resize; outline-offset: -3px; border-radius: 12px; user-select: none; -webkit-user-select: none; }
-.dp-dial.ro { cursor: default; }
+.dp-dial.ro { cursor: default; touch-action: pan-y; /* v0.42.0: Day is display-only → let the sheet scroll */ }
 .dp-dial > div { height: 44px; display: flex; align-items: center; gap: 6px; font-size: 17px; color: var(--text-sec); font-variant-numeric: tabular-nums; }
 .dp-dial > div.far { opacity: 0.45; }
 .dp-dial > div.c { color: var(--text); font-weight: 700; font-size: 20px; }

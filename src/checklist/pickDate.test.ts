@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { applyPick } from './pickDate'
-const s = (date: string) => ({ date, topic: date, dayLabel: date, dayNum: date })
+import { retarget, reorderNote } from './pickDate'
+const P: [string, string] = ['2026-10-28', '2026-11-02']
 
-describe('v0.41.0 picked date replaces date 2 (calendar order kept)', () => {
-  it('2-date view: replaces date 2, oldest first', () => {
-    expect(applyPick([s('2026-10-28'), s('2026-11-02')], s('2026-11-05')).map((d) => d.date)).toEqual(['2026-10-28', '2026-11-05'])
-    expect(applyPick([s('2026-10-28'), s('2026-11-02')], s('2026-10-21')).map((d) => d.date)).toEqual(['2026-10-21', '2026-10-28'])
+describe('v0.42.0 Q-DATES-A: targeted slot', () => {
+  it('Date 2 target changes only Date 2', () => expect(retarget(P, 1, '2026-11-05')).toEqual(['2026-10-28', '2026-11-05']))
+  it('Date 1 target changes only Date 1 (old bug: Date 1 could never change)', () => expect(retarget(P, 0, '2026-10-21')).toEqual(['2026-10-21', '2026-11-02']))
+  it('reorder keeps oldest first', () => {
+    expect(retarget(P, 1, '2026-10-20')).toEqual(['2026-10-20', '2026-10-28'])
+    expect(retarget(P, 0, '2026-11-09')).toEqual(['2026-11-02', '2026-11-09'])
   })
-  it('picking date 1 again changes nothing', () => {
-    expect(applyPick([s('2026-10-28'), s('2026-11-02')], s('2026-10-28')).map((d) => d.date)).toEqual(['2026-10-28', '2026-11-02'])
+  it('same as the other date ⇒ one date', () => expect(retarget(P, 1, '2026-10-28')).toEqual(['2026-10-28', '2026-10-28']))
+  it('single-date pair: Date 2 target adds a second date', () => expect(retarget(['2026-10-28', '2026-10-28'], 1, '2026-11-04')).toEqual(['2026-10-28', '2026-11-04']))
+  it('reorder note', () => {
+    expect(reorderNote(P, 1, '2026-10-20')).toBe('Date 2 will become Date 1')
+    expect(reorderNote(P, 0, '2026-11-09')).toBe('Date 1 will become Date 2')
+    expect(reorderNote(P, 1, '2026-11-09')).toBe('')
+    expect(reorderNote(['2026-10-28', '2026-10-28'], 1, '2026-10-01')).toBe('Date 2 will become Date 1')
   })
 })

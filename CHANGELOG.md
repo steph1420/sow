@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.42.0 — 2026-10-31 (Asia/Calcutta) · Beta
+
+Dates sheet fixes plus Option A (t2u, t4u, t5u "Mock A." LOCKED Q-DATES-A, t6u). Rollback: tag `v0.41.0` / `2ed120f`, or branch `backup/pre-v0.42.0`. **No Code.js change**: the bridge already returns all Sessions rows.
+
+- **Scrolling:** the Dates sheet now scrolls with a finger on phones. Root cause: it inherited `touch-action: none` from the Quick overview sheet, and every dial (including the read-only Day dial) blocked panning. Done is reachable again.
+- **Option A, choosing a date slot:** Date 1 and Date 2 sit as two cards, oldest on the left. Tap a card to edit it ("Editing"); the Year dropdown and Month/Date/Day dials change only that date. One topic box and one main button ("Save Date N"), which adds a session when that date has none. "1 date only" stays. If the change would reorder the pair, the sheet says so and keeps oldest first. Root cause of the old behaviour: `applyPick` always kept Date 1 and replaced Date 2.
+- **Picked pair survives reload:** saved on the device (IndexedDB) instead of only in memory.
+- **Added dates keep their dot and topic after Sync:** the app now keeps every session the bridge returns, not just the two newest. Root cause: older sessions were dropped once their pending edit was confirmed.
+- **Empty topics:** Add session and topic edits both ignore an empty topic instead of one blanking an existing topic.
+- **Year dropdown** always matches the date shown on the dials.
+- **Channel:** labelled Beta in Settings › About. The Stable/Beta switch itself is still pending.
+
 ## 0.41.0 — 2026-10-30 (Asia/Calcutta)
 
 Feature release for Steve's locked v2 mocks plus the v4 date picker (t101u–t108u, "LLooks perfect!!!"). Rollback: tag `v0.40.2` / `2fb2ff7`, or branch `backup/pre-v0.41.0`. **No Code.js change**: the bridge already creates missing session rows from tick and sessions ops.
