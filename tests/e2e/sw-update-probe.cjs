@@ -3,7 +3,8 @@
 // the page WITHOUT navigating (like an Android PWA resumed). Expect: auto reload onto the new version.
 const { execSync } = require('child_process');
 const { phone } = require('./_launch.cjs');
-const url = process.argv[2] || 'http://localhost:4179/sow/';
+// v0.44.5: the app is served under the /sow/ base path (GitHub Pages); normalise any URL given onto it.
+const url = (() => { const u = new URL(process.argv[2] || 'http://localhost:4179/sow/'); if (!u.pathname.startsWith('/sow/')) u.pathname = '/sow/'; return u.href; })();
 (async () => {
   const { b, ctx, p } = await phone();
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };

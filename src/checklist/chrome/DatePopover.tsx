@@ -64,11 +64,11 @@ export function DatePopover({ classLabel, sessions, shown, current, cols, onCols
         <div className="dpo-list" ref={listRef} role="listbox" aria-label="Sessions">
           {rows.length ? null : <div className="dpo-empty">No dates yet</div>}
           {rows.map(([iso, topic]) => {
-            const on = iso === current, vis = shown.includes(iso)
+            const on = shown.includes(iso) // v0.44.5 (t57u/t58u option A LOCKED): every shown date = same active look
             return (
               <div
                 key={iso}
-                className={`dpo-row${on ? ' cur' : ''}${vis ? ' vis' : ''}${swiped === iso ? ' swiped' : ''}`}
+                className={`dpo-row${on ? ' act' : ''}${iso === current ? ' cur' : ''}${swiped === iso ? ' swiped' : ''}`}
                 data-iso={iso}
                 role="option"
                 aria-selected={on}
@@ -80,13 +80,14 @@ export function DatePopover({ classLabel, sessions, shown, current, cols, onCols
                 onContextMenu={(e) => e.preventDefault()}
                 onKeyDown={(e) => { if (e.key === 'Enter') onPick(iso); else if (e.key === 'F2' || e.key === 'e') onEdit(iso) }}
               >
-                <span className="dpo-date">{dm(iso)} {wd(iso)}{on ? ' ✓' : ''}</span>
+                <span className="dpo-date">{dm(iso)} {wd(iso)}</span>
                 <span className="dpo-topic">
                   <span className="dpo-tt">{topic || 'No topic'}</span>
                   <button type="button" className="dpo-edit" tabIndex={swiped === iso ? 0 : -1} aria-label={`Edit ${dm(iso)}`}
                     onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}
                     onClick={() => onEdit(iso)}>✎ EDIT</button>
                 </span>
+                {on ? <span className="dpo-ck" aria-hidden>✓</span> : null}
               </div>
             )
           })}

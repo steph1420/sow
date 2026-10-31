@@ -13,6 +13,7 @@ import { runPrefsSync } from '../sync/prefsRunner'
 import { usePrefs } from '../prefs/PrefsContext'
 import './more.css'
 import { haptic } from '../lib/haptics'
+import { maskUrl } from '../lib/maskUrl'
 import { ImportSheet, JoinPage, OtherDevicesCard, PairHostPage, exportSetup } from './SetupDevices'
 import { parseSetupFile, type SetupData } from '../sync/setupPair'
 
@@ -41,6 +42,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
   const { prefs } = usePrefs()
   const [sheetUrl, setSheetUrl] = useState('')
   const [syncUrl, setSyncUrl] = useState('')
+  const [urlFocus, setUrlFocus] = useState(false)
   const [token, setToken] = useState('')
   const [status, setStatus] = useState<Awaited<ReturnType<typeof readSyncStatus>> | null>(null)
   const [busy, setBusy] = useState(false)
@@ -242,8 +244,11 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
           Apps Script sync URL (push)
           <input
             className="sync-input"
-            value={syncUrl}
+            value={urlFocus ? syncUrl : maskUrl(syncUrl)}
+            onFocus={(e) => { e.currentTarget.value = syncUrl; e.currentTarget.select(); setUrlFocus(true) }}
+            onBlur={() => setUrlFocus(false)}
             onChange={(e) => setSyncUrl(e.target.value)}
+            data-testid="sync-url"
             placeholder="Not connected — optional"
             autoComplete="off"
             name="sow-sync-url"

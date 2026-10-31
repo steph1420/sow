@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.44.5 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Steve t57u/t58u/t61u. Rollback: commit `0d804ca`, branch `backup/pre-v0.44.5`, or `/workspace/sow-pwa-pre-v0.44.5.tgz`. **Code.js change: NO**.
+
+- Date popover (option A, mock `sow-mocks/focus-v1`, LOCKED): rows shown in the checklist get no filled background — a thin green left bar, green date text and a small ✓ at the right, identical on every shown row. Other rows plain. Swipe/hold edit, Add Date pill and the 1|2 toggle unchanged. Columns stay oldest-first on every pick path, incl. swap (`sortedPairs.test.ts`).
+- Past (amber) view: the column-header strip is tinted like the page.
+- Connections: the Apps Script sync URL and the Beta TEST-copy URL are masked (`https://script.google.com/…/••••••/exec`) unless the field is being edited (`maskUrl.test.ts`).
+- Unit test: queued rename/delete ops are sent on Sync and cleared once the bridge applies them (`structFlush.test.ts`).
+- Probes fixed: `v040-probe` (relative dates, header opens popover), `sync-flow` + `offline-sync` (Beta channel → TEST copy only, token from `SOW_TEST_BRIDGE_TOKEN`), `sw-update` (/sow/ base path normalised), `v042-shots` (popover instead of the retired Dates sheet). New `v0445-probe.cjs` + `v0445-shots.cjs`.
+
 ## 0.44.4 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Steve t56u. Rollback: commit `36b2427`, branch `backup/pre-v0.44.4`, or `/workspace/sow-pwa-pre-v0.44.4.tgz`. **Code.js change: NO**.

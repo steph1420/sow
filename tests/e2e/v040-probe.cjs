@@ -1,6 +1,6 @@
 // v0.40.0 (t83u/t84u): "Last:", header dates right → Date panel, two-row column header (no counts), tick-all footer, topic edit.
 const { phone } = require('./_launch.cjs');
-const url = process.argv[2] || 'http://localhost:4317/sow/';
+const url = process.argv[2] || 'http://localhost:4179/sow/';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const { b, ctx, p } = await phone();
@@ -9,17 +9,20 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const tapEl = async (sel) => { const r = await p.$eval(sel, (e) => { e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }); await p.waitForTimeout(80); await touch('touchStart', r[0], r[1]); await touch('touchEnd'); await p.waitForTimeout(300); };
   await p.goto(url, { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   const lines = await p.$$eval('.ov-card .line', (e) => e.map((x) => x.textContent.trim()));
-  ok(lines.some((l) => /^Last: Wed 28/.test(l)) && !lines.some((l) => /^Latest/.test(l)), `Overview past card says "Last:" (${lines.find((l) => /Wed 28/.test(l))})`);
+  // v0.44.5: relative — no hardcoded demo dates (they drift with today's date)
+  ok(lines.some((l) => /^Last: \w{3} \d+/.test(l)) && !lines.some((l) => /^Latest/.test(l)), `Overview past card says "Last:" (${lines.find((l) => /^Last:/.test(l))})`);
+  const dmKey = (dm) => { const [d, m] = dm.split('/').map(Number); return (m < 8 ? 1e4 : 0) + m * 100 + d; };
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   // header
   ok(!(await p.$('.sw-lean-topic')), 'lean header: topic removed');
   ok(!(await p.$('.date-pill')), 'date chip row absorbed into the panel');
   const hd = await p.$eval('.sw-lean-dates', (e) => { const r = e.getBoundingClientRect(); return { t: e.textContent, right: innerWidth - r.right, h: r.height, w: r.width }; });
-  ok(/28\/10.*2\/11/.test(hd.t), `header dates oldest→newest (${hd.t})`);
+  const hdm = hd.t.match(/\d+\/\d+/g) || [];
+  ok(hdm.length === 2 && dmKey(hdm[0]) < dmKey(hdm[1]), `header dates oldest→newest (${hd.t})`);
   ok(hd.right < 80 && hd.h >= 44, `dates sit right, ≥44 tall (right gap ${Math.round(hd.right)}, h ${Math.round(hd.h)})`);
   // column header: two rows, no counts
   const ch = await p.$$eval('.sw-colhead .sw-dh', (e) => e.map((x) => ({ d: x.querySelector('.sw-dh-date').textContent, t: x.querySelector('.sw-dh-topic').textContent, txt: x.textContent, dl: x.querySelector('.sw-dh-btn').getAttribute('aria-label'), tw: x.querySelector('.sw-dh-topic').scrollWidth > x.querySelector('.sw-dh-topic').clientWidth || true, rows: [...x.querySelector('.sw-dh-btn').children].map((c) => Math.round(c.getBoundingClientRect().top)) })));
-  ok(ch.length === 2 && ch[0].d === '28/10' && ch[1].d === '2/11', `2 column headers, calendar order (${ch.map((c) => c.d)})`);
+  ok(ch.length === 2 && dmKey(ch[0].d) < dmKey(ch[1].d) && ch[0].d === hdm[0] && ch[1].d === hdm[1], `2 column headers, calendar order (${ch.map((c) => c.d)})`);
   ok(ch.every((c) => c.rows[1] > c.rows[0]), 'date above topic (two rows)');
   ok(ch.every((c) => !/\d+\/\d+\s*\d+\/\d+|of \d+|set/i.test(c.txt + c.dl.replace(/choose dates/, ''))), `no counts in header or its SR label (${ch[0].dl})`);
   ok(!(await p.$('.sw-colhead .sw-allbox')), 'header no longer a tick-all box');
@@ -27,8 +30,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(ovl[0][1] <= ovl[1][0] + 0.5 && ovl.every((o) => o[2] === 'ellipsis'), 'topics truncate with ellipsis, no overlap at 412px');
   const n0 = await p.$$eval('[data-cell$="-0"][aria-checked="true"]', (e) => e.length);
   await tapEl('.sw-dh-topic >> nth=0');
-  const toast = await p.$eval('.share-toast, [role=status]', (e) => e.textContent).catch(() => '');
-  ok(toast.includes(ch[0].t.replace('…', '')) || toast.length > ch[0].t.length, `tapping topic shows full topic toast (${toast})`);
+  // v0.43+: the column header opens the date popover (it no longer shows a topic toast)
+  ok(await p.isVisible('.dpo'), 'tapping the column header opens the date popover');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(250);
   ok((await p.$$eval('[data-cell$="-0"][aria-checked="true"]', (e) => e.length)) === n0, 'header tap does not tick');
   // footer
   const ft = await p.$$eval('.sw-tickall', (e) => e.map((x) => ({ t: x.textContent, w: x.getBoundingClientRect().width, h: x.getBoundingClientRect().height })));

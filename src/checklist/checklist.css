@@ -922,9 +922,12 @@
 .dpo-list { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .dpo-row { position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-radius: 10px; cursor: pointer; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overflow: hidden; }
 .dpo-row:focus-visible { outline: 2px solid var(--accent); }
-.dpo-row.vis { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+/* v0.44.5 option A (focus-v1 LOCKED): no fill; thin green left bar, green date, small ✓ right — same on every active row */
+.dpo-row.act { background: none; }
+.dpo-row.act::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--accent); }
+.dpo-row.act .dpo-date { color: var(--accent); }
+.dpo-ck { flex: none; color: var(--accent); font-weight: 800; font-size: 15px; margin-left: 4px; }
 .dpo-date { flex: 0 0 auto; min-width: 92px; font-weight: 700; font-size: 15px; }
-.dpo-row.cur .dpo-date { color: var(--accent); }
 .dpo-topic { position: relative; flex: 1; min-width: 0; height: 44px; display: flex; align-items: center; overflow: hidden; }
 .dpo-tt { color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dpo-edit { position: absolute; inset: 4px 0 4px 0; transform: translateX(105%); transition: transform .18s ease; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent, #04150a); font: inherit; font-weight: 800; letter-spacing: .06em; cursor: pointer; }
@@ -963,6 +966,7 @@
 .past-t { font-weight: 800; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .past-back { flex: none; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: #14100a; color: #f2b85a; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
 .sw-page.past { background: color-mix(in srgb, #e5a84b 9%, var(--bg)); }
+.sw-page.past .sw-colhead-bar { background: color-mix(in srgb, #e5a84b 9%, var(--bg)); } /* v0.44.5: header strip tinted too */
 .sw-page.past .sw-chrome { background: color-mix(in srgb, #e5a84b 9%, var(--bg)); }
 .past-wm { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-28deg); font-size: 150px; font-weight: 900; letter-spacing: .04em; color: #e5a84b; opacity: .13; pointer-events: none; z-index: 1; user-select: none; }
 /* v0.44.1 (t51u): a tapped value glides from its row into the centre band */

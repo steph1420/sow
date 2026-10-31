@@ -4,10 +4,13 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
   const ctx = await b.newContext({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
-  const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
+  await require('./_launch.cjs').betaInit(ctx); const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
-  await require('./_launch.cjs').setSheet(p, url);
-  await p.waitForFunction(() => document.querySelectorAll('.subj-pill').length > 1, null, { timeout: 30000 }).catch(()=>{});
+  await require('./_launch.cjs').setTestCopy(p, url); // v0.44.5: TEST copy only
+  // v0.44.5: Beta discovers tabs through the bridge on Sync (TEST copy gviz is private) — sync once online first
+  await p.waitForFunction(() => !document.querySelector('.sync-cta')?.disabled, null, { timeout: 30000 }).catch(()=>{});
+  await require('./_launch.cjs').dismissNudge(p); await p.click('.sync-cta'); await p.waitForFunction(() => /pulled \d+ students/i.test(document.body.textContent), null, { timeout: 90000 }).catch(()=>{});
+  await p.waitForTimeout(500);
   const tabsRow = () => p.$$eval('.more-row-sub', els => els.map(e=>e.textContent).join('|'));
   const dirty = () => p.$$eval('.more-row', els => (els.find(e=>/Local dirty/.test(e.textContent))||{}).textContent);
   const t0 = await tabsRow(), d0 = await dirty(), chips0 = await p.$$eval('.subj-pill', e=>e.map(x=>x.textContent));

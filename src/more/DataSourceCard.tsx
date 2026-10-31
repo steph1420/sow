@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { maskUrl } from '../lib/maskUrl'
 import { ChannelBadge } from '../components/ChannelBadge'
 import { BETA_URL_KEY, currentBetaUrl, currentChannel, setBetaUrl, setChannel, type Channel } from '../sync/channel'
 
@@ -7,6 +8,7 @@ import { BETA_URL_KEY, currentBetaUrl, currentChannel, setBetaUrl, setChannel, t
 export function DataSourceCard() {
   const ch = currentChannel()
   const [url, setUrl] = useState(currentBetaUrl())
+  const [foc, setFoc] = useState(false)
   const valid = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url.trim())
   const go = (c: Channel) => { if (c === ch) return; setChannel(c); window.dispatchEvent(new Event('sow:flush')); window.location.reload() }
   return (
@@ -17,8 +19,8 @@ export function DataSourceCard() {
         <button type="button" role="radio" aria-checked={ch === 'beta'} className={ch === 'beta' ? 'on beta' : ''} disabled={!valid && ch !== 'beta'} onClick={() => go('beta')}>Beta · TEST copy</button>
       </div>
       <label className="ds-l">TEST copy bridge URL (/exec)
-        <input name={BETA_URL_KEY} className="ds-in" inputMode="url" placeholder="https://script.google.com/macros/s/…/exec" value={url}
-          onChange={(e) => setUrl(e.target.value)} onBlur={() => { if (valid || !url.trim()) setBetaUrl(url) }} />
+        <input name={BETA_URL_KEY} className="ds-in" inputMode="url" placeholder="https://script.google.com/macros/s/…/exec" value={foc ? url : maskUrl(url)} data-testid="beta-url"
+          onFocus={(e) => { e.currentTarget.value = url; e.currentTarget.select(); setFoc(true) }} onChange={(e) => setUrl(e.target.value)} onBlur={() => { setFoc(false); if (valid || !url.trim()) setBetaUrl(url) }} />
       </label>
       <div className="ds-note">
         {ch === 'beta' ? (valid ? 'Using the TEST copy. Its data is kept apart from Live on this device.' : 'Beta has no TEST copy URL yet — Sync stays off until you add one.')
