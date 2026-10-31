@@ -39,6 +39,8 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   // seed three older dates through the Add Date pill (demo data only has the current pair)
   for (const n of [20, 23, 26]) {
     await tapSel('.ad-add'); await p.waitForSelector('.dem');
+    // v0.44.2: relative dates — previous month (always past), then n steps on the Date dial
+    await p.$eval('.dp-dials [data-dial=month]', (e) => e.focus()); await p.keyboard.press('ArrowDown');
     await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < n; i++) await p.keyboard.press('ArrowUp');
     await p.fill('.dem-topic', `Older probe topic ${n} with a long name that must wrap, not truncate`);
     await tapSel('.dem-ok'); await p.waitForTimeout(400);

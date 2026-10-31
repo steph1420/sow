@@ -163,6 +163,7 @@ export function useChecklistModel() {
     const e = popUndo(classKey)
     if (!e) return null
     applySnaps(e.undo)
+    e.session?.run('undo')
     setUndoTick((t) => t + 1)
     return e
   }, [classKey, applySnaps])
@@ -171,6 +172,7 @@ export function useChecklistModel() {
     const e = popRedo(classKey)
     if (!e) return null
     applySnaps(e.redo)
+    e.session?.run('redo')
     setUndoTick((t) => t + 1)
     return e
   }, [classKey, applySnaps])

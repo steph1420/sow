@@ -66,3 +66,10 @@ describe('moveMarks (v0.44.1) only moves real marks', () => {
     expect(Object.keys(out).sort()).toEqual(['1|2026-12-31', '3|2026-12-31', '4|2026-11-01'])
   })
 })
+
+describe('moveMarks (v0.44.2) move back onto a date with cleared cells', () => {
+  it('moved ticks win over stale cleared cells already on the target date', () => {
+    const out = mv({ '1|2026-11-03': { set: true, submitted: false }, '1|2026-11-02': { set: false, submitted: false } }, '2026-11-03', '2026-11-02')
+    expect(out['1|2026-11-02']).toEqual({ set: true, submitted: false })
+  })
+})

@@ -24,6 +24,8 @@ import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } fro
 import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
 import type { Pair } from '../checklist/pickDate'
 import { queueStruct } from '../sync/structOps'
+import { pushUndo, purgeDate, remapDate, takeEntry, type UndoEntry } from '../lib/undoStack'
+import { fromIso, weekdayShort } from '../dates/dial'
 import { dropMarks, moveMarks, pairAfterDelete, pairAfterMove } from '../dates/sessionEdit'
 import type { DiscoveredTab } from '../data/types'
 import {
@@ -79,7 +81,7 @@ type WorkspaceValue = {
   deleteSession: (k: ClassKey, date: string) => SessionSnap
   restoreSession: (snap: SessionSnap) => void
 }
-export type SessionSnap = { k: ClassKey; date: string; topic: string; marks: MarksMap; pair: Pair | null }
+export type SessionSnap = { k: ClassKey; date: string; topic: string; marks: MarksMap; pair: Pair | null; entry?: UndoEntry }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null)
 
@@ -292,7 +294,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   )
 
   const clearOld = (marks: MarksMap, from: MarksMap) => { const n = { ...marks }; for (const key of Object.keys(from)) n[key] = { set: false, submitted: false }; return n }
-  const moveSession = useCallback((k: ClassKey, from: string, to: string, topic: string) => {
+  const moveImpl = useCallback((k: ClassKey, from: string, to: string, topic: string) => {
     if (from === to) { setTopic(k, from, topic); return }
     const cur = marksRef.current[k] ?? {}
     const { removed } = dropMarks(cur, from)
@@ -307,7 +309,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const np = pairAfterMove(pk, from, to)
     if (np !== pk) pickDate(k, np)
   }, [setMarksForClass, markDeleted, forceTopic, pickDate, setTopic, queue])
-  const deleteSession = useCallback((k: ClassKey, date: string): SessionSnap => {
+  const deleteImpl = useCallback((k: ClassKey, date: string): SessionSnap => {
     const cur = marksRef.current[k] ?? {}
     const { next, removed } = dropMarks(cur, date)
     const pk = pickedRef.current[k] ?? null
@@ -323,13 +325,38 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
     return snap
   }, [setMarksForClass, markDeleted, pickDate, queue])
-  const restoreSession = useCallback((snap: SessionSnap) => {
+  const restoreImpl = useCallback((snap: SessionSnap) => {
     markDeleted(snap.k, snap.date, false)
     queue({ kind: 'undelete', subjectKey: snap.k, date: snap.date, at: new Date().toISOString() })
     forceTopic(snap.k, snap.date, snap.topic)
     setMarksForClass(snap.k, (prev) => ({ ...prev, ...snap.marks }))
     pickDate(snap.k, snap.pair)
   }, [markDeleted, forceTopic, setMarksForClass, pickDate, queue])
+
+  // v0.44.2 (t52u): delete / move are ONE step in the toolbar undo stack — date + topic + ticks together.
+  const dayLabel = (iso: string) => { const y = fromIso(iso); return `${weekdayShort(y)} ${y.d}/${y.m}` }
+  const moveSession = useCallback((k: ClassKey, from: string, to: string, topic: string) => {
+    if (from === to) { moveImpl(k, from, to, topic); return }
+    const oldTopic = sessionDatesRef.current(k).get(from) ?? topic
+    moveImpl(k, from, to, topic); remapDate(k, from, to)
+    pushUndo(k, { undo: [], redo: [], session: { date: to, label: { undo: `Moved back to ${dayLabel(from)}`, redo: `Moved to ${dayLabel(to)} again` }, run: (kind) => {
+      if (kind === 'undo') { moveImpl(k, to, from, oldTopic); remapDate(k, to, from) } else { moveImpl(k, from, to, topic); remapDate(k, from, to) }
+    } } })
+  }, [moveImpl]) // eslint-disable-line react-hooks/exhaustive-deps
+  const deleteSession = useCallback((k: ClassKey, date: string): SessionSnap => {
+    const snap = deleteImpl(k, date); purgeDate(k, date)
+    const n = Object.entries(snap.marks).filter(([key, v]) => key.endsWith(`|${date}`) && v.set).length
+    const entry: UndoEntry = { undo: [], redo: [], session: { date, keepOnSync: true, label: { undo: `Restored ${dayLabel(date)}${n ? ` · ${n} tick${n === 1 ? '' : 's'}` : ''}`, redo: `Deleted ${dayLabel(date)} again` }, run: (kind) => {
+      if (kind === 'undo') restoreImpl(snap); else { deleteImpl(k, date); purgeDate(k, date) }
+    } } }
+    pushUndo(k, entry)
+    return { ...snap, entry }
+  }, [deleteImpl, restoreImpl]) // eslint-disable-line react-hooks/exhaustive-deps
+  /** Toast "Undo" after a delete: the same single undo step as the toolbar (moves it to Redo). */
+  const restoreSession = useCallback((snap: SessionSnap) => {
+    if (snap.entry && takeEntry(snap.k, snap.entry)) snap.entry.session!.run('undo')
+    else if (!snap.entry) restoreImpl(snap)
+  }, [restoreImpl])
 
   const value = useMemo<WorkspaceValue>(
     () => ({

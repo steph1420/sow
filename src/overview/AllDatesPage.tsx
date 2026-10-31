@@ -115,7 +115,7 @@ export function AllDatesPage({ classKey, onBack, onOpenChecklist }: Props) {
           onDelete={() => {
             if (!dem.from) return
             const snap = ws.deleteSession(classKey, dem.from); setDem(null); haptic('heavy')
-            toast(`Deleted ${dm(snap.date)}`, { action: { label: 'Undo', run: () => { ws.restoreSession(snap); toast(`Restored ${dm(snap.date)}`) } } })
+            toast(`Deleted ${dm(snap.date)}`, { action: { label: 'Undo', run: () => { ws.restoreSession(snap); toast(snap.entry?.session?.label.undo ?? `Restored ${dm(snap.date)}`) } } })
           }} />
       ) : null}
     </div>

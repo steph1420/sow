@@ -799,7 +799,7 @@ export function ChecklistPage(_props: Props) {
             const n = countMarks(marksByClass[activeClassKey] ?? {}, dem.from)
             const snap = deleteSession(activeClassKey, dem.from)
             setDem(null); haptic('heavy')
-            toast(`Deleted ${dm(snap.date)}${n ? ` · ${n} mark${n === 1 ? '' : 's'}` : ''}`, { action: { label: 'Undo', run: () => { restoreSession(snap); toast(`Restored ${dm(snap.date)}`) } } })
+            toast(`Deleted ${dm(snap.date)}${n ? ` · ${n} mark${n === 1 ? '' : 's'}` : ''}`, { action: { label: 'Undo', run: () => { restoreSession(snap); toast(snap.entry?.session?.label.undo ?? `Restored ${dm(snap.date)}`) } } })
           }}
         />
       ) : null}

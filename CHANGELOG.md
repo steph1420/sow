@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.44.2 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Steve t52u. Rollback: commit `2a750a4`, branch `backup/pre-v0.44.2`, or `/workspace/backup-sow-pre-v0.44.2.tgz`. **Code.js change: NO** (bridge stays 0.44.0).
+
+- Deleting a date is ONE undo step: Undo brings back the date, topic and all its ticks ("Restored Wed 30/12 · 2 ticks"); Redo deletes it again ("Deleted Wed 30/12 again"). Old tick steps for that date are folded into it, so Undo never "undoes" invisible ticks.
+- Moving a date is ONE undo step ("Moved back to …" / "Moved to … again"); tick steps follow the moved date.
+- A delete step survives Sync: delete → Sync → Undo → Sync puts the date and ticks back on the sheet (fresh timestamps beat the delete tombstone). Tick steps are still cleared on Sync.
+- Moving a date no longer loses ticks when the target date had stale cleared cells.
+- Toast Undo after delete uses the same step as the toolbar.
+- Probes v043/v044 use relative dates (were stale after 31 Oct).
+
 ## 0.44.1 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Fixes from the TEST-copy bridge run + Steve t51u. Rollback: commit `fb0ae88`, branch `backup/pre-v0.44.1`, or `/workspace/backup-sow-pre-v0.44.1.tgz`. **Code.js change: NO** (bridge stays 0.44.0).
