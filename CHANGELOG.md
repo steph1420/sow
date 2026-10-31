@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.44.3 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Steve t55u. Rollback: commit `270b529`, branch `backup/pre-v0.44.3`, or `/workspace/sow-pwa-pre-v0.44.3.tgz`. **Code.js change: NO** (bridge stays 0.44.0).
+
+- Column-header dates: picking a date (incl. the other column's date) never adds or duplicates columns. When both slots hold one date, the 2-date view shows ONE column (two columns with the same key made React leave stray header columns that kept multiplying).
+- Deleted dates drop out of the shown columns; a saved date pair is self-healed on load (deleted/nonexistent dates removed, duplicates collapsed, oldest first).
+- New probe `tests/e2e/header-dup-probe.cjs` (real touch, 412×915, demo data) + `healPair.test.ts`.
+
 ## 0.44.2 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Steve t52u. Rollback: commit `2a750a4`, branch `backup/pre-v0.44.2`, or `/workspace/backup-sow-pre-v0.44.2.tgz`. **Code.js change: NO** (bridge stays 0.44.0).

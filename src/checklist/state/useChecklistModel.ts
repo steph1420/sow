@@ -1,3 +1,4 @@
+import { uniqueCols } from '../pickDate'
 import { DATE_COLS_KEY, readDateCols } from '../../dates/sessionEdit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { prettyClassLabel, type ClassKey } from '../../data/types'
@@ -57,7 +58,7 @@ export function useChecklistModel() {
   const showTwoCol = !past && pills[0] && pills[1]
   const activeDateIndex: 0 | 1 = past ? 0 : pills[0] ? 0 : 1
   const visibleDates: DateSlot[] = showTwoCol
-    ? [dates[0], dates[1]]
+    ? uniqueCols([dates[0], dates[1]])
     : [dates[activeDateIndex]]
 
   const togglePill = useCallback((i: 0 | 1) => {

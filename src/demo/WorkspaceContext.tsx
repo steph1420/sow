@@ -22,7 +22,7 @@ import { createPersistQueue, type PersistQueue } from './persistQueue'
 import type { Session } from '../data/types'
 import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } from '../data/api'
 import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
-import type { Pair } from '../checklist/pickDate'
+import { healPair, type Pair } from '../checklist/pickDate'
 import { queueStruct } from '../sync/structOps'
 import { pushUndo, purgeDate, remapDate, takeEntry, type UndoEntry } from '../lib/undoStack'
 import { fromIso, weekdayShort } from '../dates/dial'
@@ -260,9 +260,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   datesForImpl.current = (k: ClassKey): [DateSlot, DateSlot] => {
     const s = pulledSessions.find((x) => x.classKey === k)
     const base = s ? datesFromSession(s) : (WORKSPACE_DATES as [DateSlot, DateSlot])
-    const pk = picked[k]
-    if (!pk) return applyTopicEdits(k, base, topicEdits) as [DateSlot, DateSlot]
     const map = sessionDatesFor(k)
+    // v0.44.3 (t55u): heal stale/bad stored pairs (deleted, nonexistent, duplicate, unsorted dates).
+    const pk = map.size ? healPair(picked[k], (d) => map.has(d)) : picked[k]
+    if (!pk) {
+      const all = applyTopicEdits(k, base, topicEdits) as DateSlot[]
+      const live = all.filter((d) => !deleted[topicKey(k, d.date)])
+      return (live.length ? [live[0]!, live[live.length - 1]!] : all) as [DateSlot, DateSlot]
+    }
     return [dateSlotFromIso(pk[0], map.get(pk[0]) ?? ''), dateSlotFromIso(pk[1], map.get(pk[1]) ?? '')]
   }
 
