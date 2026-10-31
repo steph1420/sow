@@ -50,3 +50,9 @@
 ## Fixed in 0.16.1
 - A–Z strip letter gaps stretched on Checklist scroll: `--az-top` was tracking scrolled header bottom (strip grew; flex slots spaced out). Now scroll-compensated (`headBottom + main.scrollTop`) so vertical letter layout stays stable.
 - Shift left (`az.insetRight`) was easy to miss: clarified under Settings → Developer → A–Z physics (also linked from Checklist settings).
+
+## Found on TEST copy bridge run (2026-10-31, bridge 0.44.0)
+- FIXED (uncommitted-release, post-v0.44.0): Sync now disabled when the sheet is not link-readable (no tabs discovered) even though the bridge path never needs tabs → `src/sync/syncGate.ts` + test.
+- FIXED: delete/rename via UI resurrected the old session on the sheet — the cleared cells (set:false, updatedAt newer than the tombstone) were pushed in the same push as the struct op → `ticksOutsideStructs` filter in `syncViaBridge` + test.
+- OPEN (minor): rename pushes a set:false tick for every pupil on the new date (TEST: 2 real ticks → 45 rows). Harmless to counts of ticked boxes but bloats Ticks.
+- OPEN (note): the date dial's ArrowUp moves to an earlier date.

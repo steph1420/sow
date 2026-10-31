@@ -33,3 +33,19 @@ describe('v0.44 rename/delete op queue', () => {
     expect(remainingStructs(q, q, 1)).toEqual([])
   })
 })
+
+import { ticksOutsideStructs } from './structOps'
+describe('ticksOutsideStructs (v0.44.1 TEST-bridge resurrection)', () => {
+  const t = (date: string, set = false) => ({ subjectKey: 'KGB_Eng_CW', date, topic: 'x', roll: 1, set, updatedAt: '2026-10-31T18:31:00.000Z' })
+  const ops = [
+    { id: 'a', kind: 'delete' as const, subjectKey: 'KGB_Eng_CW', date: '2026-12-28', at: '2026-10-31T18:30:00.000Z' },
+    { id: 'b', kind: 'rename' as const, subjectKey: 'KGB_Eng_CW', from: '2026-12-30', to: '2026-12-29', at: '2026-10-31T18:30:00.000Z' },
+  ]
+  it('drops clear-ticks for deleted and renamed-from dates sent with the op', () => {
+    const out = ticksOutsideStructs([t('2026-12-28'), t('2026-12-30'), t('2026-12-29', true), t('2026-11-02', true)], ops)
+    expect(out.map((x) => x.date)).toEqual(['2026-12-29', '2026-11-02'])
+  })
+  it('other subjects untouched', () => {
+    expect(ticksOutsideStructs([{ ...t('2026-12-28'), subjectKey: 'KGA_Eng_CW' }], ops)).toHaveLength(1)
+  })
+})

@@ -28,7 +28,7 @@ import { extractSheetId } from './sheetId'
 import { BridgeError, bridgeCall, buildPushPayload, gvizState, stateToApp, type BridgeState, type PushResult } from './bridge'
 import { listRosterMeta } from '../data'
 import { remainingAfterPush, sessionOps } from './topicEdits'
-import { remainingStructs } from './structOps'
+import { remainingStructs, ticksOutsideStructs } from './structOps'
 
 export type SyncReport = {
   ok: boolean
@@ -374,6 +374,7 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const sentTopics = { ...(settings.topicEdits ?? {}) }
   const sessions = sessionOps(sentTopics)
   const structs = [...(settings.structOps ?? [])] // v0.44.0: rename/delete before ticks/topics (bridge applies them first)
+  payload.ticks = ticksOutsideStructs(payload.ticks, structs)
   const count = payload.ticks.length + payload.roster.length + sessions.length + structs.length
   let state: BridgeState
   let res: PushResult | null = null

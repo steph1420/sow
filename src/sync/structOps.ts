@@ -29,3 +29,9 @@ export function remainingStructs(current: StructOp[], sent: StructOp[], structAp
   const ids = new Set(sent.map((x) => x.id))
   return current.filter((x) => !ids.has(x.id))
 }
+/** v0.44.1: a deleted / renamed-away session's cleared cells must not ride along with its op —
+ * their updatedAt is newer than the tombstone, so the bridge would recreate the session (found on the TEST copy). */
+export function ticksOutsideStructs<T extends { subjectKey: string; date: string }>(ticks: T[], structs: StructOp[]): T[] {
+  const gone = new Set(structs.map((o) => `${o.subjectKey}|${o.kind === 'rename' ? o.from : o.date}`))
+  return ticks.filter((t) => !gone.has(`${t.subjectKey}|${t.date}`))
+}

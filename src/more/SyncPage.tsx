@@ -1,3 +1,4 @@
+import { canSyncNow } from '../sync/syncGate'
 import { useCallback, useEffect, useState } from 'react'
 import type { DiscoveredTab, SubjectId } from '../data/types'
 import { getSettings, putSettings } from '../data'
@@ -330,7 +331,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
         type="button"
         className="sync-cta"
         data-sync-now
-        disabled={busy || !online || !selected.length}
+        disabled={!canSyncNow({ busy, online, selected: selected.length, connectedPush: !!status?.connectedPush })}
         onClick={() => void run(async () => { const r = await syncNow(selected); void runPrefsSync('auto'); return r })}
       >
         <span className="spin" aria-hidden>
