@@ -54,5 +54,7 @@
 ## Found on TEST copy bridge run (2026-10-31, bridge 0.44.0)
 - FIXED (uncommitted-release, post-v0.44.0): Sync now disabled when the sheet is not link-readable (no tabs discovered) even though the bridge path never needs tabs → `src/sync/syncGate.ts` + test.
 - FIXED: delete/rename via UI resurrected the old session on the sheet — the cleared cells (set:false, updatedAt newer than the tombstone) were pushed in the same push as the struct op → `ticksOutsideStructs` filter in `syncViaBridge` + test.
-- OPEN (minor): rename pushes a set:false tick for every pupil on the new date (TEST: 2 real ticks → 45 rows). Harmless to counts of ticked boxes but bloats Ticks.
-- OPEN (note): the date dial's ArrowUp moves to an earlier date.
+- FIXED v0.44.1: rename pushed a set:false tick for every pupil on the new date (TEST: 2 → 45 rows). Cause: persistClassMarks stored a blank cell per pupil for any new date; moveMarks also carried unticked cells.
+- FIXED v0.44.1: date dial ArrowUp went earlier.
+- FIXED v0.44.1: new Cancel button caught the trailing click of the touch that opened Edit (250 ms guard).
+- OPEN (probe staleness): v044-probe past-date checks (3) and v043-probe end-of-run timeout fail since the date rolled to 1 Nov; identical on fb0ae88, not a regression.

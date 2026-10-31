@@ -124,6 +124,7 @@ export async function persistClassMarks(
       const id = makeMarkId(classKey, roll, date)
       const prev = existing.get(id)
       if (prev && prev.set === cell.set && prev.submitted === cell.submitted) continue
+      if (!prev && !cell.set && !cell.submitted) continue // v0.44.1: no blank row per pupil for a new/moved date (TEST copy: 2 ticks → 45 rows)
       const topic = slots.find((x) => x.date === date)?.topic ?? prev?.topic ?? ''
       await putMark({
         ...(prev ?? {}),

@@ -58,3 +58,11 @@ describe('v0.43 Year bug (Q-V43 #8)', () => {
     expect(turn({ y: 2026, m: 1, d: 5 }, 'month', -1)).toEqual({ y: 2025, m: 12, d: 5 })
   })
 })
+
+import { moveMarks as mv } from './sessionEdit'
+describe('moveMarks (v0.44.1) only moves real marks', () => {
+  it('unticked cells of the old date are not carried to the new date', () => {
+    const out = mv({ '1|2026-12-30': { set: true, submitted: false }, '2|2026-12-30': { set: false, submitted: false }, '3|2026-12-30': { set: false, submitted: true }, '4|2026-11-01': { set: false, submitted: false } }, '2026-12-30', '2026-12-31')
+    expect(Object.keys(out).sort()).toEqual(['1|2026-12-31', '3|2026-12-31', '4|2026-11-01'])
+  })
+})

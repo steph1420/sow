@@ -19,7 +19,7 @@ const demo = (p) => p.evaluate(() => { document.querySelectorAll('.sw-name').for
     await p.click('.ov-card .top'); await p.waitForSelector('.ad-row');
     for (const [n, t] of [[20, 'Letter Kk'], [23, 'Sight words: the, a'], [26, 'Picture talk — describing a busy market scene']]) {
       await p.click('.ad-add'); await p.waitForSelector('.dem'); await p.focus('.dem .dp-dials [data-dial=date]');
-      for (let i = 0; i < n; i++) await p.keyboard.press('ArrowDown');
+      for (let i = 0; i < n; i++) await p.keyboard.press('ArrowUp');
       await p.fill('.dem-topic', t); await p.click('.dem-ok'); await p.waitForTimeout(300);
     }
     await shot('3-all-dates');

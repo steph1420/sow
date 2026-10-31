@@ -965,3 +965,8 @@
 .sw-page.past { background: color-mix(in srgb, #e5a84b 9%, var(--bg)); }
 .sw-page.past .sw-chrome { background: color-mix(in srgb, #e5a84b 9%, var(--bg)); }
 .past-wm { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-28deg); font-size: 150px; font-weight: 900; letter-spacing: .04em; color: #e5a84b; opacity: .13; pointer-events: none; z-index: 1; user-select: none; }
+/* v0.44.1 (t51u): a tapped value glides from its row into the centre band */
+.dp-dial > div.dp-snap { animation: dp-snap 180ms cubic-bezier(.2,.8,.2,1); }
+@keyframes dp-snap { from { transform: translateY(var(--snap, 0)); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dp-dial > div.dp-snap { animation: none; } }
+.dem-cancel { min-width: 44px; height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: transparent; color: var(--text-sec); font-size: 15px; font-weight: 600; }

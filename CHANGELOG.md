@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.44.1 — 2026-11-01 (Asia/Calcutta) · Beta
+
+Fixes from the TEST-copy bridge run + Steve t51u. Rollback: commit `fb0ae88`, branch `backup/pre-v0.44.1`, or `/workspace/backup-sow-pre-v0.44.1.tgz`. **Code.js change: NO** (bridge stays 0.44.0).
+
+- Sync now works on a bridge-only device whose sheet is not link-readable (was disabled with no tabs found).
+- Deleting or moving a date no longer brings the old date back on the sheet (its cleared cells are not sent with the delete/move).
+- Moving a date sends only the real ticks: no unticked row per pupil (TEST: 45 rows → 2). Unticked cells of a new date are no longer stored.
+- Date dials: ↑ / PageUp = later, ↓ / PageDown = earlier (spinbutton + iOS wheel, same as drag/scroll). Month, Date and Day dials behave the same.
+- Tap a value above/below the centre on Month, Date or Day → it glides to the centre and is picked. A drag never picks by tap.
+- Add and Edit popups: Cancel button next to ✓ (tap outside still cancels). The touch that opens Edit no longer lands on Cancel.
+- New probe `tests/e2e/v0441-probe.cjs`; v043/v044 probes updated for the new arrow direction.
+
 ## 0.44.0 — 2026-10-31 (Asia/Calcutta) · Beta
 
 Overview All dates + past LOCKED amber look (mocks overview-v1 dates-list + 3a), 1-date default, Dates sheet retired, real Stable/Beta switch, bridge rename/delete (pt41u). Rollback: tag `v0.43.0` / `d5e88ec`, or branch `backup/pre-v0.44.0`, or `/workspace/backup-sow-pre-v0.44.0.tgz`. **Code.js change: YES (bridge 0.44.0) — NOT deployed**; until Steve pastes it and deploys a New version, moves/deletes stay queued on the device with a note on Sync.

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { DatePicker } from './DatePicker'
 import { fromIso, MONTHS, weekdayShort } from '../../dates/dial'
 import { clashFor } from '../../dates/sessionEdit'
@@ -22,7 +22,9 @@ type Props = {
 }
 const long = (iso: string) => { const y = fromIso(iso); return `${weekdayShort(y)} ${y.d} ${MONTHS[y.m - 1]} ${y.y}` }
 
+const GHOST_MS = 250
 export function DateEditModal({ mode, classLabel, sessions, from, today, markCount = 0, onSave, onDelete, onClose }: Props) {
+  const openedAt = useRef(performance.now())
   const [items, setItems] = useState<Item[]>(() => mode === 'edit' && from ? [{ iso: from, topic: sessions.get(from) ?? '' }] : [{ iso: today, topic: '' }])
   const [focus, setFocus] = useState(0)
   const [confirm, setConfirm] = useState(false)
@@ -42,13 +44,16 @@ export function DateEditModal({ mode, classLabel, sessions, from, today, markCou
     const d = new Date(last + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)
     setItems((xs) => [...xs, { iso: d.toISOString().slice(0, 10), topic: '' }]); setFocus(items.length)
   }
+  // v0.44.1: the touch that opened the popup must not land its trailing click on Cancel/scrim (ghost click).
+  const cancel = () => { if (performance.now() - openedAt.current > GHOST_MS) onClose() }
   return (
     <>
-      <button type="button" className="dem-scrim" aria-label="Cancel" onClick={onClose} />
+      <button type="button" className="dem-scrim" aria-label="Close without saving" tabIndex={-1} onClick={cancel} />
       <div className="dem" role="dialog" aria-modal="true" aria-label={mode === 'add' ? 'Add dates' : 'Edit date'}>
         <div className="dem-head">
           <span className="dem-k">{mode === 'add' ? 'Add dates' : 'Edit date'} · {classLabel}</span>
           {mode === 'edit' ? <button type="button" className="dem-del" aria-label="Delete this date" onClick={() => setConfirm(true)}>🗑</button> : null}
+          <button type="button" className="dem-cancel" onClick={cancel}>Cancel</button>
           <button type="button" className="dem-ok" aria-label="Save" disabled={!!err} onClick={save}>✓</button>
         </div>
         {mode === 'add' ? (

@@ -31,3 +31,21 @@ describe('v0.41.0 date dials (t108u v4)', () => {
     expect(yearOptions(2026, ['2025-04-10', '2026-10-28'])).toEqual([2024, 2025, 2026, 2027])
   })
 })
+
+import { keyStep } from './dial'
+describe('keyStep (v0.44.1: spinbutton/iOS-wheel convention, later = up)', () => {
+  it('ArrowUp/PageUp go later, ArrowDown/PageDown earlier', () => {
+    expect(keyStep('ArrowUp')).toBe(1)
+    expect(keyStep('ArrowDown')).toBe(-1)
+    expect(keyStep('PageUp')).toBe(7)
+    expect(keyStep('PageDown')).toBe(-7)
+    expect(keyStep('Enter')).toBe(0)
+  })
+})
+
+import { tapStep } from './dial'
+describe('tapStep (v0.44.1 tap a non-centred value)', () => {
+  it('a still tap on row k selects k steps', () => { expect(tapStep(2, 0, 1)).toBe(1); expect(tapStep(-3, 0, -2)).toBe(-2) })
+  it('a drag never selects by tap', () => { expect(tapStep(20, 0, 1)).toBe(0); expect(tapStep(2, 1, 1)).toBe(0) })
+  it('tapping the centre does nothing', () => { expect(tapStep(0, 0, 0)).toBe(0) })
+})

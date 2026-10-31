@@ -26,3 +26,13 @@ export function yearOptions(current: number, sessionIsos: string[]): number[] {
   const lo = Math.min(...ys) - 1, hi = Math.max(...ys) + 1
   return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
 }
+
+/** v0.44.1: keyboard follows the spinbutton / iOS-wheel convention used by drag + wheel: up = later. */
+export function keyStep(key: string): number {
+  return key === 'ArrowUp' ? 1 : key === 'ArrowDown' ? -1 : key === 'PageUp' ? 7 : key === 'PageDown' ? -7 : 0
+}
+/** v0.44.1: a pointer that barely moved and turned no steps is a tap → select row k (0 = centre). */
+export const TAP_SLOP = 8
+export function tapStep(movedPx: number, steps: number, k: number): number {
+  return steps === 0 && Math.abs(movedPx) < TAP_SLOP ? k : 0
+}

@@ -50,7 +50,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   await tapSel('.dem-slot >> nth=0'); await p.fill('.dem-topic', 'Probe topic A');
   const okDisabled = await p.$eval('.dem-ok', (e) => e.disabled);
   if (okDisabled) console.log('note: today clashes with an existing session —', await p.textContent('.dem-note'));
-  if (okDisabled) { await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < 2 && (await p.$eval('.dem-ok', (e) => e.disabled)); i++) { await p.keyboard.press('ArrowUp'); } }
+  if (okDisabled) { await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < 2 && (await p.$eval('.dem-ok', (e) => e.disabled)); i++) { await p.keyboard.press('ArrowDown'); } }
   await tapSel('.dem-ok'); await p.waitForTimeout(300);
   await openPop(); const after = await isos(); ok(after.length === list.length + 2, `two dates added (${list.length} → ${after.length})`);
   const topics = await p.$$eval('.dpo-tt', (e) => e.map((x) => x.textContent)); ok(topics.includes('Probe topic A') && topics.includes('Probe topic B'), 'both topics saved');
@@ -71,9 +71,9 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   if (other) {
     const diff = Number(other.slice(8)) - Number(curIso.slice(8));
     await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus());
-    for (let i = 0; i < Math.abs(diff); i++) await p.keyboard.press(diff > 0 ? 'ArrowDown' : 'ArrowUp');
-    ok(await p.$eval('.dem-ok', (e) => e.disabled), `clash with ${other} blocks Save: "${await p.textContent('.dem-note')}"`);
     for (let i = 0; i < Math.abs(diff); i++) await p.keyboard.press(diff > 0 ? 'ArrowUp' : 'ArrowDown');
+    ok(await p.$eval('.dem-ok', (e) => e.disabled), `clash with ${other} blocks Save: "${await p.textContent('.dem-note')}"`);
+    for (let i = 0; i < Math.abs(diff); i++) await p.keyboard.press(diff > 0 ? 'ArrowDown' : 'ArrowUp');
   } else console.log('SKIP clash (no other session in same month)');
   // move to a free date via the Month dial (touch drag up one step = next month)
   const [mx, my] = await center('.dp-dials [data-dial=month]');

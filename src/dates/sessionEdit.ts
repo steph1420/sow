@@ -8,7 +8,11 @@ const rollOf = (k: string) => k.slice(0, k.indexOf('|'))
 export function moveMarks(marks: MarksMap, from: string, to: string): MarksMap {
   if (from === to) return marks
   const out: MarksMap = {}
-  for (const [k, v] of Object.entries(marks)) out[dateOf(k) === from ? `${rollOf(k)}|${to}` : k] = v
+  // v0.44.1: only real marks move — unticked cells of the old date would push a row per pupil for the new date.
+  for (const [k, v] of Object.entries(marks)) {
+    if (dateOf(k) !== from) out[k] = v
+    else if (v.set || v.submitted) out[`${rollOf(k)}|${to}`] = v
+  }
   return out
 }
 export function countMarks(marks: MarksMap, date: string): number {

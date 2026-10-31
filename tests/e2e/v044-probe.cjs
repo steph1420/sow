@@ -39,7 +39,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   // seed three older dates through the Add Date pill (demo data only has the current pair)
   for (const n of [20, 23, 26]) {
     await tapSel('.ad-add'); await p.waitForSelector('.dem');
-    await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < n; i++) await p.keyboard.press('ArrowDown');
+    await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < n; i++) await p.keyboard.press('ArrowUp');
     await p.fill('.dem-topic', `Older probe topic ${n} with a long name that must wrap, not truncate`);
     await tapSel('.dem-ok'); await p.waitForTimeout(400);
   }
@@ -94,7 +94,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   const mv = (await p.$$eval('.ad-row', (r) => r.map((x) => x.dataset.iso)))[1];
   const mb = await p.locator(`.ad-row[data-iso="${mv}"]`).boundingBox(); await drag(mb.x + mb.width - 30, mb.y + mb.height / 2, -140, 0);
   await tapSel('.ad-row.armed .ad-edit'); await p.waitForSelector('.dem');
-  await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < 6 && (await p.$eval('.dem-ok', (e) => e.disabled) || i === 0); i++) await p.keyboard.press('ArrowDown');
+  await p.$eval('.dp-dials [data-dial=date]', (e) => e.focus()); for (let i = 0; i < 6 && (await p.$eval('.dem-ok', (e) => e.disabled) || i === 0); i++) await p.keyboard.press('ArrowUp');
   await tapSel('.dem-ok'); await p.waitForTimeout(600);
   st = await settings('sow-app');
   ok((st.structOps || []).some((o) => o.kind === 'rename' && o.from === mv), `rename queued for Sync (from ${mv})`);

@@ -1,5 +1,5 @@
-import { useRef, useState, type KeyboardEvent as RKE, type PointerEvent as RPE } from 'react'
-import { MONTHS, daysInMonth, fromIso, setYear, toIso, turn, weekdayShort, yearOptions, type DialId, type Ymd } from '../../dates/dial'
+import { useRef, useState, type CSSProperties, type KeyboardEvent as RKE, type PointerEvent as RPE } from 'react'
+import { MONTHS, daysInMonth, fromIso, setYear, toIso, keyStep, tapStep, turn, weekdayShort, yearOptions, type DialId, type Ymd } from '../../dates/dial'
 
 /** v0.41.0 (t103u/t108u, mock v4 LOCKED): Year dropdown above Month · Date · Day dials.
  *  Day is display-only and follows the date. Session dates are dotted. Touch: drag a dial (44 px per step).
@@ -21,20 +21,33 @@ export function DatePicker({ start, sessions, onChange, onEnter, compact }: Prop
   const has = (y: Ymd) => sessions.has(toIso(y))
   const monthHas = (m: number) => [...sessions.keys()].some((k) => k.startsWith(`${v.y}-${String(m).padStart(2, '0')}-`))
 
-  const drag = useRef<{ y0: number; steps: number; dial: DialId; base: Ymd } | null>(null)
-  const down = (e: RPE, dial: DialId) => {
-    drag.current = { y0: e.clientY, steps: 0, dial, base: v }
-    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* synthetic */ }
+  const drag = useRef<{ y0: number; y: number; steps: number; dial: DialId; base: Ymd; k: number; ro: boolean } | null>(null)
+  const [snap, setSnap] = useState<{ dial: string; k: number; n: number } | null>(null)
+  const down = (e: RPE, dial: DialId, ro = false) => {
+    const row = (e.target as HTMLElement).closest?.('[data-k]') as HTMLElement | null
+    drag.current = { y0: e.clientY, y: e.clientY, steps: 0, dial, base: v, k: row ? Number(row.dataset.k) : 0, ro }
+    if (!ro) try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* synthetic */ }
   }
   const move = (e: RPE) => {
     const d = drag.current; if (!d) return
+    d.y = e.clientY
+    if (d.ro) return
     const steps = Math.round((d.y0 - e.clientY) / ROW)
     if (steps !== d.steps) { d.steps = steps; set(turn(d.base, d.dial, steps)) }
   }
-  const up = () => { drag.current = null }
+  // v0.44.1 (t51u): tap a non-centred value → it snaps to centre and is selected; a drag never tap-selects.
+  const up = (e?: RPE) => {
+    const d = drag.current; drag.current = null
+    if (!d || !e) return
+    const k = tapStep((e.clientY ?? d.y) - d.y0, d.steps, d.k)
+    if (!k) return
+    setSnap((p) => ({ dial: d.ro ? 'day' : d.dial, k, n: (p?.n ?? 0) + 1 }))
+    set(turn(d.base, d.dial, k))
+  }
+  const cancel = () => { drag.current = null }
   const key = (e: RKE, dial: DialId) => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); set(turn(v, dial, e.key === 'ArrowDown' ? 1 : -1)) }
-    else if (e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); e.stopPropagation(); set(turn(v, dial, e.key === 'PageDown' ? 7 : -7)) }
+    const st = keyStep(e.key)
+    if (st) { e.preventDefault(); e.stopPropagation(); set(turn(v, dial, st)) }
     else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onEnter(toIso(v)) }
   }
   const wheel = (dy: number, dial: DialId) => set(turn(v, dial, dy > 0 ? 1 : -1))
@@ -60,14 +73,20 @@ export function DatePicker({ start, sessions, onChange, onEnter, compact }: Prop
         aria-readonly={ro ? 'true' : undefined}
         tabIndex={ro ? -1 : 0}
         onKeyDown={ro ? undefined : (e) => key(e, dial)}
-        onPointerDown={ro ? undefined : (e) => down(e, dial)}
-        onPointerMove={ro ? undefined : move}
-        onPointerUp={ro ? undefined : up}
-        onPointerCancel={ro ? undefined : up}
+        onPointerDown={(e) => down(e, ro ? 'date' : (dial as DialId), ro)}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={cancel}
         onWheel={ro ? undefined : (e) => wheel(e.deltaY, dial)}
       >
         {around(dial).map((x) => (
-          <div key={x.k} className={x.k === 0 ? 'c' : Math.abs(x.k) === 2 ? 'far' : ''} aria-hidden>
+          <div
+            key={snap && snap.dial === dial ? `${x.k}-${snap.n}` : x.k}
+            data-k={x.k}
+            className={`${x.k === 0 ? 'c' : Math.abs(x.k) === 2 ? 'far' : ''}${snap && snap.dial === dial ? ' dp-snap' : ''}`}
+            style={snap && snap.dial === dial ? ({ '--snap': `${snap.k * ROW}px` } as CSSProperties) : undefined}
+            aria-hidden
+          >
             {x.t}{x.dot ? <span className="dot" /> : null}
           </div>
         ))}
