@@ -25,7 +25,7 @@ describe('prefs bridge', () => {
   it('prefsPull on a fresh sheet creates a hidden Prefs tab and returns []', () => {
     const { post, token, ss } = env()
     const r = post({ action: 'prefsPull', token })
-    expect(r).toMatchObject({ ok: true, prefs: [], version: '0.40.0' })
+    expect(r).toMatchObject({ ok: true, prefs: [], version: '0.44.0' })
     const s = ss.getSheetByName('Prefs') as any
     expect(s).toBeTruthy(); expect(s.isHidden).toBe(true)
     expect(s.getRange(1, 1, 1, 5).getValues()[0]).toEqual(['key', 'category', 'value', 'updatedAt', 'deviceId'])

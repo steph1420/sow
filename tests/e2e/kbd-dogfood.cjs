@@ -11,7 +11,7 @@ const PROFILES = [
   const out = [];
   for (const prof of PROFILES) {
     const ctx = await b.newContext({ viewport: prof.viewport, deviceScaleFactor: prof.deviceScaleFactor || 1 });
-    const p = await ctx.newPage();
+    const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
     await p.goto(url, { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(400);
     let keys = 0, issues = [], slow = 0, maxMs = 0;
     const check = async (k) => {

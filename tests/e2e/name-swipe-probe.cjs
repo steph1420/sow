@@ -10,7 +10,7 @@ const STYLES = ['blue', 'tint', 'ghost', 'sliver', 'wash', 'ghostTint'];
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 6, radiusY: 6, force: 1 }] });
   const fresh = async (prefs = {}) => {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
+    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   };
   // a row with both boxes unticked if possible, else any with an unticked box

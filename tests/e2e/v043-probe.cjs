@@ -15,7 +15,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   const openPop = async () => { await tapSel('.sw-dh-btn >> nth=-1'); await p.waitForSelector('.dpo'); };
   const isos = () => p.$$eval('.dpo-row', (r) => r.map((x) => x.dataset.iso));
   await p.goto(url, { waitUntil: 'networkidle' });
-  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(700);
 
   // 1 tap header → popover; tap a row → active date

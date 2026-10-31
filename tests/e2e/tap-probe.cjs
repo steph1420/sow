@@ -5,7 +5,7 @@ const W = +(process.argv[3] || 412), H = W === 360 ? 780 : 915;
 const R = 21;
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
-  const p = await b.newPage({ viewport:{width:W,height:H}, isMobile:true, hasTouch:true });
+  const p = await b.newPage({ viewport:{width:W,height:H}, isMobile:true, hasTouch:true }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   let fails = 0;
   const audit = async (screen, sel) => {
     await p.waitForTimeout(400);

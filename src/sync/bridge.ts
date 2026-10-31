@@ -35,7 +35,7 @@ export type BridgeState = {
 export type PushTick = { subjectKey: string; date: string; topic: string; roll: number; set: boolean; updatedAt: string }
 export type PushPupil = { classKey: string; roll: number; status: 'Active' | 'Left'; updatedAt: string }
 export type PushPayload = { ticks: PushTick[]; roster: PushPupil[] }
-export type PushResult = { ok: true; applied: number; ignored: number; rejected: string[]; state: BridgeState; sessionsApplied?: number }
+export type PushResult = { ok: true; applied: number; ignored: number; rejected: string[]; state: BridgeState; sessionsApplied?: number; structApplied?: number }
 
 export class BridgeError extends Error {
   constructor(message: string, public readonly network = false) {

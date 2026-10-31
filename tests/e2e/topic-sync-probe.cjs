@@ -22,7 +22,7 @@ const EXEC = 'https://script.google.com/macros/s/FAKE-probe/exec';
     await p.click('[data-sync-now]'); await p.waitForTimeout(1500);
     return (await settings(null));
   };
-  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   await settings({ syncUrl: EXEC, bridgeToken: 'probe-token', sheetUrl: 'https://docs.google.com/spreadsheets/d/FAKEPROBE/edit', topicEdits: edit, discoveredTabs: [{ name: 'KGA Eng CW', classKey: 'KGA_Eng_CW', subject: 'Eng' }] });
   newBridge = false;

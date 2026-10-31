@@ -5,7 +5,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
   for (const [w,h] of [[360,780],[412,915]]) {
-    const p = await b.newPage({ viewport:{width:w,height:h}, isMobile:true, hasTouch:true });
+    const p = await b.newPage({ viewport:{width:w,height:h}, isMobile:true, hasTouch:true }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
     await p.goto(url, { waitUntil:'networkidle' }); await p.waitForTimeout(400);
     const chips = await p.$$eval('.ov-slide:last-child .ov-f', e => e.map(x => x.textContent));
     ok(chips.slice(1).every(t => /\b\d{1,2}\/\d{1,2}\b/.test(t)), `${w}: date chips have DD/MM ${JSON.stringify(chips)}`);

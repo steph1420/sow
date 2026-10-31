@@ -3,7 +3,7 @@ const { chromium } = require('playwright-core');
 const url = process.argv[2] || 'http://localhost:4179/sow/';
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
-  const p = await b.newPage({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
+  const p = await b.newPage({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
   await p.goto(url+'#checklist/KGA_Eng_CW'); await p.reload({ waitUntil:'networkidle' }); await p.waitForTimeout(500);
   const cols = () => p.$$eval('.sw-row', rows => rows.map(r => [...r.querySelectorAll('.sw-check')].map(c => c.classList.contains('on'))));

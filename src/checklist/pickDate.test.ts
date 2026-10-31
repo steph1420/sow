@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { retarget, reorderNote } from './pickDate'
+import { retarget } from './pickDate'
 const P: [string, string] = ['2026-10-28', '2026-11-02']
 
 describe('v0.42.0 Q-DATES-A: targeted slot', () => {
@@ -11,10 +11,4 @@ describe('v0.42.0 Q-DATES-A: targeted slot', () => {
   })
   it('same as the other date ⇒ one date', () => expect(retarget(P, 1, '2026-10-28')).toEqual(['2026-10-28', '2026-10-28']))
   it('single-date pair: Date 2 target adds a second date', () => expect(retarget(['2026-10-28', '2026-10-28'], 1, '2026-11-04')).toEqual(['2026-10-28', '2026-11-04']))
-  it('reorder note', () => {
-    expect(reorderNote(P, 1, '2026-10-20')).toBe('Date 2 will become Date 1')
-    expect(reorderNote(P, 0, '2026-11-09')).toBe('Date 1 will become Date 2')
-    expect(reorderNote(P, 1, '2026-11-09')).toBe('')
-    expect(reorderNote(['2026-10-28', '2026-10-28'], 1, '2026-10-01')).toBe('Date 2 will become Date 1')
-  })
 })

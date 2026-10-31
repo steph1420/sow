@@ -3,7 +3,7 @@ const { chromium } = require('playwright-core');
 const url = process.argv[2] || 'http://localhost:4179/sow/';
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
-  const p = await b.newPage({ viewport:{width:412,height:915} });
+  const p = await b.newPage({ viewport:{width:412,height:915} }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
   await p.goto(url+'#checklist/KGA_Eng_CW', { waitUntil:'networkidle' }); await p.waitForTimeout(500);
   const btns = () => p.$$eval('.sw-tickall', els => els.map(e => ({ st: e.dataset.state, t: e.textContent })));

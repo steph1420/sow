@@ -137,6 +137,8 @@ export interface Settings {
   pickedPairs?: Record<string, [string, string]>
   /** v0.43.0: sessions deleted on this device per `classKey|date` → ISO time (bridge delete pending, see CHANGELOG). */
   deletedSessions?: Record<string, string>
+  /** v0.44.0: rename/delete ops waiting for a v0.44 bridge. */
+  structOps?: import('../sync/structOps').StructOp[]
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

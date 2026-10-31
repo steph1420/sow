@@ -7,7 +7,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   for (const h of ['#checklist', '#checklist/KGA_Math_CW', '#checklist/KGB_Eng_HW']) {
     const ctx = await b.newContext({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
     await ctx.addInitScript(() => { if (!sessionStorage.__wiped) { sessionStorage.__wiped = 1; for (const n of ['sow','sow-db','sow-pwa']) indexedDB.deleteDatabase(n); } });
-    const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+    const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */ const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.goto(url+h, { waitUntil:'networkidle' }); await p.waitForTimeout(2500);
     const hl = await p.evaluate(() => history.length);
     const body = await p.textContent('body');

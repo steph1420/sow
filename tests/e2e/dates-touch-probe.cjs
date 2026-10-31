@@ -1,10 +1,11 @@
 // v0.38.0 (t68u) — 1-date view never touches the hidden date: row swipe, name swipe, tap, undo/redo (REAL touch via CDP).
-const pillToggle = async (p, hide) => { // v0.40.0: date chips moved into the Dates panel — same toggle semantics
+const pillToggle = async (p, hide) => { // v0.44.0: the Dates panel is retired — the date popover's 1|2 does the same toggle
   const two = (await p.$$eval('.sw-colhead .sw-dh', (e) => e.length)) === 2;
-  await p.$eval('.sw-lean-dates', (e) => e.click()); await p.waitForTimeout(200); // header may be auto-hidden after scrolling
-  if (two) { await p.click(`.dp-slot >> nth=${hide === 1 ? 0 : 1}`); await p.click('.dp-one'); } // v0.42.0 Q-DATES-A: target a slot, then "1 date only"
-  else await p.click('.dp-one'); // reads "2 dates" in 1-date view
-  await p.click('.dp-sheet .qo-close'); await p.waitForTimeout(150);
+  await p.$eval('.sw-list-wrap, .sw-scroll', (e) => { e.scrollTop = 0 }).catch(() => {}); await p.waitForTimeout(300);
+  if (two) { await p.$eval(`.sw-dh-btn >> nth=${hide === 1 ? 0 : 1}`, (e) => e.click()).catch(async () => { await p.locator('.sw-dh-btn').nth(hide === 1 ? 0 : 1).click(); }); await p.waitForSelector('.dpo'); await p.click('.dpo-cols button >> nth=0'); }
+  else { await p.locator('.sw-dh-btn').first().click(); await p.waitForSelector('.dpo'); await p.click('.dpo-cols button >> nth=1'); }
+  if (await p.$('.dpo')) await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
 };
 
 const { phone } = require('./_launch.cjs');
@@ -18,7 +19,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   const swipe = async (x, y, dx) => { await touch('touchStart', x, y); for (let i = 1; i <= 6; i++) { await touch('touchMove', x + (dx * i) / 6, y); await p.waitForTimeout(16); } await touch('touchEnd'); await p.waitForTimeout(500); };
   const col = (i) => p.$$eval('.sw-row', (rows, i) => rows.map((r) => r.querySelectorAll('.sw-check')[i]?.classList.contains('on') ? 1 : 0).join(''), i);
   await p.goto(url, { waitUntil: 'networkidle' });
-  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
   for (const [hide, label] of [[0, 'B'], [1, 'A']]) {
     const hidden0 = await col(hide);

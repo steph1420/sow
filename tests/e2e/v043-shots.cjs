@@ -7,8 +7,8 @@ const demo = (p) => p.evaluate(() => document.querySelectorAll('.sw-name').forEa
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
   for (const [w, h, mob, theme] of [[412, 915, true, 'night'], [412, 915, true, 'day'], [1440, 900, false, 'night']]) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: mob, hasTouch: mob });
-    const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
-    await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((t) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: t })) }, theme);
+    const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */ const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
+    await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((t) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: t })) }, theme);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(700);
     const tag = `${w}x${h}-${theme}`; const shot = async (n) => { await demo(p); await p.waitForTimeout(120); await p.screenshot({ path: `${out}/${tag}-${n}.png` }); };
     await p.locator('.sw-dh-btn').last().click(); await p.waitForSelector('.dpo'); await shot('1-popover');

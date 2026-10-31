@@ -6,7 +6,7 @@ const OUT = process.argv[3] || '/workspace/sow-mockups';
   const { b, p } = await phone();
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
   const tap = async (loc) => { await loc.scrollIntoViewIfNeeded(); const bb = await loc.boundingBox(); await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
-  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   const app = async (h) => { await p.goto(url + h, { waitUntil: 'networkidle' }); await p.waitForTimeout(500); };
   await app('#settings/appearance'); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   const names = await p.locator('.palette-row .palette-name').allTextContents();

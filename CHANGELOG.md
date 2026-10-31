@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.44.0 — 2026-10-31 (Asia/Calcutta) · Beta
+
+Overview All dates + past LOCKED amber look (mocks overview-v1 dates-list + 3a), 1-date default, Dates sheet retired, real Stable/Beta switch, bridge rename/delete (pt41u). Rollback: tag `v0.43.0` / `d5e88ec`, or branch `backup/pre-v0.44.0`, or `/workspace/backup-sow-pre-v0.44.0.tgz`. **Code.js change: YES (bridge 0.44.0) — NOT deployed**; until Steve pastes it and deploys a New version, moves/deletes stay queued on the device with a note on Sync.
+
+- **Overview:** collapsed cards unchanged; the expanded view is gone. Tap a card or › → **<class> · All dates**: newest first, grouped by month, each row = date, topic (wraps, never truncated), progress bar, set/total, ›, UPCOMING tag for future dates. Swipe ← or hold a row → EDIT over the topic only → the v0.43 edit popup. "+ Add Date" pill.
+- **Tap a row** → that date in the Checklist. A **past** date (older than the dates you are on) uses the LOCKED amber look: full-width amber bar "🕘 PAST · Tue 20/10" with "Back to Mon 2 ›", warm tint and a faint PAST watermark. Past ticks stay editable. **Back** returns to the class, dates, 1|2 view and ticks exactly as they were (the past view never touches them).
+- **1-date default:** a new device starts on 1 date. A device that already saved its choice (Steve's "2") keeps it. Per device.
+- **Old Dates sheet retired:** the dates chip and the `D` key open the date popover. Dead code removed (`DatePanelSheet`, `reorderNote`, old `.dp-sheet` CSS).
+- **Stable / Beta switch** (Settings › Sync › Data source, this device): Stable = the built-in LIVE bridge; Beta = the TEST copy bridge URL you paste there (no URL is built in; Beta can't be chosen until a valid `/exec` URL is entered and never falls back to LIVE). Each source has its own local cache (`sow-app` vs `sow-app-beta`). A "BETA · TEST copy" badge shows on Overview, Checklist and the card.
+- **Moved / deleted dates sync (pt41u):** moving or deleting a session queues a `rename` / `delete` op (Undo cancels a delete); Sync sends them first. Bridge 0.44.0 adds idempotent `renameSession` (moves the Sessions row and its ticks; refuses if the target already has a session) and `deleteSession` (removes the row and its ticks), plus tombstones so stale ticks can't bring a moved/deleted session back. Older bridge: ops stay queued + note.
+- Probes: new `v044-probe.cjs` (30 checks). Old probes moved from the retired Dates sheet to the popover; `dates-scroll-probe.cjs` (retired sheet only) removed. `_launch.cjs` treats probe devices as existing 2-date devices unless `{ fresh: true }`.
+
 ## 0.43.0 — 2026-10-31 (Asia/Calcutta) · Beta
 
 Date popover + Add/Edit popup (t18u, t21u, t25u–t33u; t34u "Looks good. Lock it."). Rollback: tag `v0.42.0` / `3a8a39b`, or branch `backup/pre-v0.43.0`. **No Code.js change in this release** (bridge rename/delete still needed — see BUGS).

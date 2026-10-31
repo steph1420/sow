@@ -2,6 +2,7 @@ import { DATE_COLS_KEY, readDateCols } from '../../dates/sessionEdit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { prettyClassLabel, type ClassKey } from '../../data/types'
 import { useWorkspace } from '../../demo/WorkspaceContext'
+import { dateSlotFromIso } from '../../demo/workspaceData'
 import {
   canRedo,
   canUndo,
@@ -27,10 +28,13 @@ function classLabelOf(key: ClassKey): string {
 }
 
 export function useChecklistModel() {
-  const { activeClassKey, marksByClass, setMarksForClass, rosterFor, datesFor } = useWorkspace()
+  const { activeClassKey, marksByClass, setMarksForClass, rosterFor, datesFor, pastView, sessionDatesFor } = useWorkspace()
   const classKey = activeClassKey
   const classLabel = classLabelOf(classKey)
-  const dates: [DateSlot, DateSlot] = useMemo(() => datesFor(classKey), [datesFor, classKey])
+  const current: [DateSlot, DateSlot] = useMemo(() => datesFor(classKey), [datesFor, classKey])
+  // v0.44.0: a past date shows alone; the saved pair/pills are not touched, so Back restores them exactly.
+  const past = pastView && pastView.k === classKey ? dateSlotFromIso(pastView.date, sessionDatesFor(classKey).get(pastView.date) ?? '') : null
+  const dates: [DateSlot, DateSlot] = useMemo(() => (past ? [past, past] : current), [past?.date, past?.topic, current]) // eslint-disable-line react-hooks/exhaustive-deps
   const roster: StudentRow[] = rosterFor(classKey)
   const marks = marksByClass[classKey]
 
@@ -42,16 +46,16 @@ export function useChecklistModel() {
   )
 
   const [mode, setMode] = useState<MarkMode>('set')
-  // v0.43.0 (Q-V43 #7): 1|2 date view is remembered on this device only.
-  const [pills, setPills] = useState<ColPills>(() => { try { return readDateCols(localStorage.getItem(DATE_COLS_KEY)) === 1 ? [false, true] : [true, true] } catch { return [true, true] } })
+  // v0.43.0 (Q-V43 #7): 1|2 date view is remembered on this device only. v0.44.0: a new device starts with 1 date.
+  const [pills, setPills] = useState<ColPills>(() => { try { return readDateCols(localStorage.getItem(DATE_COLS_KEY), false) === 1 ? [false, true] : [true, true] } catch { return [true, true] } })
   useEffect(() => { try { localStorage.setItem(DATE_COLS_KEY, pills[0] && pills[1] ? '2' : '1') } catch { /* private mode */ } }, [pills])
   const [pendingOnly, setPendingOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [undoTick, setUndoTick] = useState(0)
 
-  const showTwoCol = pills[0] && pills[1]
-  const activeDateIndex: 0 | 1 = pills[0] ? 0 : 1
+  const showTwoCol = !past && pills[0] && pills[1]
+  const activeDateIndex: 0 | 1 = past ? 0 : pills[0] ? 0 : 1
   const visibleDates: DateSlot[] = showTwoCol
     ? [dates[0], dates[1]]
     : [dates[activeDateIndex]]
@@ -233,6 +237,8 @@ export function useChecklistModel() {
     searchOpen,
     setSearchOpen,
     showTwoCol,
+    past,
+    currentNewest: current[1],
     activeDateIndex,
     visibleDates,
     filteredRoster,

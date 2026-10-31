@@ -2,7 +2,7 @@ const { chromium } = require('playwright-core');
 const [url, tag] = process.argv.slice(2);
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
-  const p = await b.newPage({ viewport:{width:412,height:915}, deviceScaleFactor:2.625, isMobile:true, hasTouch:true });
+  const p = await b.newPage({ viewport:{width:412,height:915}, deviceScaleFactor:2.625, isMobile:true, hasTouch:true }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   await p.goto(url, { waitUntil:'networkidle' });
   if (!(await p.$('.sw-list-wrap'))) {
     await p.locator('.ov-act-open').first().click();

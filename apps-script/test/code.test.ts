@@ -257,3 +257,64 @@ describe('removeSubject', () => {
 })
 
 void MockSheet
+
+// v0.44.0 (pt41u "not done yet part"): renameSession / deleteSession — idempotent, tombstoned so old ops can't resurrect.
+describe('v0.44.0 bridge structs: renameSession + deleteSession', () => {
+  function ready() {
+    const ss = fixture()
+    const env = load(ss)
+    env.ctx.setupAndMigrate_(ss, NOW)
+    const token = env.props.get('SOW_TOKEN')!
+    const call = (body: object) => JSON.parse(env.ctx.doPost({ postData: { contents: JSON.stringify({ token, ...body }) } }).text)
+    return { ss, ...env, token, call }
+  }
+  const AT = '2026-10-31T06:00:00.000Z'
+  const sid = (d: string) => 'KGA_Eng_CW|' + d
+  it('reports version 0.44.0', () => { expect(ready().call({ action: 'ping' }).version).toBe('0.44.0') })
+  it('rename moves the Sessions row and its ticks; refuses when the target exists; repeat is a no-op', () => {
+    const { call } = ready()
+    const before = call({ action: 'pull' })
+    const fromTicks = before.ticks.filter((t: any) => t.sessionId === sid('2026-10-28'))
+    expect(fromTicks.length).toBeGreaterThan(0)
+    let r = call({ action: 'push', structs: [{ id: 'r1', kind: 'rename', subjectKey: 'KGA_Eng_CW', from: '2026-10-28', to: '2026-10-29', at: AT }] })
+    expect(r.structApplied).toBe(1)
+    const s = r.state
+    expect(s.sessions.some((x: any) => x.sessionId === sid('2026-10-28'))).toBe(false)
+    const moved = s.sessions.find((x: any) => x.sessionId === sid('2026-10-29'))
+    expect(moved.date).toBe('2026-10-29')
+    expect(moved.topic).toBe(before.sessions.find((x: any) => x.sessionId === sid('2026-10-28')).topic)
+    const nt = s.ticks.filter((t: any) => t.sessionId === sid('2026-10-29'))
+    expect(nt.map((t: any) => [t.roll, t.set])).toEqual(fromTicks.map((t: any) => [t.roll, t.set]))
+    expect(nt.every((t: any) => t.tickId === sid('2026-10-29') + '|' + t.roll)).toBe(true)
+    expect(s.ticks.some((t: any) => t.sessionId === sid('2026-10-28'))).toBe(false)
+    // idempotent repeat
+    r = call({ action: 'push', structs: [{ id: 'r1', kind: 'rename', subjectKey: 'KGA_Eng_CW', from: '2026-10-28', to: '2026-10-29', at: AT }] })
+    expect(r.structApplied).toBe(1); expect(r.rejected).toEqual([])
+    // target exists → refused
+    call({ action: 'push', sessions: [{ subjectKey: 'KGA_Eng_CW', date: '2026-11-03', topic: 'X', updatedAt: AT }] })
+    r = call({ action: 'push', structs: [{ id: 'r2', kind: 'rename', subjectKey: 'KGA_Eng_CW', from: '2026-10-29', to: '2026-11-03', at: AT }] })
+    expect(r.rejected.join()).toMatch(/already has a session/)
+    expect(r.state.sessions.some((x: any) => x.sessionId === sid('2026-10-29'))).toBe(true)
+  })
+  it('delete removes the row and its ticks; repeat is a no-op; older ticks for it cannot resurrect it', () => {
+    const { call } = ready()
+    let r = call({ action: 'push', structs: [{ id: 'd1', kind: 'delete', subjectKey: 'KGA_Eng_CW', date: '2026-10-28', at: AT }] })
+    expect(r.structApplied).toBe(1)
+    expect(r.state.sessions.some((x: any) => x.sessionId === sid('2026-10-28'))).toBe(false)
+    expect(r.state.ticks.some((t: any) => t.sessionId === sid('2026-10-28'))).toBe(false)
+    r = call({ action: 'push', structs: [{ id: 'd1', kind: 'delete', subjectKey: 'KGA_Eng_CW', date: '2026-10-28', at: AT }] })
+    expect(r.structApplied).toBe(1); expect(r.rejected).toEqual([])
+    r = call({ action: 'push', ticks: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: false, updatedAt: '2026-10-31T05:00:00.000Z' }],
+      sessions: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'old', updatedAt: '2026-10-31T05:00:00.000Z' }] })
+    expect(r.state.sessions.some((x: any) => x.sessionId === sid('2026-10-28'))).toBe(false)
+    // a newer re-add (Undo after sync) is allowed back
+    r = call({ action: 'push', sessions: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'back', updatedAt: '2026-10-31T07:00:00.000Z' }] })
+    expect(r.state.sessions.find((x: any) => x.sessionId === sid('2026-10-28')).topic).toBe('back')
+  })
+  it('rename tombstones the old date: a stale clear-tick on it does not recreate it', () => {
+    const { call } = ready()
+    const r = call({ action: 'push', structs: [{ id: 'r1', kind: 'rename', subjectKey: 'KGA_Eng_CW', from: '2026-10-28', to: '2026-10-30', at: AT }],
+      ticks: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: false, updatedAt: '2026-10-31T05:59:00.000Z' }] })
+    expect(r.state.sessions.some((x: any) => x.sessionId === sid('2026-10-28'))).toBe(false)
+  })
+})

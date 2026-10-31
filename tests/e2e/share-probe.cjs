@@ -20,7 +20,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
 
   // legacy migration: v0.21 prefs with a customised template, no v0.28 prefs yet
   await p.goto(url, { waitUntil: 'networkidle' });
-  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('sow.prefs.v1', JSON.stringify({ 'share.template': 'Legacy {class} {date} ({count})\n{names}', 'share.includeClassPrefix': false })); });
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow.prefs.v1', JSON.stringify({ 'share.template': 'Legacy {class} {date} ({count})\n{names}', 'share.includeClassPrefix': false })); });
   await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
 
   // 1 Overview: one-word Share on every card

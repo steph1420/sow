@@ -5,6 +5,7 @@ import { readSyncStatus } from '../data/persistWorkspace'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { discoverAndStore, probeSheet, pullSubjects, syncNow, type SyncReport } from '../sync'
 import { MoreChrome } from './MoreChrome'
+import { DataSourceCard } from './DataSourceCard'
 import { PrefsSyncCard } from './PrefsSyncCard'
 import { clockWarning, readSkew } from '../sync/clockSkew'
 import { runPrefsSync } from '../sync/prefsRunner'
@@ -165,6 +166,7 @@ export function SyncPage({ onBack, onOpenSubjects }: Props) {
 
   return (
     <MoreChrome title="Sync" onBack={onBack}>
+      <DataSourceCard />
       <div className="more-hint">
         Offline-first · marks save on this device. Pull any readable subject tabs from the Sheet.
         {syncUrl && token ? ' Push via the sheet bridge.' : ' Push not set up yet.'}

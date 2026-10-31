@@ -1,11 +1,12 @@
 // v0.37.0 — every shortcut in the "?" sheet, keyboard only (Steve t62u/t65u). Desktop, no touch.
 // Usage: node tests/e2e/keyboard-probe.cjs [url] [mac]
-const pillToggle = async (p, hide) => { // v0.40.0: date chips moved into the Dates panel — same toggle semantics
+const pillToggle = async (p, hide) => { // v0.44.0: the Dates panel is retired — the date popover's 1|2 does the same toggle
   const two = (await p.$$eval('.sw-colhead .sw-dh', (e) => e.length)) === 2;
-  await p.$eval('.sw-lean-dates', (e) => e.click()); await p.waitForTimeout(200); // header may be auto-hidden after scrolling
-  if (two) { await p.click(`.dp-slot >> nth=${hide === 1 ? 0 : 1}`); await p.click('.dp-one'); } // v0.42.0 Q-DATES-A: target a slot, then "1 date only"
-  else await p.click('.dp-one'); // reads "2 dates" in 1-date view
-  await p.click('.dp-sheet .qo-close'); await p.waitForTimeout(150);
+  await p.$eval('.sw-list-wrap, .sw-scroll', (e) => { e.scrollTop = 0 }).catch(() => {}); await p.waitForTimeout(300);
+  if (two) { await p.$eval(`.sw-dh-btn >> nth=${hide === 1 ? 0 : 1}`, (e) => e.click()).catch(async () => { await p.locator('.sw-dh-btn').nth(hide === 1 ? 0 : 1).click(); }); await p.waitForSelector('.dpo'); await p.click('.dpo-cols button >> nth=0'); }
+  else { await p.locator('.sw-dh-btn').first().click(); await p.waitForSelector('.dpo'); await p.click('.dpo-cols button >> nth=1'); }
+  if (await p.$('.dpo')) await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
 };
 
 const { chromium, launchOpts } = require('./_launch.cjs');
@@ -17,7 +18,7 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) fails
 (async () => {
   const b = await chromium.launch(launchOpts);
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, userAgent: MAC ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Chrome/130' : undefined });
-  const p = await ctx.newPage();
+  const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   if (MAC) await p.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
   const hash = () => p.evaluate(() => location.hash);
   const act = () => p.evaluate(() => { const a = document.activeElement; return a ? (a.getAttribute('aria-label') || a.getAttribute('data-cell') || a.textContent || a.tagName).trim().slice(0, 60) : '' });

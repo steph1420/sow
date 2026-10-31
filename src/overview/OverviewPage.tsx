@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { SubjectId } from '../data/types'
+import type { ClassKey, SubjectId } from '../data/types'
+import { AllDatesPage } from './AllDatesPage'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { progressForSession } from '../demo/workspaceData'
 import { SessionCard } from './SessionCard'
 import { useShare } from '../share/ShareContext'
 import './overview.css'
+import { ChannelBadge } from '../components/ChannelBadge'
 
 type GroupFilter = 'All' | 'KGA' | 'KGB'
 type SubjectFilter = 'All' | SubjectId
@@ -19,7 +21,7 @@ type Props = {
  * Flat Classes list · expand in place · no Now-marking promote (Steve t142/t144).
  */
 export function OverviewPage({ onOpenChecklist }: Props) {
-  const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey } = useWorkspace()
+  const { sessions, fromSheet, marksByClass, rosterFor, setActiveClassKey, closePast } = useWorkspace()
   const { openShare } = useShare()
   const [group, setGroup] = useState<GroupFilter>('All')
   const [subject, setSubject] = useState<SubjectFilter>('All')
@@ -27,8 +29,8 @@ export function OverviewPage({ onOpenChecklist }: Props) {
   const ovGroups = useMemo(() => [...new Set(sessions.map((s) => s.group))].sort(), [sessions])
   const ovSubjects = useMemo(() => [...new Set(sessions.map((s) => s.subject as string))], [sessions])
   const [dateF, setDateF] = useState<DateFilter>('All')
-  // t75u: nothing auto-expands on load or navigation — every card starts closed; only a tap / Enter opens one.
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // v0.44.0: the expanded view is retired; a card opens its class's All dates screen.
+  const [allKey, setAllKey] = useState<ClassKey | null>(null)
 
   const dateChips = useMemo(() => {
     // P2-2: key by ISO date, label "Wed 28/10" (month disambiguates 7/10 vs 28/10), oldest → newest
@@ -70,15 +72,13 @@ export function OverviewPage({ onOpenChecklist }: Props) {
     return ''
   }, [sessions, fromSheet])
 
-  const toggleExpand = (id: string) => {
-    setExpandedId((cur) => (cur === id ? null : id))
-  }
+  if (allKey) return <AllDatesPage classKey={allKey} onBack={() => setAllKey(null)} onOpenChecklist={() => { setAllKey(null); onOpenChecklist() }} />
 
   return (
     <div className="ov-page">
       <div className="ov-hero">
         {/* t74u: HOME eyebrow + date/"pick a class" subtitle removed; only the empty/demo hint remains. */}
-        <div className="ov-title">Overview</div>
+        <div className="ov-title">Overview<ChannelBadge /></div>
         {subLine ? <div className="ov-sub">{subLine}</div> : null}
       </div>
 
@@ -140,17 +140,15 @@ export function OverviewPage({ onOpenChecklist }: Props) {
               rosterFor(s.classKey),
               s.date.date,
             )
-            const expanded = expandedId === s.id
             return (
               <SessionCard
                 key={s.id}
                 session={s}
                 progress={prog}
-                expanded={expanded}
-                onExpand={() => toggleExpand(s.id)}
+                onAllDates={() => setAllKey(s.classKey)}
                 onOpenChecklist={() => {
+                  closePast(false)
                   setActiveClassKey(s.classKey)
-                  setExpandedId(s.id)
                   onOpenChecklist()
                 }}
                 onShare={() => openShare({ classKey: s.classKey, date: s.date })}

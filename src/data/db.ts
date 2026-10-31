@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import { currentChannel, dbNameFor } from '../sync/channel'
 import type { Mark, RosterMeta, Session, Settings, Student } from './types'
 
 export type SyncQueueRow = {
@@ -23,7 +24,8 @@ interface SowDB extends DBSchema {
   syncQueue: { key: string; value: SyncQueueRow }
 }
 
-const DB_NAME = 'sow-app'
+// v0.44.0: one IndexedDB per data source (Stable = LIVE, Beta = TEST copy) — data never mixes.
+const DB_NAME = dbNameFor(currentChannel())
 const DB_VERSION = 2
 
 let dbPromise: Promise<IDBPDatabase<SowDB>> | null = null

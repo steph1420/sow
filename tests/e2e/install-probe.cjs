@@ -9,7 +9,7 @@ const IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/
     const { b, p } = await phone({ userAgent: IOS });
     const tap = async (loc) => { await loc.scrollIntoViewIfNeeded(); const bb = await loc.boundingBox(); await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((m) => { localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: m })) }, mode);
+    await p.evaluate((m) => { localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: m })) }, mode);
     await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
     const nudge = p.getByRole('dialog', { name: 'Install SoW' });
     ok(await nudge.isVisible(), mode + ': one-time nudge on first open');
@@ -29,7 +29,7 @@ const IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/
   // standalone → hidden
   const { b, p } = await phone({ userAgent: IOS });
   await p.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { get: () => true }) });
-  await p.goto(url + '#settings', { waitUntil: 'networkidle' }); await p.evaluate(() => localStorage.clear()); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
+  await p.goto(url + '#settings', { waitUntil: 'networkidle' }); await p.evaluate(() => (localStorage.clear(), localStorage.setItem('sow.dateCols', '2'))); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   ok(await p.locator('.install-row').count() === 0 && await p.getByRole('dialog', { name: 'Install SoW' }).count() === 0, 'standalone: row + nudge hidden');
   await b.close();
   console.log(fails ? `FAILS ${fails}` : 'ALL PASS'); process.exit(fails ? 1 : 0);

@@ -23,7 +23,7 @@ const TOK = 'probe-token-ABCD7Kq2';
   });
   const tap = async (loc) => { await loc.scrollIntoViewIfNeeded(); const bb = await loc.boundingBox(); await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
   const go = async () => { await p.goto(url + '#settings/sync', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(400); };
-  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   await go();
   const pairBtn = p.getByRole('button', { name: /Pair a device/ });
   ok(await pairBtn.isDisabled(), 'Pair a device disabled without token');
@@ -80,7 +80,7 @@ const TOK = 'probe-token-ABCD7Kq2';
   ok(d.suggestedFilename() === 'sow-setup.sowsetup' && f.kind === 'sow-setup' && f.syncUrl === EXEC && f.token === TOK, 'export .sowsetup with URL + token');
 
   // ── Import on a clean device
-  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); }); await go();
+  await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); }); await go();
   await p.locator('[data-testid=setup-file]').setInputFiles({ name: 'sow-setup.sowsetup', mimeType: 'application/json', buffer: Buffer.from(txt) });
   await p.getByRole('dialog').waitFor();
   const dlg = await p.getByRole('dialog').textContent();

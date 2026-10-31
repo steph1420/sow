@@ -23,6 +23,7 @@ import type { Session } from '../data/types'
 import { getSettings, listSessions, putPickedPair, setLeft, updateSettings } from '../data/api'
 import { applyTopicEdits, topicEditFor, topicKey, type TopicEdits } from '../sync/topicEdits'
 import type { Pair } from '../checklist/pickDate'
+import { queueStruct } from '../sync/structOps'
 import { dropMarks, moveMarks, pairAfterDelete, pairAfterMove } from '../dates/sessionEdit'
 import type { DiscoveredTab } from '../data/types'
 import {
@@ -63,6 +64,11 @@ type WorkspaceValue = {
   /** v0.42.0 (Q-DATES-A): the picked Date 1 / Date 2 pair (oldest first, saved in IDB). null = sheet dates. */
   pickDate: (k: ClassKey, pair: Pair | null) => void
   pickedFor: (k: ClassKey) => Pair | null
+  /** v0.44.0: a past date opened from Overview › All dates (LOCKED amber look). Pills/picked are untouched. */
+  pastView: { k: ClassKey; date: string; prevClass: ClassKey } | null
+  openPast: (k: ClassKey, date: string) => void
+  /** restore=true (Back pill) returns to the class you were on; false just leaves the past view. */
+  closePast: (restore?: boolean) => void
   /** Session dates known for a class (sheet history, current, added) → topic. */
   sessionDatesFor: (k: ClassKey) => Map<string, string>
   /** Add a session on a date with no session (pushed as a sessions op on the next Sync). */
@@ -187,6 +193,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setDeleted(apply)
     void updateSettings((s) => ({ deletedSessions: apply(s.deletedSessions ?? {}), syncDirty: true })).catch(() => {})
   }, [])
+  const queue = useCallback((op: Parameters<typeof queueStruct>[1]) => {
+    void updateSettings((s) => ({ structOps: queueStruct(s.structOps ?? [], op), syncDirty: true })).catch(() => {})
+  }, [])
   /** Force-write a topic for a (re)created session (writeEdit skips unchanged/empty). */
   const forceTopic = useCallback((k: ClassKey, date: string, topic: string) => {
     const edit = { topic: topic.trim().slice(0, 200), updatedAt: new Date().toISOString() }
@@ -205,6 +214,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     void putPickedPair(k, pair).catch(() => {})
   }, [])
   const pickedFor = useCallback((k: ClassKey) => picked[k] ?? null, [picked])
+  const [pastView, setPastView] = useState<{ k: ClassKey; date: string; prevClass: ClassKey } | null>(null)
+  const activeRef = useRef(activeClassKey); activeRef.current = activeClassKey
+  const openPast = useCallback((k: ClassKey, date: string) => {
+    setPastView((pv) => ({ k, date, prevClass: pv ? pv.prevClass : activeRef.current }))
+    setActiveClassKey(k)
+  }, [])
+  const pastRef = useRef(pastView); pastRef.current = pastView
+  const closePast = useCallback((restore = true) => {
+    const pv = pastRef.current
+    setPastView(null)
+    if (pv && restore) setActiveClassKey(pv.prevClass)
+  }, [])
 
   const rosterFor = useCallback(
     (k: ClassKey) => (rosters[k]?.length ? rosters[k] : ROSTERS[k]),
@@ -279,12 +300,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const moved = moveMarks(cur, from, to)
     setMarksForClass(k, clearOld(moved, removed))
     markDeleted(k, from, true)
+    queue({ kind: 'rename', subjectKey: k, from, to, at: new Date().toISOString() })
     if (deletedRef.current[topicKey(k, to)]) markDeleted(k, to, false)
     forceTopic(k, to, topic)
     const pk = pickedRef.current[k] ?? (datesForRef.current(k).map((d) => d.date) as Pair)
     const np = pairAfterMove(pk, from, to)
     if (np !== pk) pickDate(k, np)
-  }, [setMarksForClass, markDeleted, forceTopic, pickDate, setTopic])
+  }, [setMarksForClass, markDeleted, forceTopic, pickDate, setTopic, queue])
   const deleteSession = useCallback((k: ClassKey, date: string): SessionSnap => {
     const cur = marksRef.current[k] ?? {}
     const { next, removed } = dropMarks(cur, date)
@@ -292,6 +314,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const snap: SessionSnap = { k, date, topic: sessionDatesRef.current(k).get(date) ?? '', marks: removed, pair: pk }
     setMarksForClass(k, clearOld(next, removed))
     markDeleted(k, date, true)
+    queue({ kind: 'delete', subjectKey: k, date, at: new Date().toISOString() })
     const base = pk ?? (datesForRef.current(k).map((d) => d.date) as Pair)
     if (base.includes(date)) {
       const left = pairAfterDelete(base, date)
@@ -299,13 +322,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       pickDate(k, left ?? (rest.length ? [rest[rest.length - 1]!, rest[rest.length - 1]!] : null))
     }
     return snap
-  }, [setMarksForClass, markDeleted, pickDate])
+  }, [setMarksForClass, markDeleted, pickDate, queue])
   const restoreSession = useCallback((snap: SessionSnap) => {
     markDeleted(snap.k, snap.date, false)
+    queue({ kind: 'undelete', subjectKey: snap.k, date: snap.date, at: new Date().toISOString() })
     forceTopic(snap.k, snap.date, snap.topic)
     setMarksForClass(snap.k, (prev) => ({ ...prev, ...snap.marks }))
     pickDate(snap.k, snap.pair)
-  }, [markDeleted, forceTopic, setMarksForClass, pickDate])
+  }, [markDeleted, forceTopic, setMarksForClass, pickDate, queue])
 
   const value = useMemo<WorkspaceValue>(
     () => ({
@@ -324,6 +348,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setTopic,
       pickDate,
       pickedFor,
+      pastView,
+      openPast,
+      closePast,
       sessionDatesFor,
       addSession,
       moveSession,
@@ -333,7 +360,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       reloadFromIdb,
       setPupilLeft,
     }),
-    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, rosterFor, reloadFromIdb],
+    [setPupilLeft, classKeys, sheetTabs, lastSyncAt, ready, activeClassKey, marksByClass, setMarksForClass, sessions, historySessions, pulledSessions, datesFor, setTopic, pickDate, pickedFor, pastView, openPast, closePast, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, rosterFor, reloadFromIdb],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

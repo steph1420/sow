@@ -4,8 +4,8 @@ import type { DemoSession, SessionProgress } from '../demo/workspaceData'
 type Props = {
   session: DemoSession
   progress: SessionProgress
-  expanded: boolean
-  onExpand: () => void
+  /** v0.44.0: tapping the card or › opens this class's All dates screen (expanded view retired). */
+  onAllDates: () => void
   onOpenChecklist: () => void
   /** v0.28 Share chooser for this class × date. */
   onShare: () => void
@@ -14,25 +14,24 @@ type Props = {
 export function SessionCard({
   session,
   progress,
-  expanded,
-  onExpand,
+  onAllDates,
   onOpenChecklist,
   onShare,
 }: Props) {
   const topicBit =
-    !expanded && session.topics[0]
+    session.topics[0]
       ? ` · ${session.topics[0]}`
       : ''
   const subjClass =
     session.subject === 'Math' ? 'math' : session.subject === 'Sci' ? 'sci' : 'eng'
 
   return (
-    <div className={`ov-card${expanded ? ' exp' : ''}`}>
+    <div className={"ov-card"}>
       <button
         type="button"
         className="top"
-        onClick={onExpand}
-        aria-expanded={expanded}
+        onClick={onAllDates}
+        aria-label={`${session.label} · All dates`}
         style={{ background: 'none', border: 0, padding: 0, width: '100%', cursor: 'pointer' }}
       >
         <div className="meta" style={{ textAlign: 'left', minWidth: 0 }}>
@@ -46,7 +45,6 @@ export function SessionCard({
             {' · '}
             <b>
               {progress.set}/{progress.total}
-              {expanded ? ' set' : ''}
             </b>
             {topicBit}
           </div>
@@ -55,27 +53,15 @@ export function SessionCard({
           <div className={`ov-ring ${progress.tone}`}>
             <span>{progress.pct}%</span>
           </div>
-          <span className={`ov-chev${expanded ? ' open' : ''}`} aria-hidden>
+          <span className={"ov-chev"} aria-hidden>
             ›
           </span>
         </div>
       </button>
 
-      {expanded ? (
-        <>
-          {session.topics.length ? (
-            <div className="ov-topic">{session.topics.join(' · ')}</div>
-          ) : null}
-          <div className="ov-status">
-            <div className="s set">Set {progress.set}</div>
-            <div className="s">Submitted {progress.submitted}</div>
-          </div>
-        </>
-      ) : null}
-
       {/* v0.28 (mock share-mj1): quiet one-word action row on every card */}
       <div className="ov-act">
-        <button type="button" className={`ov-act-open${expanded ? ' hl' : ''}`} onClick={onOpenChecklist}>
+        <button type="button" className={"ov-act-open"} onClick={onOpenChecklist}>
           Open
         </button>
         <button type="button" className="ov-act-share" onClick={onShare}>

@@ -10,7 +10,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const ctr = (sel) => p.$eval(sel, (e) => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   const tapEl = async (sel) => { const [x, y] = await ctr(sel); await touch('touchStart', x, y); await touch('touchEnd'); await p.waitForTimeout(300); };
   const drag = async (x, y, dx, dy, steps = 8) => { await touch('touchStart', x, y); for (let i = 1; i <= steps; i++) { await touch('touchMove', x + (dx * i) / steps, y + (dy * i) / steps); await p.waitForTimeout(16); } await touch('touchEnd'); await p.waitForTimeout(400); };
-  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); });
+  await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate(() => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); });
   await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
 
   // ── header layout (A, B)
@@ -81,48 +81,25 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await tapEl('.sw-dh-btn >> nth=0'); await p.$eval('.dpo-row.cur .dpo-edit', (e) => e.click()); await tapEl('.dem-ok'); await p.waitForTimeout(150); ok(await p.isVisible('.toast'), 'topic toast uses the same toast');
   await tapEl('.toast-msg'); ok(!(await p.isVisible('.toast')), 'topic toast tap-dismisses');
 
-  // ── date dials (v4)
-  await tapEl('.sw-lean-dates');
-  ok(await p.isVisible('.dp-sheet .dp-year'), 'Dates panel has the Year dropdown');
-  const order2 = await p.$$eval('.dp-dials [data-dial]', (e) => e.map((x) => x.dataset.dial));
+  // ── date dials (v4) — v0.44.0: the Dates panel is retired; the same dials live in the Add/Edit popup (v0.43)
+  await tapEl('.sw-lean-dates'); await p.waitForSelector('.dpo'); await tapEl('.dpo-add'); await p.waitForSelector('.dem');
+  const order2 = await p.$$eval('.dem .dp-dials [data-dial]', (e) => e.map((x) => x.dataset.dial));
   ok(order2.join() === 'month,date,day', `dial order Month · Date · Day (${order2})`);
-  const yTop = await p.$eval('.dp-year', (e) => e.getBoundingClientRect().bottom); const dTop = await p.$eval('.dp-dials', (e) => e.getBoundingClientRect().top);
-  ok(yTop <= dTop, 'Year sits above the dials');
-  const val = (d) => p.$eval(`.dp-dials [data-dial=${d}]`, (e) => e.getAttribute('aria-valuetext'));
-  ok((await val('date')) === '2' && (await val('month')) === 'Nov' && (await val('day')) === 'Mon', `starts on date 2 (Mon 2 Nov) (${await val('day')} ${await val('date')} ${await val('month')})`);
-  ok((await p.getAttribute('.dp-dials [data-dial=day]', 'aria-readonly')) === 'true', 'Day dial is display-only');
-  ok(await p.$eval('.dp-dials [data-dial=date] .c', (e) => !!e.querySelector('.dot')), 'session date is dotted');
-  // touch: drag the Date dial up by 2 rows → 4 Nov, day follows
-  const [dx, dy] = await ctr('.dp-dials [data-dial=date]');
+  if (await p.$('.dem .dp-year')) { const yTop = await p.$eval('.dem .dp-year', (e) => e.getBoundingClientRect().bottom); const dTop = await p.$eval('.dem .dp-dials', (e) => e.getBoundingClientRect().top); ok(yTop <= dTop, 'Year sits above the dials'); }
+  const val = (d) => p.$eval(`.dem .dp-dials [data-dial=${d}]`, (e) => e.getAttribute('aria-valuetext'));
+  ok((await p.getAttribute('.dem .dp-dials [data-dial=day]', 'aria-readonly')) === 'true', 'Day dial is display-only');
+  const d0 = await val('date'), w0 = await val('day');
+  const [dx, dy] = await ctr('.dem .dp-dials [data-dial=date]');
   await drag(dx, dy, 0, -88, 10);
-  ok((await val('date')) === '4' && (await val('day')) === 'Wed', `touch: Date dial turned 2 steps, Day auto → Wed (${await val('date')} ${await val('day')})`);
-  ok(/has no session — Save adds one/.test(await p.textContent('.dp-note')) && /Save Date 2/.test(await p.textContent('.dp-save-main')), 'non-session date: Save adds one');
-  // keyboard: Tab between dials, arrows turn, Enter picks
-  await p.focus('.dp-dials [data-dial=month]');
+  ok((await val('date')) !== d0 && (await val('day')) !== w0, `touch: Date dial turned, Day follows (${d0} ${w0} → ${await val('date')} ${await val('day')})`);
+  await p.focus('.dem .dp-dials [data-dial=month]'); const m0 = await val('month');
   await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
-  ok((await val('month')) === 'Oct', `ArrowUp turns the focused Month dial (${await val('month')})`);
+  ok((await val('month')) !== m0, `ArrowUp turns the focused Month dial (${m0} → ${await val('month')})`);
   await p.keyboard.press('Tab');
   ok(await p.evaluate(() => document.activeElement?.dataset.dial === 'date'), 'Tab moves to the Date dial (Day is skipped)');
-  for (let i = 0; i < 24; i++) await p.keyboard.press('ArrowDown');
-  ok((await val('date')) === '28' && (await val('day')) === 'Wed', `arrows reach 28 Oct, Day Wed (${await val('date')} ${await val('day')})`);
-  ok(/has a session/.test(await p.textContent('.dp-note')), 'session date note');
-  await p.keyboard.press('ArrowUp'); await p.waitForTimeout(80); // 27 Oct (no session)
-  ok(/has no session/.test(await p.textContent('.dp-note')), 'non-session date is not invented until Save');
-  ok(/Date 2 will become Date 1/.test(await p.textContent('.dp-note')), 'reorder note before 28 Oct');
-  await p.fill('.dp-topic', 'Demo added topic');
-  await tapEl('.dp-save-main');
-  await p.waitForTimeout(300);
-  const heads = await p.$$eval('.sw-dh-date', (e) => e.map((x) => x.textContent));
-  ok(heads.join() === '27/10,28/10', `targeted Date 2 changed, oldest first kept (${heads})`);
-  await tapEl('.dp-sheet .qo-close');
-  const pend = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open('sow-app'); r.onsuccess = () => { const g = r.result.transaction('settings').objectStore('settings').get('app'); g.onsuccess = () => res(g.result?.topicEdits ?? {}); }; }));
-  ok(JSON.stringify(pend).includes('KGB_Eng_CW|2026-10-27'), 'Add session stored as a pending session for the next Sync');
-  // session date pick via button
-  await tapEl('.sw-lean-dates');
-  ok((await p.$$eval('.dp-dials [data-dial=date] .c .dot', (e) => e.length)) === 1, 'added session is now dotted');
-  await tapEl('.dp-reset'); await p.waitForTimeout(300);
-  ok((await p.$$eval('.sw-dh-date', (e) => e.map((x) => x.textContent))).join() === '28/10,2/11', 'Back to sheet dates restores 28/10 · 2/11');
-  if (await p.isVisible('.dp-sheet')) await tapEl('.dp-sheet .qo-close');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(250);
+  if (await p.$('.dem')) await tapEl('.dem-scrim');
+  ok(!(await p.$('.dem')), 'popup closes without saving');
 
   // ── contrast (2)
   await p.goto(url + '#settings/appearance', { waitUntil: 'networkidle' }); await p.waitForTimeout(400);

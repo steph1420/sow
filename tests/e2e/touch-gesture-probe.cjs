@@ -7,7 +7,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
   const ctx = await b.newContext({ viewport:{width:412,height:915}, deviceScaleFactor:2.625, isMobile:true, hasTouch:true, userAgent: UA });
-  const p = await ctx.newPage(); const cdp = await ctx.newCDPSession(p);
+  const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */ const cdp = await ctx.newCDPSession(p);
   let fails = 0; const ok = (c, m) => { console.log((c?'PASS ':'FAIL ')+m); if(!c) fails++; };
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
   const drag = async (pts, stepMs = 16) => { await touch('touchStart', ...pts[0]); for (const pt of pts.slice(1)) { await touch('touchMove', ...pt); await p.waitForTimeout(stepMs); } await touch('touchEnd'); await p.waitForTimeout(450); };

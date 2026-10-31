@@ -2,8 +2,12 @@
 const { chromium } = require('playwright-core');
 const launchOpts = { executablePath: '/usr/bin/google-chrome' };
 async function phone(opts = {}) {
+  const { fresh, ...rest } = opts;
   const b = await chromium.launch(launchOpts);
-  const ctx = await b.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true, ...opts });
+  const ctx = await b.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true, ...rest });
+  // v0.44.0: new devices start on the 1-date view. Older probes were written for an existing 2-date device;
+  // pass { fresh: true } to test a brand-new device.
+  if (!fresh) await ctx.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} });
   const p = await ctx.newPage();
   return { b, ctx, p };
 }

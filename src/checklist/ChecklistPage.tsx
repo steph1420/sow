@@ -8,7 +8,6 @@ import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
-import { DatePanelSheet } from './chrome/DatePanelSheet'
 import { DatePopover, dm } from './chrome/DatePopover'
 import { DateEditModal } from './chrome/DateEditModal'
 import { countMarks } from '../dates/sessionEdit'
@@ -44,6 +43,7 @@ import { useWorkspace } from '../demo/WorkspaceContext'
 import { useShare } from '../share/ShareContext'
 import { haptic } from '../lib/haptics'
 import './checklist.css'
+import { ChannelBadge } from '../components/ChannelBadge'
 
 type RowGeom = { roll: number; top: number; bottom: number }
 
@@ -59,8 +59,6 @@ type Props = {
 export function ChecklistPage(_props: Props) {
   const m = useChecklistModel()
   const { openShare, toast } = useShare()
-  const [dpOpen, setDpOpen] = useState(false)
-  useBackLayer(dpOpen ? 1 : 0, () => setDpOpen(false))
   const { prefs } = usePrefs()
   const showFab = prefs['chrome.showFab']
   const azLeft = prefs['az.leftSide']
@@ -448,7 +446,7 @@ export function ChecklistPage(_props: Props) {
   const azRef = useRef<AzStripHandle>(null)
   const [kb, setKb] = useState<[number, number]>([0, 0])
   const [live, setLive] = useState('')
-  const { setPupilLeft, activeClassKey, rosterFor, setTopic, pickDate, pickedFor, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, marksByClass } = useWorkspace()
+  const { setPupilLeft, activeClassKey, rosterFor, pickDate, closePast, sessionDatesFor, addSession, moveSession, deleteSession, restoreSession, marksByClass } = useWorkspace()
   // ── v0.43.0 Beta: tap a date header → popover; Edit/Add → centred popup (t18u–t34u LOCKED) ──
   const [popCol, setPopCol] = useState<number | null>(null)
   const [dem, setDem] = useState<{ mode: 'add' | 'edit'; from?: string } | null>(null)
@@ -456,6 +454,12 @@ export function ChecklistPage(_props: Props) {
   const slotOf = (ci: number): 0 | 1 => (m.showTwoCol ? (ci === 0 ? 0 : 1) : m.activeDateIndex)
   const popSlot = useRef<0 | 1>(1)
   const popTop = useRef(150)
+  /** v0.44.0: the dates chip and the column headers both open the one date popover (old Dates sheet retired). */
+  const openPopAt = (el: Element | null, slot: 0 | 1) => {
+    const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wide-scale')) || 1
+    const r = el?.getBoundingClientRect(); popTop.current = r ? (r.bottom + 6) / z : 150
+    popSlot.current = slot; setPopCol(slot)
+  }
   const showIso = (iso: string, slot: 0 | 1) => {
     const pair: Pair = [m.dates[0].date, m.dates[1].date]
     const next = retarget(pair, slot, iso)
@@ -564,7 +568,7 @@ export function ChecklistPage(_props: Props) {
     }
     if (e.key === 'd' || e.key === 'D') {
       e.preventDefault()
-      setDpOpen(true)
+      openPopAt(document.querySelector('.sw-lean-dates'), m.showTwoCol ? 1 : m.activeDateIndex)
       return
     }
     if (e.key === 'm' || e.key === 'M') {
@@ -653,8 +657,9 @@ export function ChecklistPage(_props: Props) {
 
   return (
     <div
-      className={`sw-page${m.mode === 'submitted' ? ' mode-sub' : ''}${reduceMotion ? ' reduce-motion' : ''}`}
+      className={`sw-page${m.mode === 'submitted' ? ' mode-sub' : ''}${reduceMotion ? ' reduce-motion' : ''}${m.past ? ' past' : ''}`}
     >
+      {m.past ? <div className="past-wm" aria-hidden>PAST</div> : null}
       {select.active ? (
         <SelectBar
           count={select.selected.size}
@@ -665,11 +670,17 @@ export function ChecklistPage(_props: Props) {
       ) : null}
 
       <div className={`sw-chrome${leanHidden ? ' stuck' : ''}`} data-testid="sw-chrome">
+      {m.past ? (
+        <div className="past-bar" role="status" data-testid="past-bar">
+          <span className="past-t"><span aria-hidden>🕘</span> PAST · {m.past.dayLabel.split(' ')[0]} {m.past.dayNum}</span>
+          <button type="button" className="past-back" onClick={() => closePast()}>Back to {m.currentNewest.dayLabel} ›</button>
+        </div>
+      ) : null}
       <div className="sw-lean">
         <div className="sw-lean-main">
           {/* P2-3: title is read-only (was a full-width "Back to Overview" button); Back/tab bar navigate */}
           <div className="sw-lean-left">
-            <div className="sw-lean-class">{m.classLabel}</div>
+            <div className="sw-lean-class">{m.classLabel}<ChannelBadge /></div>
           </div>
           {/* v0.40.0 (t83u): topic left the header; dates sit right and open the Date panel. */}
           <button
@@ -677,7 +688,7 @@ export function ChecklistPage(_props: Props) {
             className="sw-lean-dates"
             aria-haspopup="dialog"
             aria-label={`Dates: ${m.visibleDates.map((d) => d.dayLabel).join(' and ')} — choose dates and edit topics`}
-            onClick={() => setDpOpen(true)}
+            onClick={(e) => openPopAt(e.currentTarget, m.showTwoCol ? 1 : m.activeDateIndex)}
           >
             {m.visibleDates.map((d) => d.dayNum).join(' · ')}
             <span className="chev" aria-hidden>▾</span>
@@ -732,7 +743,7 @@ export function ChecklistPage(_props: Props) {
                     aria-label={`${d.dayLabel}, topic: ${d.topic || 'none'} — change date`}
                     aria-haspopup="dialog"
                     data-col={ci}
-                    onClick={(e) => { const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wide-scale')) || 1; popTop.current = (e.currentTarget.getBoundingClientRect().bottom + 6) / z; popSlot.current = slotOf(ci); setPopCol(ci) }}
+                    onClick={(e) => openPopAt(e.currentTarget, slotOf(ci))}
                   >
                     <span className="sw-dh-date">{d.dayNum}</span>
                     <span className="sw-dh-topic">{d.topic || '—'}</span>
@@ -743,26 +754,6 @@ export function ChecklistPage(_props: Props) {
         </div>
       </div>
 
-      {dpOpen ? (
-        <DatePanelSheet
-          classLabel={m.classLabel}
-          dates={m.dates}
-          pills={m.pills}
-          onView={(p) => m.setPills(p)}
-          onClose={() => setDpOpen(false)}
-          sessions={sessionDatesFor(activeClassKey)}
-          picked={!!pickedFor(activeClassKey)}
-          onSave={(pair, iso, topic, isNew) => {
-            if (isNew) addSession(activeClassKey, iso, topic)
-            else setTopic(activeClassKey, iso, topic)
-            pickDate(activeClassKey, pair)
-            if (!m.showTwoCol) m.setPills(pair[0] === pair[1] || iso === pair[0] ? [true, false] : [false, true])
-            haptic('success')
-            if (isNew) toast(`Session added · ${dateSlotFromIso(iso, '').dayNum} · syncs on next Sync`)
-          }}
-          onReset={() => { pickDate(activeClassKey, null); setDpOpen(false) }}
-        />
-      ) : null}
       {popCol != null ? (
         <DatePopover
           classLabel={m.classLabel}

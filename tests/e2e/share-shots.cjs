@@ -7,7 +7,7 @@ const out = process.argv[3] || '/workspace/shots-v028';
   p.setDefaultTimeout(5000);
   for (const theme of ['night', 'day']) {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((theme) => { localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme })); }, theme);
+    await p.evaluate((theme) => { localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme })); }, theme);
     await p.goto(url, { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
     await p.screenshot({ path: `${out}/${theme}-overview.png` });
     await p.locator('.ov-act-share').first().tap(); await p.waitForTimeout(400);

@@ -4,7 +4,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
 const SCREENS = ['', '#checklist/KGA_Eng_CW', '#roster', '#history', '#settings', '#settings/sync', '#settings/appearance', '#settings/subjects', '#settings/about'];
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args:['--no-sandbox'] });
-  const p = await b.newPage({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true });
+  const p = await b.newPage({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true }); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */
   let fails = 0;
   for (const theme of ['day','night']) for (const s of [...SCREENS, 'MORE']) {
     await p.goto(url + (s === 'MORE' ? '' : s)); await p.reload({ waitUntil:'networkidle' });

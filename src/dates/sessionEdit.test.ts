@@ -42,8 +42,10 @@ describe('v0.43 session edit', () => {
     expect(pairAfterDelete(['2026-10-30', '2026-11-02'], '2026-11-02')).toEqual(['2026-10-30', '2026-10-30'])
     expect(pairAfterDelete(['2026-11-02', '2026-11-02'], '2026-11-02')).toBeNull()
   })
-  it('1|2 date view is a per-device pref, default 2 (keeps current behaviour)', () => {
-    expect(readDateCols(null)).toBe(2)
+  it('1|2 date view is a per-device pref: new device = 1, existing device without a choice = 2', () => {
+    expect(readDateCols(null, false)).toBe(1)
+    expect(readDateCols(null, true)).toBe(2)
+    expect(readDateCols('2', false)).toBe(2)
     expect(readDateCols('1')).toBe(1)
     expect(readDateCols('junk')).toBe(2)
   })

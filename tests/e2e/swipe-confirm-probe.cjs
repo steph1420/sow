@@ -12,7 +12,7 @@ const MODE_RGB = { set: 'rgb(48, 209, 88)', submitted: 'rgb(139, 124, 247)' };
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 6, radiusY: 6, force: 1 }] });
   const fresh = async (prefs) => {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
+    await p.evaluate((pr) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify(pr)); }, prefs);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
   };
   const setMode = async (mode) => { if (mode === 'set') return; await p.click('.sw-kebab'); await p.click('.sw-menu [data-mode=submitted]'); await p.keyboard.press('Escape'); await p.waitForTimeout(200); };

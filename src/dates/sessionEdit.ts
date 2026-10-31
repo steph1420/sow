@@ -37,4 +37,5 @@ export function pairAfterDelete(pair: Pair, date: string): Pair | null {
   return rest.length === 1 ? [rest[0]!, rest[0]!] : pair
 }
 export const DATE_COLS_KEY = 'sow.dateCols'
-export const readDateCols = (raw: string | null): 1 | 2 => (raw === '1' ? 1 : 2)
+/** v0.44.0: new device/user = 1 date; a device that used the app before (no saved choice yet) keeps 2. */
+export const readDateCols = (raw: string | null, existingDevice = true): 1 | 2 => (raw === '1' ? 1 : raw === '2' ? 2 : existingDevice ? 2 : 1)

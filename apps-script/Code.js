@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.40.0'
+var BRIDGE_VERSION = '0.44.0'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -207,9 +207,50 @@ function state_(ss) {
 }
 
 /** ops: { ticks:[{subjectKey,date,topic,roll,set,updatedAt}], roster:[{classKey,roll,status,updatedAt}] } */
+// v0.44.0: session structure ops — rename (move a date; ticks move with it) and delete. Idempotent.
+// Tombstones (script property) stop older tick/topic ops from re-creating a renamed-away or deleted session.
+var TOMB_KEY = 'SOW_TOMBS'
+function tombs_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(TOMB_KEY) || '{}') } catch (e) { return {} } }
+function saveTombs_(t) { PropertiesService.getScriptProperties().setProperty(TOMB_KEY, JSON.stringify(t)) }
+function applyStructs_(ss, structs, subjects, rejected) {
+  var done = 0, tb = tombs_()
+  var srows = read_(ss, T.sessions, 8), ticks = read_(ss, T.ticks, 8), changed = false
+  var find = function (sid) { for (var i = 0; i < srows.length; i++) if (srows[i][0] === sid) return i; return -1 }
+  structs.forEach(function (o) {
+    if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
+    var at = o.at ? clampStamp_(o.at) : nowIso_()
+    if (o.kind === 'rename') {
+      var df = dateFromIso_(o.from), dt = dateFromIso_(o.to)
+      if (!df || !dt) { rejected.push('bad rename ' + JSON.stringify(o)); return }
+      var from = sessionId_(o.subjectKey, isoDate_(df)), to = sessionId_(o.subjectKey, isoDate_(dt))
+      var i = find(from), j = find(to)
+      if (i < 0) { done++; if (!tb[from] || tb[from] < at) tb[from] = at; return } // already moved (or never existed): no-op
+      if (j >= 0) { rejected.push(isoDate_(dt) + ' already has a session — ' + isoDate_(df) + ' not moved'); return }
+      srows[i][0] = to; srows[i][3] = dt; srows[i][7] = at
+      ticks.forEach(function (t) { if (t[1] === from) { t[1] = to; t[0] = tickId_(to, Number(t[4])) } })
+      tb[from] = at; delete tb[to]; changed = true; done++
+    } else if (o.kind === 'delete') {
+      var dd = dateFromIso_(o.date)
+      if (!dd) { rejected.push('bad delete ' + JSON.stringify(o)); return }
+      var sid = sessionId_(o.subjectKey, isoDate_(dd)), k = find(sid)
+      if (k >= 0) { srows.splice(k, 1); ticks = ticks.filter(function (t) { return t[1] !== sid }); changed = true }
+      if (!tb[sid] || tb[sid] < at) tb[sid] = at
+      done++
+    } else rejected.push('unknown struct ' + o.kind)
+  })
+  if (changed) { write_(ss, T.sessions, 8, srows); write_(ss, T.ticks, 8, ticks) }
+  saveTombs_(tb)
+  return { done: done, tombs: tb }
+}
+
 function applyPush_(ss, ops, by) {
   var applied = 0, ignored = 0, rejected = []
   var subjects = {}; read_(ss, T.subjects, 7).forEach(function (r) { subjects[r[0]] = r })
+  var structApplied
+  if (ops.structs && ops.structs.length) structApplied = applyStructs_(ss, ops.structs, subjects, rejected).done
+  var tb = tombs_()
+  // an op for a tombstoned session counts only if it is newer than the tombstone (e.g. Undo after Sync)
+  var buried = function (sid, at) { return tb[sid] && String(at) <= tb[sid] }
 
   if (ops.ticks && ops.ticks.length) {
     var sessions = read_(ss, T.sessions, 8), sIdx = {}
@@ -221,6 +262,7 @@ function applyPush_(ss, ops, by) {
       var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? clampStamp_(t.updatedAt) : ''
       if (!d || !(roll > 0) || !at) { rejected.push('bad tick ' + JSON.stringify(t)); return }
       var cls = sectionOf_(t.subjectKey), sid = sessionId_(t.subjectKey, isoDate_(d)), id = tickId_(sid, roll)
+      if (sIdx[sid] == null && buried(sid, at)) { ignored++; return }
       if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, String(t.topic || ''), 'Open', at, at]) }
       var i = tIdx[id]
       if (i != null && String(ticks[i][6]) >= at) { ignored++; return } // per-tick newer wins
@@ -242,6 +284,7 @@ function applyPush_(ss, ops, by) {
       var d = dateFromIso_(o.date), at = o.updatedAt ? clampStamp_(o.updatedAt) : ''
       if (!d || !at) { rejected.push('bad session ' + JSON.stringify(o)); return }
       var sid = sessionId_(o.subjectKey, isoDate_(d)), i = sI[sid], topic = String(o.topic == null ? '' : o.topic).slice(0, 200)
+      if (i == null && buried(sid, at)) { ignored++; return }
       if (i == null) { sI[sid] = srows.length; srows.push([sid, o.subjectKey, sectionOf_(o.subjectKey), d, topic, 'Open', at, at]); sessionsApplied++; return }
       if (toIsoStamp_(srows[i][7]) >= at) { ignored++; return }
       srows[i][4] = topic
@@ -268,7 +311,7 @@ function applyPush_(ss, ops, by) {
     write_(ss, T.roster, 7, roster)
   }
   meta_(ss, 'lastPush', nowIso_())
-  return { applied: applied, ignored: ignored, rejected: rejected, sessionsApplied: sessionsApplied }
+  return { applied: applied, ignored: ignored, rejected: rejected, sessionsApplied: sessionsApplied, structApplied: structApplied }
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON) }
@@ -377,7 +420,7 @@ function route_(body) {
     lock.waitLock(20000)
     try {
       var r = applyPush_(ss, body, 'app')
-      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, sessionsApplied: r.sessionsApplied, state: state_(ss) }
+      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, sessionsApplied: r.sessionsApplied, structApplied: r.structApplied === undefined ? 0 : r.structApplied, state: state_(ss) }
     } finally { lock.releaseLock() }
   }
   return { ok: false, error: 'unknown action' }

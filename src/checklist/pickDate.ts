@@ -7,10 +7,3 @@ export function retarget(pair: Pair, slot: 0 | 1, iso: string): Pair {
   if (single && slot === 0) return [iso, iso]
   return iso <= other ? [iso, other] : [other, iso]
 }
-/** Shown before saving when the change would swap the slots. */
-export function reorderNote(pair: Pair, slot: 0 | 1, iso: string): string {
-  const single = pair[0] === pair[1]
-  if (slot === 1 && iso < pair[0]) return 'Date 2 will become Date 1'
-  if (slot === 0 && !single && iso > pair[1]) return 'Date 1 will become Date 2'
-  return ''
-}

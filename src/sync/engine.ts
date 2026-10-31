@@ -28,6 +28,7 @@ import { extractSheetId } from './sheetId'
 import { BridgeError, bridgeCall, buildPushPayload, gvizState, stateToApp, type BridgeState, type PushResult } from './bridge'
 import { listRosterMeta } from '../data'
 import { remainingAfterPush, sessionOps } from './topicEdits'
+import { remainingStructs } from './structOps'
 
 export type SyncReport = {
   ok: boolean
@@ -372,12 +373,13 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const payload = buildPushPayload(await (await getDb()).getAll('marks'), await listRosterMeta(), settings.bridgeSyncAt)
   const sentTopics = { ...(settings.topicEdits ?? {}) }
   const sessions = sessionOps(sentTopics)
-  const count = payload.ticks.length + payload.roster.length + sessions.length
+  const structs = [...(settings.structOps ?? [])] // v0.44.0: rename/delete before ticks/topics (bridge applies them first)
+  const count = payload.ticks.length + payload.roster.length + sessions.length + structs.length
   let state: BridgeState
   let res: PushResult | null = null
   try {
     if (count) {
-      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload, ...(sessions.length ? { sessions } : {}) })
+      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload, ...(sessions.length ? { sessions } : {}), ...(structs.length ? { structs } : {}) })
       state = res.state
     } else {
       state = await bridgeCall<BridgeState>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'pull' })
@@ -403,11 +405,15 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   for (const t of tabs) engSyncState[t.classKey] = { hash: 'bridge', sheetSeenAt: started, lastSyncAt: started }
   clearUndoStacks()
   const rejected = res?.rejected ?? []
-  const latest = (await getSettings()).topicEdits ?? {}
+  const latestAll = await getSettings()
+  const structOps = res && structs.length ? remainingStructs(latestAll.structOps ?? [], structs, res.structApplied) : (latestAll.structOps ?? [])
+  const oldStructBridge = structs.length > 0 && res?.structApplied === undefined
+  const latest = latestAll.topicEdits ?? {}
   const topicEdits = res ? remainingAfterPush(latest, sentTopics, sessions.length ? res.sessionsApplied : 0) : latest
   const oldBridge = sessions.length > 0 && res?.sessionsApplied === undefined
   await putSettings({
     topicEdits,
+    structOps,
     bridgeSyncAt: started,
     syncDirty: false,
     lastSyncAt: started,
@@ -418,6 +424,7 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
     syncNotes: [
       ...(a.skipped.length ? [`Not in the app yet: ${a.skipped.join(', ')}`] : []),
       ...(oldBridge ? ['Update bridge script to sync topics — topic edits stay on this device'] : []),
+      ...(oldStructBridge ? ['Update bridge script to v0.44 to sync moved/deleted dates — they stay on this device'] : []),
     ],
   })
   const parts = [

@@ -23,8 +23,9 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   ok((await p.$$eval('.ov-card.exp', (e) => e.length)) === 0, 'BUG t75u: Overview reload — all cards closed (default)');
   await p.keyboard.press('Tab'); await p.keyboard.press('Control+1'); await p.waitForTimeout(300);
   ok((await p.$$eval('.ov-card.exp', (e) => e.length)) === 0, 'BUG t75u: keyboard landing focuses, never opens');
-  await tap('.ov-card .top >> nth=0');
-  await tap('.ov-card .top >> nth=1'); await at('Overview card');
+  // v0.44.0: a card opens its All dates screen (expanded view retired); ‹ returns to Overview
+  await tap('.ov-card .top >> nth=0'); await at('All dates');
+  await tap('.ad-back'); await tap('.ov-card .top >> nth=1'); await at('All dates 2'); await tap('.ad-back'); await at('Overview card');
   await tap('.tabbar .tab >> nth=1'); await at('Checklist tab');
   await tap('.tabbar .tab >> nth=2'); await at('More pop');
   await tap('.more-item >> nth=0'); await at('Roster');

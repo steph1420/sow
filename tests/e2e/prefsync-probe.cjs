@@ -22,7 +22,7 @@ const TOK = 'probe-token-ABCD7Kq2';
     });
     const tap = async (loc) => { await loc.scrollIntoViewIfNeeded(); const bb = await loc.boundingBox(); await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate(([m]) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: m })); localStorage.setItem('sow-app.installNudgeSeen', 'x'); }, [mode]);
+    await p.evaluate(([m]) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: m })); localStorage.setItem('sow-app.installNudgeSeen', 'x'); }, [mode]);
     await p.goto(url + '#settings/sync', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(400);
     ok(await p.getByText('Pair this device to sync settings').isVisible(), mode + ': unpaired hint');
     // pair via Join with a code (built-in bridge URL)

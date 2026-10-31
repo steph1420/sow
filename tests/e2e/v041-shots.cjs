@@ -6,8 +6,8 @@ const url = process.argv[2] || 'http://localhost:4317/sow/'; const out = process
   const notes = [];
   for (const [w, h, mob] of [[412, 915, true], [1440, 900, false]]) for (const theme of ['night', 'day']) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: mob, hasTouch: mob });
-    const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
-    await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((t) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: t })) }, theme);
+    const p = await ctx.newPage(); await p.addInitScript(() => { try { if (localStorage.getItem('sow.dateCols') === null) localStorage.setItem('sow.dateCols', '2'); } catch {} }); /* v0.44.0: existing 2-date device */ const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
+    await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((t) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ theme: t })) }, theme);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(700);
     const tag = `${w}x${h}-${theme}`; const shot = (n) => p.screenshot({ path: `${out}/${tag}-${n}.png` });
     const click = async (s) => { await p.locator(s).first().click(); await p.waitForTimeout(350); };

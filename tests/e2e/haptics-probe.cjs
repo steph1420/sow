@@ -7,7 +7,7 @@ const url = process.argv[2] || 'http://localhost:4179/sow/';
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 6, radiusY: 6, force: 1 }] });
   await p.addInitScript(() => { window.__vib = []; navigator.vibrate = (ms) => { window.__vib.push(ms); return true; }; });
-  const go = async (on) => { await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((on) => { localStorage.clear(); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'haptics.enabled': on })); }, on); await p.goto(url + '#checklist/KGA_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500); await p.evaluate(() => { window.__vib = []; }); };
+  const go = async (on) => { await p.goto(url, { waitUntil: 'networkidle' }); await p.evaluate((on) => { localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'haptics.enabled': on })); }, on); await p.goto(url + '#checklist/KGA_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500); await p.evaluate(() => { window.__vib = []; }); };
   const scrub = async () => { const az = await p.locator('.sw-az').boundingBox(); const x = az.x + az.width / 2; await touch('touchStart', x, az.y + 4); for (let i = 1; i <= 30; i++) { await touch('touchMove', x, az.y + 4 + (az.height * 0.5) * i / 30); await p.waitForTimeout(12); } await touch('touchEnd'); await p.waitForTimeout(300); };
   await go(true);
   await scrub();
