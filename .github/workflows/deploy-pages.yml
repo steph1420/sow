@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # v0.46.0 (t8u): Stable never ships a prerelease. A version like 0.46.0-beta.1 on master is served only by steph1420/sow-beta.
+  # v0.46.0 (t8u): /sow/ (Steve's daily app) never ships a prerelease. A version like 0.46.0-beta.1 on master is served only by steph1420/sow-beta.
   gate:
     runs-on: ubuntu-latest
     outputs:
@@ -25,7 +25,7 @@ jobs:
       - id: v
         run: |
           V=$(node -p "require('./package.json').version")
-          if echo "$V" | grep -q -- '-'; then echo "stable=false" >> "$GITHUB_OUTPUT"; echo "::notice::$V is a prerelease — Stable Pages not deployed (Beta site: steph1420/sow-beta)"; else echo "stable=true" >> "$GITHUB_OUTPUT"; fi
+          if echo "$V" | grep -q -- '-'; then echo "stable=false" >> "$GITHUB_OUTPUT"; echo "::notice::$V is a prerelease — /sow/ Pages not deployed (Beta site: steph1420/sow-beta)"; else echo "stable=true" >> "$GITHUB_OUTPUT"; fi
 
   build:
     needs: gate
