@@ -11,7 +11,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
   const rowOn = () => p.$$eval('.sw-row', (rows) => Object.fromEntries(rows.map((r) => [r.dataset.roll, [...r.querySelectorAll('.sw-check')].every((c) => c.classList.contains('on'))])));
   const run = async (single) => {
     await p.goto(url, { waitUntil: 'networkidle' });
-    await p.evaluate((single) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'gestures.swipeSingleRow': single })); }, single);
+    await p.evaluate((single) => { indexedDB.deleteDatabase('sow-app'); localStorage.clear(); localStorage.setItem('sow.dateCols', '2'); localStorage.setItem('sow-app.prefs.v1', JSON.stringify({ 'gestures.swipeSingleRow': single, 'gestures.swipeConfirmStyle': 'blue' })); }, single);
     await p.goto(url + '#checklist/KGB_Eng_CW', { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(600);
     const before = await rowOn();
     const start = Object.keys(before).find((r) => !before[r] && +r > 2 && !before[+r + 1] && !before[+r + 2]);
@@ -21,7 +21,8 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, 
     // starts sideways (axis locks horizontal), then drifts ~2 rows down while still moving right
     const pts = [[x + 14, y + 3], [x + 28, y + 10], [x2 - 10, y + 40], [x2, y + 75], [x2 + 10, y + 115]];
     for (const [px, py] of pts) { await touch('touchMove', px, py); await p.waitForTimeout(16); }
-    const pend = await p.$$eval('.sw-row', (rows) => rows.filter((r) => r.querySelectorAll('.sw-check.pending').length === r.querySelectorAll('.sw-check').length && r.querySelector('.sw-check.pending')).map((r) => r.dataset.roll));
+    // v0.46.0 (t5u): only boxes the finger passed are pending — the start row has both, rows below only the column crossed
+    const pend = await p.$$eval('.sw-row', (rows) => rows.filter((r) => r.querySelector('.sw-check.pending')).map((r) => r.dataset.roll));
     const blue = await p.$eval('.sw-check.pending', (e) => getComputedStyle(e).borderColor).catch(() => '');
     await touch('touchEnd'); await p.waitForTimeout(60);
     const pendAfter = await p.$$eval('.sw-check.pending, .sw-row.paint-glow', (e) => e.length);

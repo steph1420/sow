@@ -1,7 +1,7 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
-- v0.45.0: "Before update" snapshot is best-effort (page reloads immediately after sow:flush). Snapshots are device-local (not on the sheet). FIXED first bridge pull keeping a stale seed tick (left TEST at 217; reset to 216).
+- v0.45.0: "Before update" snapshot was best-effort (fixed in v0.46.0-beta.1, see Fixed). Snapshots are device-local (not on the sheet). FIXED first bridge pull keeping a stale seed tick (left TEST at 217; reset to 216).
 - v0.44.5: FIXED date popover heavy green fill (t57u → option A), past-view header strip untinted, Connections showing the Beta URL (now masked when not editing), stale probes v040/sync-flow/offline-sync/sw-update/v042-shots. sync-flow/offline-sync now need SOW_TEST_BRIDGE_TOKEN and run on Beta against the TEST copy only.
 - v0.44.4: FIXED t56u 2-date view showing one column after the v0.44.3 heal (stored pair [x,x] collapsed). Healed pair is now filled with the nearest date and saved. The 0.43 rule "other column's date collapses to one" is replaced by a swap.
 - v0.44.3: FIXED t55u header columns multiplying / deleted date stuck in header. Persisted pairs are healed at render time (stored value rewritten next time a date is picked).
@@ -15,13 +15,13 @@
 - v0.34.1: the bridge address is built into the bundle; if Steve redeploys as a *new* deployment (new /exec id) the app needs a release or the Developer override. Re-deploying a New version of the same deployment keeps the URL.
 - v0.34.0 pairing/ping need Steve to re-paste Code.gs and deploy a New version; until then Pair/Join/Import say "Bridge is older · re-paste Code.gs…".
 - Pairing: one active code per bridge (a second Pair a device replaces the first). Setup file holds the token in plain text — anyone with the file can sync; reset the token to revoke.
-- Swipe pending cue: blue ring still default (Steve t170u "too shouty"); 5 alternatives in Developer → Swipe confirm (v0.30.0) — awaiting Steve's pick.
-- v0.33.0 bridge built but **not verified live** (needs Steve to deploy the web app on the copy). Phone and Apps Script clocks decide newer-wins; a phone clock far off could win/lose wrongly.
+- Swipe pending cue: **v0.46.0-beta.1** trailing wash is the default (Steve t5u "I like trailing wash"). A device whose prefs already store `blue` (saved or synced from the sheet's Prefs tab) keeps blue until changed in Developer → Swipe confirm.
+- Clock: **v0.46.0 bridge** shifts every pushed stamp by (server − phone) when the phone is off by > 30 s (app sends `clientNow`). Only after Steve deploys Code.js 0.46 on a sheet; on bridge 0.44 the old behaviour remains (future stamps clamped, a slow phone can still lose). Limit: a phone whose clock was changed between the edit and the sync is corrected by the offset at sync time.
 - Bridge: subjects on the sheet that the app does not model yet (anything outside KGA/KGB Eng/Math CW/HW keys) are skipped with a note — dynamic subjects in the app are a follow-up.
-- Submitted column still shown in the app though the sheet has no Submitted (Q-SHEET-1); UI removal needs a mock + lock.
-- Ticks table is rewritten on each push/Entry tick (fine for a year of data; revisit past ~50k rows).
-- Left students not read back (`persistWorkspace.ts`), Q-FIX-8 A+B timestamped (later, mock toggle first).
-- Swipe reversal un-paint + FAB Sort stub: Q-FIX-10 deferred (t3u "We'll tackle this later").
+- Submitted (Q-SHEET-1 closed by Steve t5u: keep it). v0.46.0: shown Submitted = manual OR Set; manual flag syncs as Ticks!J `subManual` on bridge 0.46 (bridge 0.44: stays on the phone). Derived vs manual look identical in the grid (no mock yet — open question). Ticks!J stays aligned on bridge rewrites; a hand sort of only columns A–H on the sheet would misalign J.
+- v0.46.0 bridge: a push writes only changed Ticks rows (in place + append) and Sessions/Roster only when they changed; a Ticks tab with blank gap rows falls back to the old full rewrite. Rename/delete date and Remove subject still rewrite the tab (structure change).
+- Left read-back fixed in v0.46.0 (`loadWorkspaceFromIdb` forced `left:false`; setting Left also never woke auto-save). Q-FIX-8 A+B mock toggle still later.
+- Swipe reversal un-paint done in v0.46.0 (path highlight, back un-lights, back to start cancels). FAB Sort stub: Q-FIX-10 still deferred.
 - **iOS install:** no `beforeinstallprompt`; v0.35.1 adds Settings › App › Install as app (Share → Add to Home Screen steps sheet) and a one-time nudge. (Before v0.35.1 this line claimed a hint existed — it did not.)
 - **Theme-color vs OS:** status bar follows `theme-color` meta; switching Day/Night updates it, but installed PWAs may need relaunch for chrome tint.
 - **gviz pull:** needs link-view (or broader) sharing on the workbook; editor-only private sheets fail Test until shared or pushed via bot connector.
@@ -29,6 +29,9 @@
 - **Hide SoW_* tabs:** Sheets MCP has no `hidden` sheet-properties tool. Tabs exist (SoW_Sessions 1728577063, SoW_RosterMeta 1479427997, SoW_Marks 1921268674) — School Bot / Apps Script `hideSheet()` needed.
 
 ## Fixed / mitigated
+
+- v0.46.0-beta.1 (t7u): "before update" snapshot was best-effort (page reloaded before it was written). New builds now wait (workbox skipWaiting off); the page writes the snapshot, reads it back, then sends SKIP_WAITING (3 s cap so an update can't get stuck).
+- v0.46.0-beta.1 (t5u): Left students not synced back to the phone's lists. Root cause: `loadWorkspaceFromIdb` built rosters with `left:false` and ignored rosterMeta; setting Left also never triggered auto-save.
 
 - **t52u (0.44.2)**: after deleting a date, Undo undid that date's ticks but the date never came back. Now delete/move are single undo steps that restore date + topic + ticks, also after Sync.
 - Known (pre-existing, not 0.44.2): v040-probe has 3 FAILs (topic toast, Tick all/Untick all) on 2a750a4 too — likely date-stale probe, to check.

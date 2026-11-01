@@ -196,7 +196,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const base = prev[k]?.length ? prev[k] : ROSTERS[k]
       return { ...prev, [k]: base.map((r) => (r.roll === roll ? ((name = r.name), { ...r, left }) : r)) }
     })
-    void setLeft(k, roll, left, name).catch(() => {})
+    void setLeft(k, roll, left, name).then(() => noteChange(1)).catch(() => {}) // v0.46.0: Left is auto-saved + synced like ticks
   }, [])
 
   const sessionDatesRef = useRef<(k: ClassKey) => Map<string, string>>(() => new Map())

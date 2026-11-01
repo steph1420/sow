@@ -25,7 +25,7 @@ import { OfflineError, discoverTabs, fetchSheetCsv, type Discovery } from './gvi
 import { parseEngTabLite, sheetDateToIsoAcademic } from './parseEngLite'
 import { loadPrefs } from '../prefs/appPrefs'
 import { extractSheetId } from './sheetId'
-import { BridgeError, bridgeCall, buildPushPayload, gvizState, stateToApp, type BridgeState, type PushResult } from './bridge'
+import { BridgeError, bridgeAtLeast, bridgeCall, buildPushPayload, gvizState, stateToApp, subMigrations, type BridgeState, type PushResult } from './bridge'
 import { listRosterMeta } from '../data'
 import { remainingAfterPush, sessionOps } from './topicEdits'
 import { remainingStructs, ticksOutsideStructs } from './structOps'
@@ -358,12 +358,20 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
   }
   for (const m of a.marks) {
     const cur = await getMark(m.classKey, m.roll, m.date)
-    if (cur && cur.updatedAt > m.updatedAt && cur.set !== m.set) {
+    // v0.46.0: bridge ≥ 0.46 sends the manual-Submitted flag (sheetSub defined); older bridges don't → the phone keeps its own.
+    const hasSub = typeof m.sheetSub === 'boolean'
+    const migrating = hasSub && !!cur?.submitted && cur.sheetSub === undefined && !m.sheetSub
+    if (cur && cur.updatedAt > m.updatedAt && (cur.set !== m.set || (hasSub && !migrating && cur.submitted !== m.submitted))) {
       kept++
       continue
     }
     if (!cur || cur.set !== m.set) changed++
-    await putMark({ ...m, name: m.name || cur?.name || '', submitted: cur?.submitted ?? false }, { fromSheet: true })
+    const submitted = hasSub ? (migrating ? true : m.submitted) : (cur?.submitted ?? false)
+    const sheetSub = hasSub ? (migrating ? undefined : m.sheetSub) : cur?.sheetSub
+    if (cur && cur.submitted !== submitted) changed++
+    const row = { ...m, name: m.name || cur?.name || '', submitted }
+    delete (row as { sheetSub?: boolean }).sheetSub
+    await putMark(sheetSub === undefined ? row : { ...row, sheetSub }, { fromSheet: true })
   }
   for (const se of a.sessions) await putSession(se, { fromSheet: true, keepUpdatedAt: true })
   const pulled = new Set(Object.keys((await getSettings()).engSyncState ?? {}) as ClassKey[])
@@ -379,17 +387,20 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
 /** v0.33.0 — push changed ticks/Left to the bridge, then apply the sheet state it returns. Falls back to a gviz read. */
 export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const started = new Date().toISOString()
-  const payload = buildPushPayload(await (await getDb()).getAll('marks'), await listRosterMeta(), settings.bridgeSyncAt)
+  const allMarks = await (await getDb()).getAll('marks')
+  const payload = buildPushPayload(allMarks, await listRosterMeta(), settings.bridgeSyncAt)
+  const subs = bridgeAtLeast(settings.bridgeVersion, '0.46') ? subMigrations(allMarks) : [] // v0.46.0 (t5u): migrate old manual Submitted
   const sentTopics = { ...(settings.topicEdits ?? {}) }
   const sessions = sessionOps(sentTopics)
   const structs = [...(settings.structOps ?? [])] // v0.44.0: rename/delete before ticks/topics (bridge applies them first)
   payload.ticks = ticksOutsideStructs(payload.ticks, structs)
-  const count = payload.ticks.length + payload.roster.length + sessions.length + structs.length
+  const count = payload.ticks.length + payload.roster.length + sessions.length + structs.length + subs.length
   let state: BridgeState
   let res: PushResult | null = null
   try {
     if (count) {
-      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', ...payload, ...(sessions.length ? { sessions } : {}), ...(structs.length ? { structs } : {}) })
+      // v0.46.0 (t7u): clientNow lets bridge ≥ 0.46 correct a phone clock that is off (older bridges ignore it)
+      res = await bridgeCall<PushResult>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'push', clientNow: new Date().toISOString(), ...payload, ...(sessions.length ? { sessions } : {}), ...(structs.length ? { structs } : {}), ...(subs.length ? { subs } : {}) })
       state = res.state
     } else {
       state = await bridgeCall<BridgeState>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'pull' })
@@ -423,6 +434,7 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const topicEdits = res ? remainingAfterPush(latest, sentTopics, sessions.length ? res.sessionsApplied : 0) : latest
   const oldBridge = sessions.length > 0 && res?.sessionsApplied === undefined
   await putSettings({
+    bridgeVersion: res?.version ?? state.version ?? latestAll.bridgeVersion,
     topicEdits,
     structOps,
     bridgeSyncAt: started,

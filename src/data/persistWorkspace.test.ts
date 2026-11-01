@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { listMarks, listStudents } from './api'
+import { listMarks, listStudents, putRosterMeta, putStudent } from './api'
 import { resetDbForTests } from './db'
 import { loadWorkspaceFromIdb, seedDemoWorkspaceToIdb } from './persistWorkspace'
 import { seedIfEmpty } from './seed'
@@ -40,5 +40,14 @@ describe('persistClassMarks (v0.44.1)', () => {
     await persistClassMarks('KGB_Eng_CW', { '1|2026-12-31': { set: false, submitted: false } }, roster, [])
     const m = (await listMarks('KGB_Eng_CW')).filter((x) => x.date === '2026-12-31')
     expect(m.length === 1 && m[0]!.set === false).toBe(true)
+  })
+
+  // v0.46.0 (t5u "Left students should be synced properly"): Left read back from IDB (was always false — BUGS persistWorkspace.ts)
+  it('reads Left back from rosterMeta (sheet → phone and after reload)', async () => {
+    await putStudent({ id: 'KGB_Eng_CW|1', classKey: 'KGB_Eng_CW', roll: 1, name: 'Demo One' })
+    await putStudent({ id: 'KGB_Eng_CW|2', classKey: 'KGB_Eng_CW', roll: 2, name: 'Demo Two' })
+    await putRosterMeta({ classKey: 'KGB_Eng_CW', roll: 2, name: 'Demo Two', left: true, updatedAt: '2026-10-30T00:00:00.000Z' })
+    const loaded = await loadWorkspaceFromIdb()
+    expect(loaded.rosters.KGB_Eng_CW).toEqual([{ roll: 1, name: 'Demo One', left: false }, { roll: 2, name: 'Demo Two', left: true }])
   })
 })

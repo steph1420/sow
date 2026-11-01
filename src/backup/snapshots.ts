@@ -136,3 +136,13 @@ export async function restoreSnapshot(id: string): Promise<RestoreResult> {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('sow:snapshots'))
   return { undone, ticks: snap.ticks, beforeId: before.id, at: snap.at }
 }
+
+/** v0.46.0 (t7u): "before update" snapshot that is confirmed: written, then read back from IDB and compared by hash. */
+export async function snapshotBeforeUpdate(): Promise<boolean> {
+  await takeSnapshot('auto', 'before update')
+  const want = hashTicks((await currentTicks()).ticks)
+  const db = await getDb()
+  const newest = (await listSnapshots())[0]
+  if (!newest || newest.hash !== want) return false
+  return !!(await db.get('snapshots', newest.id))
+}

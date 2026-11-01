@@ -67,3 +67,19 @@ describe('snapshots', () => {
     expect((await listMarks('KGA_Eng_CW')).filter((m) => m.set).map((m) => m.roll)).toEqual([2])
   })
 })
+
+import { snapshotBeforeUpdate } from './snapshots'
+// v0.46.0 (t7u): the "before update" snapshot is written AND read back before the new build may activate.
+describe('snapshotBeforeUpdate', () => {
+  it('persists the current ticks and confirms by reading them back', async () => {
+    await tick(1, '2026-10-28', true)
+    expect(await snapshotBeforeUpdate()).toBe(true)
+    const [s] = await listSnapshots()
+    expect(s!.reason).toBe('before update')
+    expect(s!.ticks).toBe(1)
+    await tick(2, '2026-10-28', true)
+    expect(await snapshotBeforeUpdate()).toBe(true) // new data → new snapshot confirmed
+    expect((await listSnapshots())[0]!.ticks).toBe(2)
+    expect(await snapshotBeforeUpdate()).toBe(true) // unchanged → newest snapshot already holds it
+  })
+})

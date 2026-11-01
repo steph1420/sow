@@ -4,13 +4,13 @@ import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle, pendingFlags, pendingRowClas
 import { PREFS_DEFAULTS } from '../../prefs/appPrefs'
 
 describe('swipe-confirm styles', () => {
-  it('offers all six, blue first and default (until Steve picks)', () => {
+  it('offers all six; trailing wash is the default (Steve t5u "I like trailing wash")', () => {
     expect(SWIPE_CONFIRM_STYLES.map((s) => s.id)).toEqual(['blue', 'tint', 'ghost', 'sliver', 'wash', 'ghostTint'])
-    expect(PREFS_DEFAULTS['gestures.swipeConfirmStyle']).toBe('blue')
+    expect(PREFS_DEFAULTS['gestures.swipeConfirmStyle']).toBe('wash')
   })
-  it('unknown stored value falls back to blue', () => {
-    expect(normalizeSwipeStyle('nope')).toBe('blue')
-    expect(normalizeSwipeStyle(undefined)).toBe('blue')
+  it('unknown stored value falls back to wash', () => {
+    expect(normalizeSwipeStyle('nope')).toBe('wash')
+    expect(normalizeSwipeStyle(undefined)).toBe('wash')
     expect(normalizeSwipeStyle('wash')).toBe('wash')
   })
   it('B+A: single row = ghost only; ≥2 rows add the tint', () => {

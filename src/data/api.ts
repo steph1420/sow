@@ -2,7 +2,7 @@ import { getDb } from './db'
 import type { ClassKey, Mark, RosterMeta, Session, Settings, Student } from './types'
 import { markId as makeMarkId, studentId } from './types'
 import { effectiveSyncUrl } from '../sync/defaultBridge'
-import { currentBetaUrl, currentChannel, syncUrlFor } from '../sync/channel'
+import { currentBetaUrl, currentChannel, currentOverride, syncUrlFor } from '../sync/channel'
 
 const now = () => new Date().toISOString()
 
@@ -29,7 +29,8 @@ export async function getSettings(): Promise<Settings> {
     theme: 'night',
   }
   const out = s ? { ...base, ...s, id: 'app' as const } : base
-  return { ...out, syncUrl: currentChannel() === 'stable' ? effectiveSyncUrl(out.syncUrl) : syncUrlFor('beta', currentBetaUrl(), out.syncUrl) }
+  const ov = currentOverride() // v0.46.0 (t7u): Settings › Developer bridge URL override
+  return { ...out, syncUrl: currentChannel() === 'stable' ? syncUrlFor('stable', null, effectiveSyncUrl(out.syncUrl), ov) : syncUrlFor('beta', currentBetaUrl(), out.syncUrl, ov) }
 }
 
 // v0.42.0: settings writes are read-modify-write; serialise them so concurrent patches (topic edit + picked pair) don't drop each other.

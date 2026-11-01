@@ -53,7 +53,7 @@ describe('stateToApp (pure)', () => {
 })
 
 describe('buildPushPayload (pure)', () => {
-  it('sends only marks/Left changed since the last bridge sync; Left goes per section; no Submitted', () => {
+  it('sends only marks/Left changed since the last bridge sync; Left goes per section; manual Submitted as sub (v0.46.0)', () => {
     const p = buildPushPayload(
       [
         { markId: 'KGA_Eng_CW|1|2026-10-28', classKey: 'KGA_Eng_CW', roll: 1, name: '', date: '2026-10-28', topic: 'Q', set: true, submitted: true, updatedAt: '2026-10-29T10:00:00.000Z' },
@@ -65,7 +65,7 @@ describe('buildPushPayload (pure)', () => {
       ],
       '2026-10-20T00:00:00.000Z',
     )
-    expect(p.ticks).toEqual([{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: true, updatedAt: '2026-10-29T10:00:00.000Z' }])
+    expect(p.ticks).toEqual([{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: true, updatedAt: '2026-10-29T10:00:00.000Z', sub: true }]) // v0.46.0: manual Submitted now syncs
     expect(p.roster).toEqual([{ classKey: 'KGA', roll: 2, status: 'Left', updatedAt: '2026-10-29T09:30:00.000Z' }])
   })
 })

@@ -740,6 +740,13 @@
     color-mix(in srgb, var(--mode) 13%, transparent) var(--wash-x, 0%),
     transparent calc(var(--wash-x, 0%) + 1%));
 }
+/* v0.46.0 (t5u): each box the finger has passed lights up (mode colour); only lit boxes are ticked on lift */
+.sw-row.pc-wash .sw-check.tgt {
+  border-color: var(--mode);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mode) 28%, transparent);
+  background: color-mix(in srgb, var(--mode) 18%, transparent);
+}
+.sw-row.pc-wash.pc-clear .sw-check.tgt.on { opacity: 0.5; }
 
 /* v0.35.0 colour themes (theme-mj2-all): filled ticks in the theme primary. Submitted mode keeps --sub (fixed). */
 :root[data-palette] .sw-page:not(.mode-sub) .sw-check.on,

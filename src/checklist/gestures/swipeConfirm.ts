@@ -5,16 +5,16 @@
 export type SwipeConfirmStyle = 'blue' | 'tint' | 'ghost' | 'sliver' | 'wash' | 'ghostTint'
 
 export const SWIPE_CONFIRM_STYLES: { id: SwipeConfirmStyle; label: string }[] = [
-  { id: 'blue', label: 'Blue ring (current)' },
+  { id: 'blue', label: 'Blue ring' },
   { id: 'tint', label: 'A · Soft tint' },
   { id: 'ghost', label: 'B · Ghost ✓' },
   { id: 'sliver', label: 'C · Edge sliver' },
-  { id: 'wash', label: 'D · Trailing wash' },
+  { id: 'wash', label: 'D · Trailing wash (default)' },
   { id: 'ghostTint', label: 'B+A · Ghost ✓ + tint' },
 ]
 
 export function normalizeSwipeStyle(v: unknown): SwipeConfirmStyle {
-  return SWIPE_CONFIRM_STYLES.some((s) => s.id === v) ? (v as SwipeConfirmStyle) : 'blue'
+  return SWIPE_CONFIRM_STYLES.some((s) => s.id === v) ? (v as SwipeConfirmStyle) : 'wash'
 }
 
 export type PendingFlags = { ring: boolean; tint: boolean; ghost: boolean; sliver: boolean; wash: boolean }

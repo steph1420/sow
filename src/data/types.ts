@@ -96,6 +96,8 @@ export interface Mark {
   updatedAt: string
   /** v0.29.2 (Q-FIX-2 A): Set value the sheet had at the last pull — per-tick baseline. Undefined = legacy (pre-v0.29.2). */
   sheetSet?: boolean
+  /** v0.46.0: manual-Submitted value the sheet (bridge ≥ 0.46) had at the last pull. Undefined = sheet never confirmed it (migrate pending). */
+  sheetSub?: boolean
 }
 
 /** Per-class Eng sync snapshot (Sync A). */
@@ -139,6 +141,10 @@ export interface Settings {
   deletedSessions?: Record<string, string>
   /** v0.44.0: rename/delete ops waiting for a v0.44 bridge. */
   structOps?: import('../sync/structOps').StructOp[]
+  /** v0.46.0: version the bridge reported on the last sync (connection check, feature gates). */
+  bridgeVersion?: string
+  /** v0.46.0: Developer bridge URL override (empty = built-in / channel default). */
+  bridgeUrlOverride?: string
 }
 
 export type DiscoveredTab = { name: string; classKey: ClassKey; subject: SubjectId }

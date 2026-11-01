@@ -15,13 +15,14 @@ import {
 } from '../../lib/undoStack'
 import type { ColPills, DateSlot, MarkMode, MarksMap, StudentRow } from '../types'
 import { markKey } from '../types'
+import { fieldValue, paintField, toggleField } from '../../data/submitted'
 
 function getMark(marks: MarksMap, roll: number, date: string) {
   return marks[markKey(roll, date)] ?? { set: false, submitted: false }
 }
 
 function fieldOf(m: { set: boolean; submitted: boolean }, mode: MarkMode): boolean {
-  return mode === 'set' ? m.set : m.submitted
+  return fieldValue(m, mode) // v0.46.0: Submitted shows manual OR Set
 }
 
 function classLabelOf(key: ClassKey): string {
@@ -109,7 +110,7 @@ export function useChecklistModel() {
   const toggleCell = useCallback(
     (roll: number, date: string) => {
       const cur = getMark(marks, roll, date)
-      const next = { ...cur, [mode]: !fieldOf(cur, mode) }
+      const next = toggleField(cur, mode)
       commitMarks([{ roll, date, set: next.set, submitted: next.submitted }])
     },
     [marks, mode, commitMarks],
@@ -119,12 +120,7 @@ export function useChecklistModel() {
     (targets: { roll: number; date: string }[], value: boolean) => {
       const changes = targets.map(({ roll, date }) => {
         const cur = getMark(marks, roll, date)
-        return {
-          roll,
-          date,
-          set: mode === 'set' ? value : cur.set,
-          submitted: mode === 'submitted' ? value : cur.submitted,
-        }
+        return { roll, date, ...paintField(cur, mode, value) }
       })
       commitMarks(changes)
     },

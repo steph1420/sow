@@ -209,7 +209,7 @@ export function progressForSession(
   for (const r of active) {
     const m = marks[markKey(r.roll, date)] ?? { set: false, submitted: false }
     if (m.set) set++
-    if (m.submitted) submitted++
+    if (m.submitted || m.set) submitted++ // v0.46.0: Set implies Submitted
   }
   const total = active.length || 1
   const pct = Math.round((set / total) * 100)

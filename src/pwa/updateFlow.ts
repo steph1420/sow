@@ -72,3 +72,38 @@ export function installUpdateFlow(d: UpdateFlowDeps): void {
     go()
   })
 }
+
+/** v0.46.0 (t7u): take + confirm the "before update" snapshot, then let the waiting SW activate.
+ *  Capped (default 3 s) so a stuck IDB can never keep the phone on an old build ("Stuck in 0.29.0"). */
+export async function snapshotThenActivate(
+  snapshot: () => Promise<boolean>,
+  activate: () => void,
+  capMs = 3000,
+): Promise<'ok' | 'unconfirmed' | 'timeout' | 'error'> {
+  let r: 'ok' | 'unconfirmed' | 'timeout' | 'error'
+  try {
+    r = await Promise.race([
+      snapshot().then((ok) => (ok ? 'ok' : 'unconfirmed') as 'ok' | 'unconfirmed'),
+      new Promise<'timeout'>((f) => setTimeout(() => f('timeout'), capMs)),
+    ])
+  } catch {
+    r = 'error'
+  }
+  activate()
+  return r
+}
+
+/** Watch a registration for a new SW that has installed and is waiting; gate its activation on the snapshot. */
+export function installSnapshotGate(reg: ServiceWorkerRegistration, snapshot: () => Promise<boolean>): void {
+  const done = new WeakSet<ServiceWorker>()
+  const handle = (w: ServiceWorker | null) => {
+    if (!w || done.has(w) || !navigator.serviceWorker.controller) return
+    done.add(w)
+    void snapshotThenActivate(snapshot, () => w.postMessage({ type: 'SKIP_WAITING' }))
+  }
+  handle(reg.waiting)
+  reg.addEventListener('updatefound', () => {
+    const nw = reg.installing
+    nw?.addEventListener('statechange', () => { if (nw.state === 'installed') handle(nw) })
+  })
+}

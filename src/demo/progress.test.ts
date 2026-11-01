@@ -16,7 +16,7 @@ describe('overview demo progress', () => {
     const p = progressForSession(marks, ROSTERS[key], '2026-10-28')
     expect(p.total).toBe(42)
     expect(p.set).toBe(18)
-    expect(p.submitted).toBe(11)
+    expect(p.submitted).toBe(18) // v0.46.0 t5u: Set implies Submitted
     expect(p.pct).toBe(43)
     expect(p.tone).toBe('ok')
   })
@@ -34,7 +34,7 @@ describe('overview demo progress', () => {
     const p = progressForSession(seedClassMarks(key), ROSTERS[key], '2026-10-28')
     expect(p.total).toBe(40)
     expect(p.set).toBe(22)
-    expect(p.submitted).toBe(9)
+    expect(p.submitted).toBe(22) // v0.46.0 t5u
     expect(p.pct).toBe(55)
   })
 })

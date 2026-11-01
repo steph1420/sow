@@ -4,6 +4,7 @@
  */
 
 import { normalizeContrast } from '../theme/contrast'
+import { flavorKey } from '../sync/channel'
 import { normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { normalizeSwipeStyle, type SwipeConfirmStyle } from '../checklist/gestures/swipeConfirm'
 import { migrateLegacyShare, SEED_TEMPLATES, type ShareTemplate } from '../share/shareTemplates'
@@ -60,7 +61,7 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'az.hideEmpty': false,
   'az.showHud': true,
   'gestures.swipeSingleRow': false,
-  'gestures.swipeConfirmStyle': 'blue',
+  'gestures.swipeConfirmStyle': 'wash', // v0.46.0 (Steve t5u "I like trailing wash")
   'gestures.nameSwipeFrom': 0.5,
   'kbd.autoAdvance': true,
   'haptics.enabled': true,
@@ -73,9 +74,9 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'sync.joinUrlOverride': false,
 }
 
-const STORE_KEY = 'sow-app.prefs.v1'
+const STORE_KEY = flavorKey('sow-app.prefs.v1') // v0.46.0: Beta site keeps its own prefs
 /** v0.21 prefs (pre-rewrite) — may still hold the user's single `share.template`. */
-const LEGACY_KEY = 'sow.prefs.v1'
+const LEGACY_KEY = flavorKey('sow.prefs.v1')
 
 function freshDefaults(): AppPrefs {
   return { ...PREFS_DEFAULTS, 'share.templates': PREFS_DEFAULTS['share.templates'].map((t) => ({ ...t })) }

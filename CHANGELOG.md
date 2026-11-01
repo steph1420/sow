@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.46.0-beta.1 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
+
+Steve t4u, t5u, t7u, t8u. Rollback tag/commit: `v0.45.0` / `2282bdc`, branch `backup/pre-v0.46.0`, or `/workspace/backup-sow-pre-v0.46.0.tgz`. **Code.js change: YES** (`apps-script/Code.js` → bridge 0.46.0; Steve deploys it on TEST himself; the app works on bridge 0.44.0 until then). Triangulation: `docs/CODE_TRIANGULATION_v0.46.md`.
+- **Beta site (t8u):** new repo `steph1420/sow-beta` builds this tag with `/sow-beta/` and serves https://steph1420.github.io/sow-beta/. The Beta app is always the TEST copy: the TEST /exec is built in, the token never is. It has its own IndexedDB (`sow-beta`) and prefixed settings keys, so it never switches or mixes with Stable. Stable's workflow now skips any prerelease version, so v0.46 is not deployed to https://steph1420.github.io/sow/.
+- **Submitted (t5u):** Set implies Submitted. A Submitted box is either derived (follows Set) or manual (stays ticked whatever Set does). Tapping Submitted makes it manual; un-ticking a manual one returns it to derived. Old Submitted ticks become manual, with nothing lost and no IndexedDB change. On bridge 0.46 the manual flag syncs as Ticks!J `subManual`, and old manual ticks are migrated with an "only turn on" op. On bridge 0.44 the flag stays on the phone.
+- **Swipe (t5u):** each box lights up as the finger passes it, and lift ticks only the lit boxes. Going back un-lights boxes, and going back to the start cancels. Trailing wash is now the default cue. New real-touch probe `swipe-path-probe.cjs` (412×915).
+- **Left (t5u):** Left pupils now load back from the phone's store (they were always shown Active after a reload or pull), and marking Left triggers auto-save. Both directions are newer-wins per pupil.
+- **Sync speed (t4u, integrity first):** bridge 0.46 writes only the changed Ticks rows (updated in place, new rows appended), and writes Sessions/Roster only when something in them changed. A tab with blank gap rows falls back to the old full rewrite. Test `apps-script/test/v046.test.ts` runs the old 0.44 bridge and the new one on the same pushes and requires identical sheets. Auto-sync on open/foreground is skipped when nothing is waiting and the last sync was under 60 s ago. Manual Sync never skips.
+- **Clock-safe newer-wins (t7u):** the app sends `clientNow`. Bridge 0.46 shifts every stamp by (server − phone) when the phone is off by more than 30 s, so a slow phone no longer loses real edits.
+- **Dependable "before update" snapshot (t7u):** a new build waits until the snapshot is written and read back from IndexedDB, then activates (3 s cap).
+- **Settings › Developer › Bridge URL override (t7u):** masked, accepts only `https://script.google.com/macros/s/…/exec`, blank = built-in.
+- **Settings › Sync › Check connection:** shows the sheet (TEST copy / LIVE / other, by sheet id) and the bridge version. Bridge 0.44 doesn't report its sheet, so the label comes from the Settings sheet URL, with a note.
+- Handover: `07_STALL_RULES.md` rule 1 corrected per t1u. The 3 minutes is a self-check for progress, not a cap.
+
 ## 0.45.0 — 2026-11-01 (Asia/Calcutta) · Beta
 
 Steve t61u (auto-save A, lock icon, restore updates sheet). Rollback: commit `6ea96a1`, branch `backup/pre-v0.45.0`, or `/workspace/sow-pwa-pre-v0.45.0.tgz`. **Code.js change: NO** (per-tick newer-wins already handles restored clears).

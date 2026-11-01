@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.44.0'
+var BRIDGE_VERSION = '0.46.0'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -64,6 +64,49 @@ function write_(ss, name, n, rows) {
   if (last >= 2) s.getRange(2, 1, last - 1, n).clearContent()
   if (rows.length) s.getRange(2, 1, rows.length, n).setValues(rows)
 }
+/** v0.46.0: Ticks rows carry a 9th element = Ticks!J subManual (Submitted ticked by hand). Column I is a formula and is never written. */
+var SUB_COL = 10
+function ticksRead_(ss) {
+  var s = sheet_(ss, T.ticks), last = s.getLastRow()
+  if (last < 2) return []
+  return s.getRange(2, 1, last - 1, SUB_COL).getValues().filter(function (r) { return r[0] !== '' && r[0] != null })
+    .map(function (r) { var x = r.slice(0, 8); x.push(r[SUB_COL - 1] === true); return x })
+}
+function subHeader_(s) { if (s.getRange(1, SUB_COL).getValue() !== 'subManual') s.getRange(1, SUB_COL).setValue('subManual').setFontWeight('bold') }
+function subVals_(rows) { return rows.map(function (r) { return [r[8] === true ? true : ''] }) }
+/** Full rewrite (structure changes): A–H as write_, plus J kept aligned with its row. */
+function ticksWrite_(ss, rows) {
+  var s = sheet_(ss, T.ticks), last = s.getLastRow()
+  write_(ss, T.ticks, 8, rows.map(function (r) { return r.slice(0, 8) }))
+  if (last >= 2) s.getRange(2, SUB_COL, last - 1, 1).clearContent()
+  if (rows.some(function (r) { return r[8] === true })) { subHeader_(s); s.getRange(2, SUB_COL, rows.length, 1).setValues(subVals_(rows)) }
+}
+/** v0.46.0 (t4u): write only the changed rows in place and append new ones. Same final sheet as ticksWrite_, unless the tab
+ *  has blank gap rows (then the old compacting rewrite runs, so the result stays identical to the old bridge). */
+function ticksWriteChanged_(ss, rows, dirty, origLen, compact) {
+  if (!compact) return ticksWrite_(ss, rows)
+  var s = sheet_(ss, T.ticks), idx = Object.keys(dirty).map(Number).sort(function (a, b) { return a - b })
+  if (!idx.length) return
+  ensureRows_(s, rows.length + 1)
+  if (rows.some(function (r, i) { return dirty[i] && r[8] === true })) subHeader_(s)
+  var hasSubHeader = s.getRange(1, SUB_COL).getValue() === 'subManual'
+  for (var k = 0; k < idx.length;) {
+    var j = k; while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j++
+    var run = rows.slice(idx[k], idx[j] + 1)
+    s.getRange(idx[k] + 2, 1, run.length, 8).setValues(run.map(function (r) { return r.slice(0, 8) }))
+    if (hasSubHeader) s.getRange(idx[k] + 2, SUB_COL, run.length, 1).setValues(subVals_(run))
+    k = j + 1
+  }
+}
+function isCompact_(ss, name, n) { var s = sheet_(ss, name), last = s.getLastRow(); return last < 2 || read_(ss, name, n).length === last - 1 }
+/** v0.46.0 (t7u): server − phone clock offset; only applied when the phone is off by more than 30 s. */
+var CLOCK_FIX_MIN_MS = 30000
+function clockOffset_(clientNow, nowMs) {
+  var c = Date.parse(String(clientNow || '')); if (isNaN(c)) return 0
+  var off = (nowMs == null ? Date.now() : nowMs) - c
+  return Math.abs(off) > CLOCK_FIX_MIN_MS ? off : 0
+}
+function shiftStamp_(at, off) { if (!off || !at) return at; var t = Date.parse(String(at)); return isNaN(t) ? at : new Date(t + off).toISOString() }
 function header_(s, cols) { s.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold'); s.setFrozenRows(1) }
 function meta_(ss, key, value) {
   var s = sheet_(ss, T.meta), rows = s.getLastRow() >= 2 ? s.getRange(2, 1, s.getLastRow() - 1, 2).getValues() : []
@@ -202,7 +245,7 @@ function state_(ss) {
     subjects: read_(ss, T.subjects, 7).map(function (r) { return { subjectKey: r[0], classKey: r[1], subject: r[2], kind: r[3], active: r[4] !== false, order: r[5] } }),
     roster: read_(ss, T.roster, 7).map(function (r) { return { classKey: r[0], roll: Number(r[1]), name: String(r[2]), status: r[3] === 'Left' ? 'Left' : 'Active', updatedAt: toIsoStamp_(r[6]) } }),
     sessions: read_(ss, T.sessions, 8).map(function (r) { return { sessionId: r[0], subjectKey: r[1], classKey: r[2], date: r[3] instanceof Date ? isoDate_(r[3]) : String(r[3]), topic: String(r[4] || ''), status: r[5] || 'Open', updatedAt: toIsoStamp_(r[7]) } }),
-    ticks: read_(ss, T.ticks, 8).map(function (r) { return { tickId: r[0], sessionId: r[1], subjectKey: r[2], classKey: r[3], roll: Number(r[4]), set: r[5] === true, updatedAt: toIsoStamp_(r[6]) } }),
+    ticks: ticksRead_(ss).map(function (r) { return { tickId: r[0], sessionId: r[1], subjectKey: r[2], classKey: r[3], roll: Number(r[4]), set: r[5] === true, updatedAt: toIsoStamp_(r[6]), sub: r[8] === true } }),
   }
 }
 
@@ -212,13 +255,13 @@ function state_(ss) {
 var TOMB_KEY = 'SOW_TOMBS'
 function tombs_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(TOMB_KEY) || '{}') } catch (e) { return {} } }
 function saveTombs_(t) { PropertiesService.getScriptProperties().setProperty(TOMB_KEY, JSON.stringify(t)) }
-function applyStructs_(ss, structs, subjects, rejected) {
+function applyStructs_(ss, structs, subjects, rejected, off) {
   var done = 0, tb = tombs_()
-  var srows = read_(ss, T.sessions, 8), ticks = read_(ss, T.ticks, 8), changed = false
+  var srows = read_(ss, T.sessions, 8), ticks = ticksRead_(ss), changed = false
   var find = function (sid) { for (var i = 0; i < srows.length; i++) if (srows[i][0] === sid) return i; return -1 }
   structs.forEach(function (o) {
     if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
-    var at = o.at ? clampStamp_(o.at) : nowIso_()
+    var at = o.at ? clampStamp_(shiftStamp_(o.at, off)) : nowIso_()
     if (o.kind === 'rename') {
       var df = dateFromIso_(o.from), dt = dateFromIso_(o.to)
       if (!df || !dt) { rejected.push('bad rename ' + JSON.stringify(o)); return }
@@ -238,7 +281,7 @@ function applyStructs_(ss, structs, subjects, rejected) {
       done++
     } else rejected.push('unknown struct ' + o.kind)
   })
-  if (changed) { write_(ss, T.sessions, 8, srows); write_(ss, T.ticks, 8, ticks) }
+  if (changed) { write_(ss, T.sessions, 8, srows); ticksWrite_(ss, ticks) }
   saveTombs_(tb)
   return { done: done, tombs: tb }
 }
@@ -246,32 +289,37 @@ function applyStructs_(ss, structs, subjects, rejected) {
 function applyPush_(ss, ops, by) {
   var applied = 0, ignored = 0, rejected = []
   var subjects = {}; read_(ss, T.subjects, 7).forEach(function (r) { subjects[r[0]] = r })
-  var structApplied
-  if (ops.structs && ops.structs.length) structApplied = applyStructs_(ss, ops.structs, subjects, rejected).done
+  var structApplied, off = clockOffset_(ops.clientNow)
+  if (ops.structs && ops.structs.length) structApplied = applyStructs_(ss, ops.structs, subjects, rejected, off).done
   var tb = tombs_()
   // an op for a tombstoned session counts only if it is newer than the tombstone (e.g. Undo after Sync)
   var buried = function (sid, at) { return tb[sid] && String(at) <= tb[sid] }
 
-  if (ops.ticks && ops.ticks.length) {
+  // v0.46.0 (t5u): subs = manual Submitted made before bridge 0.46 — only ever turns Ticks!J on (never clears, never touches Set/stamp)
+  var tickOps = (ops.ticks || []).concat((ops.subs || []).map(function (x) { return { subjectKey: x.subjectKey, date: x.date, topic: '', roll: x.roll, set: false, sub: true, updatedAt: x.updatedAt, subOnly: true } }))
+  if (tickOps.length) {
     var sessions = read_(ss, T.sessions, 8), sIdx = {}
     sessions.forEach(function (r, i) { sIdx[r[0]] = i })
-    var ticks = read_(ss, T.ticks, 8), tIdx = {}
+    var ticks = ticksRead_(ss), tIdx = {}, dirty = {}, origLen = ticks.length, sesLen = sessions.length, compact = isCompact_(ss, T.ticks, 8)
     ticks.forEach(function (r, i) { tIdx[r[0]] = i })
-    ops.ticks.forEach(function (t) {
+    tickOps.forEach(function (t) {
       if (!subjects[t.subjectKey]) { rejected.push(t.subjectKey + ' is not in Subjects'); return }
-      var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? clampStamp_(t.updatedAt) : ''
+      var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? clampStamp_(shiftStamp_(t.updatedAt, off)) : ''
       if (!d || !(roll > 0) || !at) { rejected.push('bad tick ' + JSON.stringify(t)); return }
       var cls = sectionOf_(t.subjectKey), sid = sessionId_(t.subjectKey, isoDate_(d)), id = tickId_(sid, roll)
       if (sIdx[sid] == null && buried(sid, at)) { ignored++; return }
       if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, String(t.topic || ''), 'Open', at, at]) }
       var i = tIdx[id]
+      if (t.subOnly && i != null) { if (ticks[i][8] === true) ignored++; else { ticks[i][8] = true; dirty[i] = true; applied++ } return }
       if (i != null && String(ticks[i][6]) >= at) { ignored++; return } // per-tick newer wins
-      var row = [id, sid, t.subjectKey, cls, roll, t.set === true, at, by]
-      if (i == null) { tIdx[id] = ticks.length; ticks.push(row) } else ticks[i] = row
+      // v0.46.0: sub (manual Submitted) — an op without it (older app, sheet Entry) keeps the stored flag
+      var sub = typeof t.sub === 'boolean' ? t.sub : (i != null && ticks[i][8] === true)
+      var row = [id, sid, t.subjectKey, cls, roll, t.set === true, at, by, sub]
+      if (i == null) { tIdx[id] = ticks.length; dirty[ticks.length] = true; ticks.push(row) } else { ticks[i] = row; dirty[i] = true }
       applied++
     })
-    write_(ss, T.sessions, 8, sessions)
-    write_(ss, T.ticks, 8, ticks)
+    if (sessions.length !== sesLen) write_(ss, T.sessions, 8, sessions) // v0.46.0: Sessions only when a session was added
+    ticksWriteChanged_(ss, ticks, dirty, origLen, compact)
   }
 
   // v0.40.0: topic edits from the app. Per-session newer wins on updatedAt; older apps simply don't send this.
@@ -281,7 +329,7 @@ function applyPush_(ss, ops, by) {
     srows.forEach(function (r, i) { sI[r[0]] = i })
     ops.sessions.forEach(function (o) {
       if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
-      var d = dateFromIso_(o.date), at = o.updatedAt ? clampStamp_(o.updatedAt) : ''
+      var d = dateFromIso_(o.date), at = o.updatedAt ? clampStamp_(shiftStamp_(o.updatedAt, off)) : ''
       if (!d || !at) { rejected.push('bad session ' + JSON.stringify(o)); return }
       var sid = sessionId_(o.subjectKey, isoDate_(d)), i = sI[sid], topic = String(o.topic == null ? '' : o.topic).slice(0, 200)
       if (i == null && buried(sid, at)) { ignored++; return }
@@ -291,27 +339,27 @@ function applyPush_(ss, ops, by) {
       srows[i][7] = at
       sessionsApplied++
     })
-    write_(ss, T.sessions, 8, srows)
+    if (sessionsApplied) write_(ss, T.sessions, 8, srows)
   }
 
   if (ops.roster && ops.roster.length) {
-    var roster = read_(ss, T.roster, 7), rIdx = {}
+    var roster = read_(ss, T.roster, 7), rIdx = {}, rosterApplied = 0
     roster.forEach(function (r, i) { rIdx[r[0] + '|' + Number(r[1])] = i })
     ops.roster.forEach(function (p) {
       var i = rIdx[p.classKey + '|' + Number(p.roll)]
       if (i == null) { rejected.push('no pupil ' + p.classKey + ' roll ' + p.roll + ' in Roster'); return } // never invent pupils
-      p.updatedAt = clampStamp_(p.updatedAt)
+      p.updatedAt = clampStamp_(shiftStamp_(p.updatedAt, off))
       if (String(roster[i][6]) >= String(p.updatedAt)) { ignored++; return }
       var left = p.status === 'Left'
       roster[i][3] = left ? 'Left' : 'Active'
       roster[i][4] = left ? (roster[i][4] || dateFromIso_(String(p.updatedAt).slice(0, 10))) : ''
       roster[i][6] = String(p.updatedAt)
-      applied++
+      applied++; rosterApplied++
     })
-    write_(ss, T.roster, 7, roster)
+    if (rosterApplied) write_(ss, T.roster, 7, roster)
   }
   meta_(ss, 'lastPush', nowIso_())
-  return { applied: applied, ignored: ignored, rejected: rejected, sessionsApplied: sessionsApplied, structApplied: structApplied }
+  return { applied: applied, ignored: ignored, rejected: rejected, sessionsApplied: sessionsApplied, structApplied: structApplied, offsetMs: off }
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON) }
@@ -405,7 +453,7 @@ function handle_(body) {
 function route_(body) {
   if (body && body.action === 'pairClaim') return withLock_(function () { return pairClaim_(body.code, Date.now()) })
   if (!body || body.token !== token_()) return { ok: false, error: 'bad token' }
-  if (body.action === 'ping') return { ok: true, schema: SCHEMA }
+  if (body.action === 'ping') return { ok: true, schema: SCHEMA, sheetId: SpreadsheetApp.getActiveSpreadsheet().getId() }
   if (body.action === 'pairStart') return withLock_(function () { return pairStart_(Date.now()) })
   if (body.action === 'pairCancel') return withLock_(function () { PropertiesService.getScriptProperties().deleteProperty(PAIR_KEY); return { ok: true } })
   var ss = SpreadsheetApp.getActiveSpreadsheet()
@@ -420,7 +468,7 @@ function route_(body) {
     lock.waitLock(20000)
     try {
       var r = applyPush_(ss, body, 'app')
-      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, sessionsApplied: r.sessionsApplied, structApplied: r.structApplied === undefined ? 0 : r.structApplied, state: state_(ss) }
+      return { ok: true, applied: r.applied, ignored: r.ignored, rejected: r.rejected, sessionsApplied: r.sessionsApplied, structApplied: r.structApplied === undefined ? 0 : r.structApplied, offsetMs: r.offsetMs, state: state_(ss) }
     } finally { lock.releaseLock() }
   }
   return { ok: false, error: 'unknown action' }
@@ -493,7 +541,7 @@ function removeSubject_(ss, key, nowIso) {
   nowIso = nowIso || nowIso_()
   var subj = read_(ss, T.subjects, 7).filter(function (r) { return r[0] === key })
   if (!subj.length) throw new Error(key + ' is not in Subjects')
-  var ses = read_(ss, T.sessions, 8), tic = read_(ss, T.ticks, 8)
+  var ses = read_(ss, T.sessions, 8), tic = ticksRead_(ss)
   var mine = { s: ses.filter(function (r) { return r[1] === key }), t: tic.filter(function (r) { return r[2] === key }) }
   var b = SpreadsheetApp.create('SoW backup ' + key + ' ' + String(nowIso).slice(0, 10))
   var put = function (name, head, rows) {
@@ -504,13 +552,13 @@ function removeSubject_(ss, key, nowIso) {
   }
   put('Subjects', H.subjects, subj)
   put('Sessions', H.sessions, mine.s)
-  put('Ticks', H.ticks, mine.t)
+  put('Ticks', H.ticks.concat(['subManual']), mine.t)
   var first = b.getSheetByName('Sheet1'); if (first) b.deleteSheet(first)
   SpreadsheetApp.flush()
   // backup exists → now remove
   write_(ss, T.subjects, 7, read_(ss, T.subjects, 7).filter(function (r) { return r[0] !== key }))
   write_(ss, T.sessions, 8, ses.filter(function (r) { return r[1] !== key }))
-  write_(ss, T.ticks, 8, tic.filter(function (r) { return r[2] !== key }))
+  ticksWrite_(ss, tic.filter(function (r) { return r[2] !== key }))
   var out = { key: key, url: b.getUrl(), downloadUrl: 'https://docs.google.com/spreadsheets/d/' + b.getId() + '/export?format=xlsx', sessions: mine.s.length, ticks: mine.t.length }
   meta_(ss, 'removed ' + key, nowIso + ' backup ' + out.url)
   return out

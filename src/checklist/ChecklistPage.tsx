@@ -20,9 +20,7 @@ import { SelectBar } from './chrome/SelectBar'
 import type { AzLetter } from './gestures/azLayout'
 import {
   extendTarget,
-  paintRoll,
   rollAtY,
-  rollsBetween,
   shouldEngagePaint,
   rowSwipeValue,
   startPaintSession,
@@ -40,6 +38,7 @@ import {
 } from './gestures/selectPhysics'
 import { normalizeSwipeStyle, pendingRowClass, washPercent } from './gestures/swipeConfirm'
 import { crossedColumns, nameArmed, normalizeNameSwipe } from './gestures/nameSwipe'
+import { cellKey, isCancelled, stepPath, type PathCell } from './gestures/swipePath'
 import { useChecklistModel } from './state/useChecklistModel'
 import { useWorkspace } from '../demo/WorkspaceContext'
 import { useShare } from '../share/ShareContext'
@@ -67,7 +66,6 @@ export function ChecklistPage(_props: Props) {
   const listRef = useRef<HTMLDivElement>(null)
   const rowRefs = useRef(new Map<number, HTMLDivElement>())
   const [select, setSelect] = useState<SelectModel>(() => createSelectModel())
-  const [glowRolls, setGlowRolls] = useState<Set<number>>(() => new Set())
   const [toolsOpen, setToolsOpen] = useState(false)
   const [restoreOpen, setRestoreOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
@@ -82,7 +80,8 @@ export function ChecklistPage(_props: Props) {
   const swipeStyle = normalizeSwipeStyle(prefs['gestures.swipeConfirmStyle'])
   const [glowValue, setGlowValue] = useState(true)
   /** v0.31.0: visible column indexes the cue targets (null = all visible, the ✓-cell swipe). */
-  const [glowCols, setGlowCols] = useState<number[] | null>(null)
+  /** v0.46.0 (t5u): highlighted boxes on the swipe path, `roll|visibleCol`. Only these get ticked on lift. */
+  const [glowKeys, setGlowKeys] = useState<Set<string>>(() => new Set())
   const nameSwipeFrom = normalizeNameSwipe(prefs['gestures.nameSwipeFrom'])
 
   const paintRef = useRef<{
@@ -102,6 +101,10 @@ export function ChecklistPage(_props: Props) {
     crossed?: Set<number>
     lastX?: number
     cols?: { left: number; right: number }[]
+    /** v0.46.0 (t5u): boxes passed, in order; visible column of the start box; engage direction */
+    path?: PathCell[]
+    startColIdx?: number
+    dir?: number
   } | null>(null)
 
   const nameHoldRef = useRef<{
@@ -226,6 +229,7 @@ export function ChecklistPage(_props: Props) {
       startValue: value,
       startDate: date,
       armed: false,
+      startColIdx: colIndex,
     }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
@@ -239,80 +243,76 @@ export function ChecklistPage(_props: Props) {
     if (!st.engaged) {
       if (!shouldEngagePaint({ dx, dy })) return
       st.engaged = true
-      if (st.fromName) clearNameHold()
+      st.dir = Math.sign(dx) || 1
+      const row = rowRefs.current.get(st.startRoll)
+      if (!st.cols?.length) st.cols = row ? [...row.querySelectorAll('.sw-check-hit')].map((c) => { const r = c.getBoundingClientRect(); return { left: r.left, right: r.right } }) : []
+      if (st.fromName) { clearNameHold(); st.path = [] }
       else {
         // t165u: swipe value = toggle of the start row across all visible dates
         const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
         st.session = startPaintSession(st.startCol, value, st.startRoll)
         if (!m.showTwoCol) st.session.targetCol = st.startCol
+        st.path = [{ roll: st.startRoll, col: st.startColIdx ?? 0 }]
         haptic('selection')
         setGlowValue(value)
-        setGlowCols(null)
-        setGlowRolls(new Set([st.startRoll]))
+        setGlowKeys(new Set(st.path.map(cellKey)))
       }
     }
 
-    // v0.31.0 (t5u): from the name row, boxes respond only once the finger crosses them.
-    if (st.fromName) {
-      const hit = crossedColumns(st.lastX ?? st.startX, e.clientX, st.cols ?? [])
-      st.lastX = e.clientX
-      const before = st.crossed!.size
-      for (const i of hit) st.crossed!.add(i)
-      if (!st.crossed!.size) return
-      if (!st.session) {
-        // same rule as the ✓-cell swipe (t165u): any unticked box in the row → tick, else clear
+    // v0.46.0 (t5u): which box is under the finger? Rows extend only after the t170u hesitancy (or never with one-row mode).
+    let roll: number = st.startRoll
+    if (!prefs['gestures.swipeSingleRow']) {
+      const t = extendTarget(e.clientY, measureRows(), st.startRoll, st.armed)
+      st.armed = t.armed
+      if (st.armed && t.roll != null) roll = t.roll
+    }
+    // every box the finger passed since the last move, in travel order (a fast flick can skip over a box)
+    const prevX = st.lastX ?? st.startX
+    st.lastX = e.clientX
+    const crossed = crossedColumns(prevX, e.clientX, st.cols ?? [])
+    if (e.clientX < prevX) crossed.reverse()
+    const before = st.path ?? []
+    let path = before
+    for (const col of crossed) path = stepPath(path, { roll, col }, orderedRolls)
+    if (path !== before) {
+      st.path = path
+      if (!st.session && path.length) {
+        // name swipe: same rule as the ✓-cell swipe (t165u) once the first box is crossed
         const value = rowSwipeValue(m.visibleDates.map((d) => m.isOn(st.startRoll, d.date)))
         st.session = startPaintSession(st.startCol, value, st.startRoll)
-        haptic('selection')
         setGlowValue(value)
-        setGlowRolls(new Set([st.startRoll]))
-      } else if (st.crossed!.size !== before) haptic('selection')
-      if (st.crossed!.size !== before) setGlowCols([...st.crossed!].sort())
+      }
+      haptic('selection')
+      setGlowKeys(new Set(path.map(cellKey)))
     }
-
     if (!st.session) return
     if (swipeStyle === 'wash') {
-      for (const roll of st.session.paintedRolls) {
-        const el = rowRefs.current.get(roll)
+      for (const r of new Set((st.path ?? []).map((c) => c.roll))) {
+        const el = rowRefs.current.get(r)
         if (!el) continue
-        const r = el.getBoundingClientRect()
-        el.style.setProperty('--wash-x', `${washPercent(e.clientX, r.left, r.width)}%`)
+        const b = el.getBoundingClientRect()
+        el.style.setProperty('--wash-x', `${washPercent(e.clientX, b.left, b.width)}%`)
       }
-    }
-    // t167u dev option: a swipe commits only the row it started on (ignores vertical drift)
-    if (prefs['gestures.swipeSingleRow']) return
-    // t170u: hesitant — must travel well into the next row before extending
-    const t = extendTarget(e.clientY, measureRows(), st.startRoll, st.armed)
-    st.armed = t.armed
-    if (t.roll == null) return
-    let added = false
-    for (const roll of rollsBetween(orderedRolls, st.startRoll, t.roll)) added = paintRoll(st.session, roll) || added
-    if (added) {
-      haptic('selection')
-      setGlowRolls(new Set(st.session.paintedRolls))
     }
   }
 
   const finishPaint = (e: ReactPointerEvent, didTap: boolean) => {
     const st = paintRef.current
     paintRef.current = null
-    if (st?.session) for (const roll of st.session.paintedRolls) rowRefs.current.get(roll)?.style.removeProperty('--wash-x')
+    if (st?.path) for (const roll of new Set(st.path.map((c) => c.roll))) rowRefs.current.get(roll)?.style.removeProperty('--wash-x')
     if (!st || st.pointerId !== e.pointerId) return
 
-    if (st.engaged && st.session) {
-      // t165u: commit every covered row × every visible date in one undo step
-      const rolls = [...st.session.paintedRolls]
-      const value = st.session.paintValue
-      const dates = st.fromName ? m.visibleDates.filter((_, i) => st.crossed!.has(i)) : m.visibleDates
-      m.setCellsValue(
-        rolls.flatMap((roll) => dates.map((d) => ({ roll, date: d.date }))),
-        value,
-      )
+    if (st.engaged) {
+      setGlowKeys((g) => (g.size ? new Set() : g)) // t168u: pending cue clears instantly on release
+      const path = st.path ?? []
+      // v0.46.0 (t5u): going back to the start cancels; otherwise tick exactly the highlighted boxes, one undo step
+      if (!st.session || isCancelled(path, e.clientX - st.startX, st.dir ?? 1)) { if (st.session) haptic('light'); return }
+      const cells = path.map((c) => ({ roll: c.roll, date: m.visibleDates[c.col]?.date })).filter((c): c is { roll: number; date: string } => !!c.date)
+      m.setCellsValue(cells, st.session.paintValue)
       haptic('medium')
-      setGlowRolls(new Set()) // t168u: pending blue clears instantly on release
       return
     }
-    setGlowRolls((g) => (g.size ? new Set() : g))
+    setGlowKeys((g) => (g.size ? new Set() : g))
     if (st.fromName) return // a name touch never toggles a box by itself
 
     if (didTap) {
@@ -359,7 +359,7 @@ export function ChecklistPage(_props: Props) {
       const cols = row ? [...row.querySelectorAll('.sw-check-hit')].map((c) => { const r = c.getBoundingClientRect(); return { left: r.left, right: r.right } }) : []
       paintRef.current = {
         session: null, startX, startY, startRoll: roll, startCol: m.activeDateIndex, engaged: false, pointerId,
-        startValue: false, startDate: '', armed: false, fromName: true, crossed: new Set(), lastX: startX, cols,
+        startValue: false, startDate: '', armed: false, fromName: true, lastX: startX, cols, path: [],
       }
       ;(e.currentTarget as HTMLElement).setPointerCapture(pointerId)
     }
@@ -845,11 +845,11 @@ export function ChecklistPage(_props: Props) {
           <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts" onFocus={() => setGridFocus(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGridFocus(false) }}>
             {m.filteredRoster.map((r, rowIndex) => {
               const selected = select.selected.has(r.roll)
-              const glow = glowRolls.has(r.roll)
+              const glow = m.visibleDates.some((_, ci) => glowKeys.has(`${r.roll}|${ci}`))
               return (
                 <div
                   key={r.roll}
-                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, glowRolls.size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}${qsOpen && qsRoll === r.roll ? ` qs-hit${qsIdle ? ' qs-idle' : ''}` : ''}`}
+                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, new Set([...glowKeys].map((k) => k.split('|')[0])).size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}${qsOpen && qsRoll === r.roll ? ` qs-hit${qsIdle ? ' qs-idle' : ''}` : ''}`}
                   ref={(el) => {
                     if (el) rowRefs.current.set(r.roll, el)
                     else rowRefs.current.delete(r.roll)
@@ -876,7 +876,7 @@ export function ChecklistPage(_props: Props) {
                   </div>
                   {m.visibleDates.map((d, colIndex) => {
                     const on = m.isOn(r.roll, d.date)
-                    const tgt = glow && (glowCols == null || glowCols.includes(colIndex))
+                    const tgt = glowKeys.has(`${r.roll}|${colIndex}`)
                     return (
                       <div
                         key={d.date}

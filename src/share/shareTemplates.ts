@@ -1,3 +1,4 @@
+import { isSubmitted } from '../data/submitted'
 /**
  * Share templates (v0.28.0, locked Steve t164u) — pure logic.
  * Recovered from v0.21 `waShare.ts` (git 489b3a3~1); now multiple named templates.
@@ -84,7 +85,7 @@ export function buildShareLists(roster: RosterRow[], marks: Record<string, MarkC
     out.active.push(name)
     const m = marks[`${s.roll}|${date}`]
     ;(m?.set ? out.set : out.notSet).push(name)
-    ;(m?.submitted ? out.submitted : out.notSubmitted).push(name)
+    ;(isSubmitted(m) ? out.submitted : out.notSubmitted).push(name)
   }
   return out
 }

@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { installBackStack } from './nav/backStack'
-import { installUpdateFlow } from './pwa/updateFlow'
+import { installSnapshotGate, installUpdateFlow } from './pwa/updateFlow'
+import { snapshotBeforeUpdate } from './backup/snapshots'
 import { captureInstallPrompt } from './pwa/install'
 import { installDialogFocus, installInputModality, installSheetDrag, installWideScale } from './lib/a11yRuntime'
 import './styles/tokens.css'
@@ -31,6 +32,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           flush: () => window.dispatchEvent(new Event('sow:flush')),
           hadController,
         })
+        // v0.46.0 (t7u): new builds wait (skipWaiting off) until the "before update" snapshot is confirmed
+        installSnapshotGate(reg, snapshotBeforeUpdate)
       })
       .catch(() => {
         /* SW unsupported / blocked — app still works online */

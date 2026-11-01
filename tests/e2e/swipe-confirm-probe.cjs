@@ -44,7 +44,7 @@ const MODE_RGB = { set: 'rgb(48, 209, 88)', submitted: 'rgb(139, 124, 247)' };
       if (style === 'blue') ok(/inset/.test(h1.shadow) && h1.pendingBoxes > 0, `${tag}: blue ring + blue boxes (${h1.shadow.slice(0, 40)})`);
       else ok(!/inset/.test(h1.shadow) && !glowy && h1.pendingBoxes === 0 && !/paint-glow/.test(h1.cls), `${tag}: no ring/glow`);
       if (style === 'tint') ok(h1.bg !== h1.nbBg && h1.ghosts.length === 0 && !h1.sliverW, `${tag}: soft tint only (${h1.bg} vs ${h1.nbBg})`);
-      if (style === 'ghost' || style === 'ghostTint') ok(h1.ghosts.length > 0 && h1.ghosts.every((c) => c === MODE_RGB[mode]) && h1.bg === h1.nbBg, `${tag}: ghost ✓ in mode colour, row untouched (${h1.ghosts})`);
+      if (style === 'ghost' || style === 'ghostTint') ok(h2.ghosts.length > 0 && h2.ghosts.every((c) => c === MODE_RGB[mode]) && h2.bg === h2.nbBg, `${tag}: ghost ✓ in mode colour on passed boxes (v0.46 t5u), row untouched (${h2.ghosts})`);
       if (style === 'sliver') ok(h1.sliverW === '3px' && h1.sliverBg === MODE_RGB[mode] && h1.bg === h1.nbBg, `${tag}: 3px left sliver in mode colour (${h1.sliverW} ${h1.sliverBg})`);
       if (style === 'wash') ok(/gradient/.test(h1.bgImg) && h1.wash && h2.wash && parseFloat(h2.wash) > parseFloat(h1.wash), `${tag}: wash follows finger ${h1.wash}→${h2.wash}`);
       if (style !== 'blue') ok(h1.trans.split(',').every((t) => t.trim() === '0s'), `${tag}: no transition on the cue (${h1.trans})`);

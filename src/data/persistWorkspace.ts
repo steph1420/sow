@@ -5,6 +5,7 @@ import { CLASS_KEYS, type ClassKey, markId as makeMarkId, studentId } from './ty
 import {
   getSettings,
   listMarks,
+  listRosterMeta,
   listStudents,
   putMark,
   putSettings,
@@ -42,8 +43,10 @@ export async function loadWorkspaceFromIdb(): Promise<{
     const students = await listStudents(key)
     if (students.length) {
       hasStudents = true
+      // v0.46.0 (t5u): Left comes back from rosterMeta (sheet pull or this phone) — it was always false here
+      const left = new Map((await listRosterMeta(key)).map((m) => [m.roll, m.left]))
       rosters[key] = students
-        .map((s) => ({ roll: s.roll, name: s.name, left: false }))
+        .map((s) => ({ roll: s.roll, name: s.name, left: left.get(s.roll) ?? false }))
         .sort((a, b) => a.roll - b.roll)
     }
     const marks = await listMarks(key)

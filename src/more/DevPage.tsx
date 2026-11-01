@@ -2,6 +2,7 @@ import { NAME_SWIPE_OPTIONS, normalizeNameSwipe } from '../checklist/gestures/na
 import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle } from '../checklist/gestures/swipeConfirm'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
+import { BridgeOverrideRow } from './BridgeOverrideRow'
 import './more.css'
 
 type Props = { onBack: () => void }
@@ -18,6 +19,9 @@ export function DevPage({ onBack }: Props) {
         Progressive disclosure · idle A–Z width 42 / letter ≥11px / hideEmpty default off are
         floors — not undercut here.
       </div>
+
+      <div className="more-sec">Sync bridge</div>
+      <BridgeOverrideRow />
 
       <div className="more-sec">A–Z</div>
       <div className="more-card">

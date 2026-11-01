@@ -23,7 +23,7 @@ import { fetchSheetCsv } from './gviz'
 export type BridgeSubject = { subjectKey: string; classKey: string; subject: string; kind: string; active: boolean; order?: number }
 export type BridgePupil = { classKey: string; roll: number; name: string; status: 'Active' | 'Left'; updatedAt: string }
 export type BridgeSession = { sessionId: string; subjectKey: string; classKey: string; date: string; topic: string; status: string; updatedAt: string }
-export type BridgeTick = { tickId: string; sessionId: string; subjectKey: string; classKey: string; roll: number; set: boolean; updatedAt: string }
+export type BridgeTick = { tickId: string; sessionId: string; subjectKey: string; classKey: string; roll: number; set: boolean; updatedAt: string; /** v0.46.0 bridge: manual Submitted */ sub?: boolean }
 export type BridgeState = {
   ok: true
   schema: number
@@ -31,11 +31,12 @@ export type BridgeState = {
   roster: BridgePupil[]
   sessions: BridgeSession[]
   ticks: BridgeTick[]
+  version?: string
 }
-export type PushTick = { subjectKey: string; date: string; topic: string; roll: number; set: boolean; updatedAt: string }
+export type PushTick = { subjectKey: string; date: string; topic: string; roll: number; set: boolean; updatedAt: string; sub?: boolean }
 export type PushPupil = { classKey: string; roll: number; status: 'Active' | 'Left'; updatedAt: string }
 export type PushPayload = { ticks: PushTick[]; roster: PushPupil[] }
-export type PushResult = { ok: true; applied: number; ignored: number; rejected: string[]; state: BridgeState; sessionsApplied?: number; structApplied?: number }
+export type PushResult = { ok: true; version?: string; offsetMs?: number; applied: number; ignored: number; rejected: string[]; state: BridgeState; sessionsApplied?: number; structApplied?: number }
 
 export class BridgeError extends Error {
   constructor(message: string, public readonly network = false) {
@@ -76,7 +77,7 @@ export async function bridgeCall<T>(url: string, body: Record<string, unknown>):
 export function buildPushPayload(marks: Mark[], meta: RosterMeta[], since: string | undefined): PushPayload {
   const ticks: PushTick[] = marks
     .filter((m) => (since ? m.updatedAt > since : m.sheetSet !== undefined && m.set !== m.sheetSet))
-    .map((m) => ({ subjectKey: m.classKey, date: m.date, topic: m.topic, roll: m.roll, set: m.set, updatedAt: m.updatedAt }))
+    .map((m) => ({ subjectKey: m.classKey, date: m.date, topic: m.topic, roll: m.roll, set: m.set, updatedAt: m.updatedAt, sub: !!m.submitted }))
   const bySection = new Map<string, PushPupil>()
   for (const r of meta) {
     if (since ? r.updatedAt <= since : true) continue
@@ -126,9 +127,10 @@ export function stateToApp(s: BridgeState): AppState {
       date,
       topic: ses?.topic ?? '',
       set: t.set,
-      submitted: false,
+      submitted: t.sub === true,
       updatedAt: t.updatedAt,
       sheetSet: t.set,
+      ...(typeof t.sub === 'boolean' ? { sheetSub: t.sub } : {}),
     })
   }
   const sessions: Session[] = []
@@ -184,4 +186,17 @@ export async function gvizState(sheetId: string): Promise<BridgeState> {
   const names = Object.keys(HEAD) as TabName[]
   const got = await Promise.all(names.map((n) => fetchSheetCsv(sheetId, n)))
   return stateFromCsv(Object.fromEntries(names.map((n, i) => [n, got[i]!])) as Record<TabName, string[][]>)
+}
+
+/** v0.46.0: "0.46.0" ≥ "0.46" style compare (numeric parts). */
+export function bridgeAtLeast(v: string | undefined, min: string): boolean {
+  if (!v) return false
+  const a = v.split('.').map((x) => parseInt(x, 10) || 0), b = min.split('.').map((x) => parseInt(x, 10) || 0)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) { const d = (a[i] ?? 0) - (b[i] ?? 0); if (d) return d > 0 }
+  return true
+}
+export type SubMigrate = { subjectKey: string; date: string; roll: number; updatedAt: string }
+/** v0.46.0: manual Submitted ticks the sheet has never confirmed (made before bridge 0.46) — sent once the bridge is ≥ 0.46. */
+export function subMigrations(marks: Mark[]): SubMigrate[] {
+  return marks.filter((m) => m.submitted && m.sheetSub === undefined).map((m) => ({ subjectKey: m.classKey, date: m.date, roll: m.roll, updatedAt: m.updatedAt }))
 }

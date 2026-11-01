@@ -52,8 +52,8 @@ describe('buildShareLists', () => {
     const L = buildShareLists(roster, marks, '2026-10-28')
     expect(L.notSet).toEqual(['Sahil'])
     expect(L.set).toEqual(['Aarav', 'Diya'])
-    expect(L.submitted).toEqual(['Diya'])
-    expect(L.notSubmitted).toEqual(['Aarav', 'Sahil'])
+    expect(L.submitted).toEqual(['Aarav', 'Diya']) // v0.46.0 t5u: Set implies Submitted
+    expect(L.notSubmitted).toEqual(['Sahil'])
     expect(L.active).toEqual(['Aarav', 'Diya', 'Sahil'])
     expect(L.left).toEqual(['Old Kid'])
   })
@@ -73,13 +73,13 @@ describe('buildShareMessage', () => {
       ...base,
       body: '{names.submitted}|{count.submitted}/{count.active}|{names}|{count.notSubmitted}|{topic}|{teacher}',
     })
-    expect(out).toBe('Diya|1/3|Sahil|2|Reading|{teacher}')
+    expect(out).toBe('Aarav\nDiya|2/3|Sahil|1|Reading|{teacher}')
   })
   it('seeds produce expected text', () => {
     const by = (n: string) => SEED_TEMPLATES.find((t) => t.name === n)!.body
     expect(buildShareMessage({ ...base, body: by('Completed') })).toBe('Eng CW • 28/10 • set (2/3):\nAarav\nDiya')
-    expect(buildShareMessage({ ...base, body: by('Submitted') })).toBe('Eng CW • 28/10 • submitted (1/3):\nDiya')
-    expect(buildShareMessage({ ...base, body: by('Not submitted') })).toBe('Eng CW • 28/10 • not submitted (2):\nAarav\nSahil')
+    expect(buildShareMessage({ ...base, body: by('Submitted') })).toBe('Eng CW • 28/10 • submitted (2/3):\nAarav\nDiya')
+    expect(buildShareMessage({ ...base, body: by('Not submitted') })).toBe('Eng CW • 28/10 • not submitted (1):\nSahil')
   })
   it('empty list → preview mode shows (none), send mode keeps it empty', () => {
     const empty = buildShareLists(roster, { ...marks, '3|2026-10-28': { set: true, submitted: false } }, '2026-10-28')

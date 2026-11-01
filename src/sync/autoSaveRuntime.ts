@@ -7,6 +7,7 @@ import { getSettings } from '../data/api'
 import { takeSnapshot } from '../backup/snapshots'
 import { createAutoSaver, type AutoSaveState } from './autoSave'
 import { OFFLINE_MESSAGE, isOffline, syncViaBridge } from './engine'
+import { shouldSkipAutoSync } from './syncGate'
 
 let state: AutoSaveState = { status: 'idle', pending: 0 }
 const subs = new Set<() => void>()
@@ -19,6 +20,8 @@ async function run(): Promise<void> {
   const s = await getSettings()
   if (!(s.syncUrl.trim() && s.bridgeToken?.trim())) return // local only: saved on this device
   if (isOffline()) throw new Error(OFFLINE_MESSAGE)
+  // v0.46.0 (t4u): nothing waiting + synced < 60 s ago → skip this automatic round trip
+  if (shouldSkipAutoSync({ changes: n, syncDirty: s.syncDirty, queued: Object.keys(s.topicEdits ?? {}).length + (s.structOps?.length ?? 0), lastSyncAt: s.lastSyncAt })) return
   const r = await syncViaBridge(s)
   if (!r.ok || r.mode !== 'sync') throw new Error(r.message)
   window.dispatchEvent(new CustomEvent('sow:synced', { detail: r }))

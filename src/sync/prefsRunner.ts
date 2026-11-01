@@ -5,9 +5,10 @@
 import { getSettings, putSettings } from '../data/api'
 import { loadPrefs, savePrefs, type AppPrefs } from '../prefs/appPrefs'
 import { BridgeError, bridgeCall } from './bridge'
+import { flavorKey } from './channel'
 import { applyRemote, defaultPrefSyncState, planPrefsSync, stampAll, SYNC_KEYS, type PrefRow, type PrefSyncState } from './prefsSync'
 
-const KEY = 'sow-app.prefsync.v1'
+const KEY = flavorKey('sow-app.prefsync.v1')
 export const PREFS_APPLIED_EVENT = 'sow:prefs-applied'
 export const UPDATE_BRIDGE_MSG = 'Update bridge script · re-paste Code.js and deploy a New version'
 

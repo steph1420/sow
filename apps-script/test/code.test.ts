@@ -270,7 +270,7 @@ describe('v0.44.0 bridge structs: renameSession + deleteSession', () => {
   }
   const AT = '2026-10-31T06:00:00.000Z'
   const sid = (d: string) => 'KGA_Eng_CW|' + d
-  it('reports version 0.44.0', () => { expect(ready().call({ action: 'ping' }).version).toBe('0.44.0') })
+  it('reports version 0.44.0', () => { expect(ready().call({ action: 'ping' }).version).toBe('0.46.0') })
   it('rename moves the Sessions row and its ticks; refuses when the target exists; repeat is a no-op', () => {
     const { call } = ready()
     const before = call({ action: 'pull' })

@@ -74,3 +74,20 @@ describe('first install', () => {
     doc.visibilityState = 'hidden'; tick!(); expect(n).toBe(1)
   })
 })
+
+import { snapshotThenActivate } from './updateFlow'
+// v0.46.0 (t7u): the waiting SW is told to activate only after the snapshot is confirmed (cap so an update is never stuck).
+describe('snapshotThenActivate', () => {
+  it('activates after the snapshot resolves, never before', async () => {
+    const log: string[] = []
+    const r = await snapshotThenActivate(async () => { await new Promise((f) => setTimeout(f, 20)); log.push('snap'); return true }, () => log.push('activate'), 1000)
+    expect(log).toEqual(['snap', 'activate']); expect(r).toBe('ok')
+  })
+  it('a hung or failing snapshot still activates after the cap / at once', async () => {
+    const log: string[] = []
+    expect(await snapshotThenActivate(() => new Promise(() => {}), () => log.push('a'), 30)).toBe('timeout')
+    expect(await snapshotThenActivate(async () => { throw new Error('x') }, () => log.push('b'), 30)).toBe('error')
+    expect(await snapshotThenActivate(async () => false, () => log.push('c'), 30)).toBe('unconfirmed')
+    expect(log).toEqual(['a', 'b', 'c'])
+  })
+})

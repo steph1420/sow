@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { maskUrl } from '../lib/maskUrl'
 import { ChannelBadge } from '../components/ChannelBadge'
-import { BETA_URL_KEY, currentBetaUrl, currentChannel, setBetaUrl, setChannel, type Channel } from '../sync/channel'
+import { BETA_URL_KEY, currentBetaUrl, currentChannel, isBetaSite, setBetaUrl, setChannel, type Channel } from '../sync/channel'
 
 /** v0.44.0 Stable/Beta switch (this device only). Stable = LIVE sheet bridge (built in). Beta = TEST copy bridge URL typed here.
  *  Each source keeps its own local data; switching reloads the app onto the other cache. */
@@ -11,6 +11,13 @@ export function DataSourceCard() {
   const [foc, setFoc] = useState(false)
   const valid = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url.trim())
   const go = (c: Channel) => { if (c === ch) return; setChannel(c); window.dispatchEvent(new Event('sow:flush')); window.location.reload() }
+  // v0.46.0 (t8u): the separate Beta site is always the TEST copy — no switch (it must never flip the Stable app).
+  if (isBetaSite()) return (
+    <section className="sy-card ds-card" aria-label="Data source">
+      <div className="ds-h"><span>Data source<ChannelBadge /></span></div>
+      <div className="ds-note">Beta app · always the TEST copy sheet. Your Stable app and its data are separate.</div>
+    </section>
+  )
   return (
     <section className="sy-card ds-card" aria-label="Data source">
       <div className="ds-h"><span>Data source<ChannelBadge /></span> <span className="ds-dev">this device</span></div>
