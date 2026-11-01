@@ -1,6 +1,6 @@
 /** v0.44.0 Stable/Beta data source switch (per device). Stable = LIVE bridge; Beta = TEST copy bridge entered on this device.
  *  Each source has its own IndexedDB, so data never mixes. Read from localStorage because the DB name is needed before IDB opens. */
-import { DEFAULT_SYNC_URL } from './defaultBridge'
+import { effectiveSyncUrl, isLiveDefault } from './defaultBridge'
 import { TEST_EXEC_URL } from './sheets'
 export type Channel = 'stable' | 'beta'
 export const CHANNEL_KEY = 'sow.channel'
@@ -21,9 +21,9 @@ export const validBridgeUrl = (u: string | null | undefined): boolean => /^https
 /** Beta never falls back to the LIVE url (stored LIVE url in a beta cache is ignored too). A valid Developer override wins. */
 export function syncUrlFor(c: Channel, betaUrl: string | null, stored: string | null | undefined, override?: string | null): string {
   if (validBridgeUrl(override)) return override!.trim()
-  if (c === 'stable') return (stored ?? '').trim() || DEFAULT_SYNC_URL
+  if (c === 'stable') return effectiveSyncUrl(stored) // v0.46.0 (t34u): a saved retired default follows the new default
   const b = (betaUrl ?? '').trim()
-  return b && b !== DEFAULT_SYNC_URL ? b : ''
+  return b && !isLiveDefault(b) ? b : ''
 }
 const ls = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null } catch { return null } }
 /** localStorage key scoped to this site (the Beta site prefixes its keys; Stable keys are unchanged). */

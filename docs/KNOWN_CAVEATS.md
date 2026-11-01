@@ -4,6 +4,10 @@ Noted 2026-11-01 (Steve t34u). To handle later.
 ## Known bugs
 - **B-B4-1 Two tabs/windows open at once** can overwrite each other's ticks (stale grid in tab 2 writes old values with a newer stamp). Also in v0.45. Proposed fix: save only changed cells and refresh other tabs via BroadcastChannel.
 
+## LIVE bridge URL change (v0.46.0)
+- The old LIVE /exec URL is "retired": phones that saved it follow the new built-in URL. A Developer override pointing at the old URL is left alone. Clear it by hand.
+- Rolling back to v0.45.0 needs the old LIVE deployment still running, because v0.45.0 has the old URL built in.
+
 ## Trade-offs
 - **Tombstone pruning (60 days, max 120):** a phone offline for more than 60 days could resurrect a deleted or renamed date.
 - **Strict roll check:** ticks for a pupil removed from the Roster sheet are now rejected (shown as a sync note), not stored.

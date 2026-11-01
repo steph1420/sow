@@ -1,4 +1,11 @@
-# STATE at handover (2026-11-01 12:10 IST)
+# STATE (updated 2026-11-01 23:05 IST, v0.46.0 Stable)
+LIVE app /sow/: v0.46.0, tag v0.46.0 (see CHANGELOG). Rollback: tag v0.45.0 / 2282bdc / index-tFWxJPmk.js (needs the old LIVE deployment kept alive). Backups: branch backup/pre-v0.46.0-stable, /workspace/sow-build/backup-pre-v0.46.0-stable.tgz.
+LIVE bridge: Code.js 0.46.2 at a NEW deployment URL (built-in default in src/sync/defaultBridge.ts). The old URL is in RETIRED_SYNC_URLS, so phones that saved it follow the new default; Developer overrides are never rewritten.
+Beta site /sow-beta/: v0.46.0-beta.4 (BETA_REF), TEST bridge 0.46.2. TEST baseline 7/311/216/89/4, restore after every test (tests/adv/bridgeLib.mjs).
+Tests: docs/TEST_CATALOG.md, tests/adv/run-all.sh. Open bug: B-B4-1 (two tabs overwrite), fix waits for Steve's ok.
+Git identity in /workspace/sow: LFPS SOW <steph1420@users.noreply.github.com> (t32u).
+
+## Earlier state (12:10 IST)
 LIVE: v0.45.0, commit 2282bdc, tag v0.45.0, bundle index-tFWxJPmk.js. Rollback: v0.44.5 / 6ea96a1 (branch backup/pre-v0.45.0).
 Release history today: v0.44.1 2a750a4 (resurrection-on-sync fix, dial fixes, Cancel) · v0.44.2 270b529 (delete/move = one undo step) · v0.44.3 36b2427 + v0.44.4 0d804ca (duplicating header-date columns; 2-date mode fill/swap; healPair) · v0.44.5 6ea96a1 (option A selected-date style, probes fixed, amber header tint, masked URLs) · v0.45.0 2282bdc (auto-save, autosave icon, snapshots, restore).
 Stack: React 19 + Vite + TS PWA, IndexedDB. Tests: Vitest (337 pass) + Playwright real-touch probes tests/e2e/*.cjs (412x915).

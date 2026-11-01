@@ -3,8 +3,8 @@
 // Export → .sowsetup download; Import → confirm sheet (masked token) → Apply after ping.
 const { phone } = require('./_launch.cjs');
 const url = process.argv[2] || 'http://localhost:4191/sow/';
-// v0.34.1: Join uses the built-in bridge URL (no URL field).
-const EXEC = 'https://script.google.com/macros/s/AKfycbzmOQ__yxauJtrQ5LNxSqcEaDHjjbcZb-rzt0UuBQGVwXSURKRF1zbr6FvChAy7-hjqwA/exec';
+// v0.34.1: Join uses the built-in bridge URL (no URL field). v0.46.0 (t34u): new LIVE deployment URL.
+const EXEC = 'https://script.google.com/macros/s/AKfycby2SaO9tEQC_-PgLyh7EaUoK7ganHAnXuizqYtMjSFW3qEhUcO5di6cB8czYf38PAD3/exec';
 const TOK = 'probe-token-ABCD7Kq2';
 (async () => {
   const { b, ctx, p } = await phone({ acceptDownloads: true });

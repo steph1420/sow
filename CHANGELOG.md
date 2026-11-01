@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.46.0 — 2026-11-01 (Asia/Calcutta) · Stable (/sow/)
+
+Steve t34u ("You handle going live part"), t37u. LIVE bridge Code.js 0.46.2, deployed by Steve at a NEW deployment URL. Everything from 0.46.0-beta.1…beta.4 is now on /sow/. Rollback: re-deploy tag `v0.45.0` (commit `2282bdc`, bundle `index-tFWxJPmk.js`). Backups: branch `backup/pre-v0.46.0-stable`, `/workspace/sow-build/backup-pre-v0.46.0-stable.tgz`. A v0.45.0 rollback needs the old LIVE deployment kept alive, because v0.45.0 has the old URL built in. **Code.js change: YES** (0.46.2, already live).
+- **New LIVE bridge URL (t34u):** the built-in default (`src/sync/defaultBridge.ts`) is the new /exec URL.
+- **Old phones move over by themselves:** the old address is now in `RETIRED_SYNC_URLS`. If a phone saved the old built-in URL (joined with a code, imported a setup file, or saved the Sync page), it's read as the default, so it uses the new URL with no re-entry. The stored setting isn't rewritten. Any other saved URL is kept. A Developer override is never touched. Beta still never falls back to a LIVE URL, old or new.
+- Tests: `src/sync/defaultBridge.test.ts` (new LIVE URL, retired URL → default, override untouched, Beta guard). The `setup-pair` probe now uses the new URL.
+
 ## 0.46.0-beta.4 — 2026-11-01 (Asia/Calcutta) · Beta (separate site) · bridge Code.js 0.46.2
 
 Steve t19u, t23u, t24u, t29u. Rollback: set `BETA_REF` in steph1420/sow-beta back to `v0.46.0-beta.3`, or use branch `backup/pre-0.46.2-1950` / `/workspace/sow-build/backup-pre-0.46.2-1950.tgz`. **Code.js change: YES** (`apps-script/Code.js` → 0.46.2, not deployed; Steve pastes it into TEST. The app works with 0.46.1 until then). Bridge rollback: paste back the 0.46.1 Code.js from tag `v0.46.0-beta.3`.
