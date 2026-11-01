@@ -30,6 +30,8 @@
 
 ## Fixed / mitigated
 
+- t14u correction: the v0.46.0-beta.1 report called "a swipe starting on the name lit nothing" a real bug. It was a regression in this build's own new path code (`stepPath([])`), found and fixed before the release shipped, not an old bug. The Developer **Swipe from name** setting (Off/30/50/70 %, default 50 %) was never the cause and its behaviour is unchanged: `name-swipe-setting-probe.cjs` gives the same 16/16 on v0.45.0 and v0.46.0-beta.1.
+
 - v0.46.0-beta.1 (t7u): "before update" snapshot was best-effort (page reloaded before it was written). New builds now wait (workbox skipWaiting off); the page writes the snapshot, reads it back, then sends SKIP_WAITING (3 s cap so an update can't get stuck).
 - v0.46.0-beta.1 (t5u): Left students not synced back to the phone's lists. Root cause: `loadWorkspaceFromIdb` built rosters with `left:false` and ignored rosterMeta; setting Left also never triggered auto-save.
 
