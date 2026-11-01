@@ -9,7 +9,7 @@ const S = { subjectKey: 'KGA_Eng_CW' }
 const SCR = '2026-12-25' // scratch session, deleted by restore
 const tickOf = (s, sk, date, roll) => s.ticks.find(t => t.tickId === `${sk}|${date}|${roll}`)
 async function main() {
-  const p = await guard(); log(`adv bridge start, bridge ${p.version}`); ok(p.version === '0.46.1', 'ping version 0.46.1 on TEST sheet')
+  const p = await guard(); log(`adv bridge start, bridge ${p.version}`); ok(p.version === '0.46.2', 'ping version 0.46.2 on TEST sheet')
   const v0 = await verifyBaseline(); ok(v0.ok, 'baseline at start ' + JSON.stringify(v0)); if (!v0.ok) return
   const b0 = base.ticks.find(t => t.subjectKey === 'KGA_Eng_CW' && t.set === false)
   const bDate = b0.sessionId.split('|')[1], roll = b0.roll
@@ -69,8 +69,9 @@ async function main() {
   const op = { ...S, date: bDate, roll, set: true, updatedAt: iso() }
   const [d1, d2, d3] = await Promise.all([1, 2, 3].map(() => call({ action: 'push', clientNow: iso(), ticks: [op] })))
   ok([d1, d2, d3].every(x => x.ok) && [d1, d2, d3].reduce((a, x) => a + x.applied, 0) === 1, `3 concurrent duplicate pushes: applied exactly once (${[d1, d2, d3].map(x => x.applied)})`)
-  const rp = await call({ action: 'push', clientNow: iso(Date.now() - 5 * 60000), ticks: [op] })
-  ok(rp.applied === 0 || tickOf(await pull(), 'KGA_Eng_CW', bDate, roll).set === true, `replayed op with a different clientNow (−5 min): applied ${rp.applied}`)
+  // t23u: the replay test runs once per verification; run-all.sh skips it unless ADV_REPLAY=1
+  if (process.env.ADV_SKIP_REPLAY) log('replay test skipped (ADV_SKIP_REPLAY)'); else { const rp = await call({ action: 'push', clientNow: iso(Date.now() - 5 * 60000), ticks: [op] })
+  ok(rp.applied === 0 || tickOf(await pull(), 'KGA_Eng_CW', bDate, roll).set === true, `replayed op with a different clientNow (−5 min): applied ${rp.applied}`) }
   const s2 = await pull(); ok(s2.ticks.filter(t => t.tickId === `KGA_Eng_CW|${bDate}|${roll}`).length === 1, 'no duplicate tick rows after concurrent pushes')
 
   // ── 0.44-style push keeps manual Submitted (J)

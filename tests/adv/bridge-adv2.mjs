@@ -8,9 +8,9 @@ const P = (o) => call({ action: 'push', clientNow: iso(), ...o })
 const tk = (date, roll, set, at, x = {}) => ({ subjectKey: SK, date, topic: 'adv', roll, set, updatedAt: at, ...x })
 const find = (s, date, roll) => s.ticks.find(t => t.tickId === `${SK}|${date}|${roll}`)
 const ses = (s, date, sk = SK) => s.sessions.find(x => x.sessionId === `${sk}|${date}`)
-async function group(name, fn) { try { await fn() } catch (e) { ok(false, name + ' threw', e.message) } await restore('after ' + name) }
+async function group(name, fn) { if (process.env.ADV_GROUPS && !process.env.ADV_GROUPS.split(',').includes(name)) return; try { await fn() } catch (e) { ok(false, name + ' threw', e.message) } await restore('after ' + name) }
 async function main() {
-  const p = await guard(); ok(p.version === '0.46.1', 'ping 0.46.1 on TEST'); const v0 = await verifyBaseline(); ok(v0.ok, 'baseline at start'); if (!v0.ok) return
+  const p = await guard(); ok(p.version === '0.46.2', 'ping 0.46.2 on TEST'); const v0 = await verifyBaseline(); ok(v0.ok, 'baseline at start'); if (!v0.ok) return
   const act = base.roster.find(r => r.classKey === 'KGA' && r.status === 'Active')
   await group('left-two-devices', async () => {
     for (const ord of ['AB', 'BA']) {
@@ -77,6 +77,15 @@ async function main() {
     const s = await pull(); const n1 = s.ticks.filter(t => t.sessionId === bs.sessionId).length
     ok(n1 === n0 && ses(s, bs.date)?.topic === bs.topic, 'rename a real session away and back: ticks and topic intact', `${n1}/${n0}`)
     const v = await verifyBaseline(); ok(v.ticksIdSetEqual, 'tick sets equal baseline after round-trip rename (sub flags/pupilStatus rows move with rows)')
+  })
+  await group('tombstone-prune', async () => {
+    // 0.46.2 B-0462-6: a tomb older than 60 days is dropped on save, a 30-day-old one is kept
+    // fresh dates every run: the previous run's restore leaves a NEW tomb on its dates, which (correctly) blocks the old op
+    const D = 864e5, rnd = () => `20${30 + Math.floor(Math.random() * 60)}-0${1 + Math.floor(Math.random() * 9)}-1${Math.floor(Math.random() * 9)}`, oldD = rnd(), newD = rnd().replace(/-1(\d)$/, '-2$1')
+    await P({ structs: [{ kind: 'delete', subjectKey: SK, date: oldD, at: iso(Date.now() - 90 * D) }, { kind: 'delete', subjectKey: SK, date: newD, at: iso(Date.now() - 30 * D) }] })
+    const r1 = await P({ ticks: [tk(oldD, 1, true, iso(Date.now() - 100 * D))] }); const r2 = await P({ ticks: [tk(newD, 1, true, iso(Date.now() - 40 * D))] })
+    const s = await pull(); ok(!!ses(s, oldD) && r1.applied === 1, 'tomb 90 days old was pruned (older op accepted)', `applied ${r1.applied}`)
+    ok(!ses(s, newD) && r2.ignored === 1, 'tomb 30 days old kept (older op ignored)', `ignored ${r2.ignored}`)
   })
   await group('resend-all', async () => {
     const s = await pull(); const sb = new Map(s.sessions.map(x => [x.sessionId, x]))

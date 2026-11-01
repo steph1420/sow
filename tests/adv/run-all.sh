@@ -9,7 +9,7 @@ log "start $WHAT"
 if [[ $WHAT == all || $WHAT == unit ]]; then timeout 300 npx vitest run > $O/unit.log 2>&1; log "unit rc=$? $(grep -E 'Tests ' $O/unit.log | tail -1)"; fi
 if [[ $WHAT == all || $WHAT == bridge ]]; then
   [ -z "${SOW_TEST_BRIDGE_TOKEN:-}" ] && { log "no token, skipping bridge"; } || {
-  timeout 900 node tests/adv/bridge-adversarial.mjs > $O/bridge-run1.log 2>&1; log "bridge run1 rc=$? $(grep -c '^PASS' $O/bridge-run1.log) pass $(grep -c '^FAIL' $O/bridge-run1.log) fail"
+  $([ -n "${ADV_REPLAY:-}" ] && echo env -u ADV_SKIP_REPLAY || echo env ADV_SKIP_REPLAY=1) timeout 900 node tests/adv/bridge-adversarial.mjs > $O/bridge-run1.log 2>&1; log "bridge run1 rc=$? $(grep -c '^PASS' $O/bridge-run1.log) pass $(grep -c '^FAIL' $O/bridge-run1.log) fail"
   timeout 900 node tests/adv/bridge-adv2.mjs > $O/bridge-run2.log 2>&1; log "bridge run2 rc=$? $(tail -2 $O/bridge-run2.log | grep -o 'adv2 done.*')"; }
 fi
 if [[ $WHAT == all || $WHAT == probes ]]; then

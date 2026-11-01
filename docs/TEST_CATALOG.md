@@ -37,7 +37,7 @@ Every test run so far, with its purpose, how to run it, what to expect and how t
 | phone clock −2h/−1d/+2h/+1d | newer real edit wins, stamp corrected, next honest edit still applies |
 | 0.44-style +1 day stamp | clamped |
 | 3 concurrent duplicate pushes | applied once, no duplicate rows |
-| replayed op with clientNow −5 min | must not poison the cell (FAILS on 0.46.1: B-0462-1). Run once only. |
+| replayed op with clientNow −5 min | must not poison the cell (B-0462-1, passes on 0.46.2). Runs once: `run-all.sh` skips it (`ADV_SKIP_REPLAY=1`) unless `ADV_REPLAY=1` |
 | old-style push keeps manual Submitted; subOff only while Set on; subs migration sets J only | pass (the run-1 fails were knock-ons from B-0462-1) |
 | resend of all 311 ticks with their own stamps | all ignored, baseline intact |
 
@@ -51,6 +51,7 @@ Every test run so far, with its purpose, how to run it, what to expect and how t
 | year-wrap | 31 Mar, 1 Apr, 31 Dec, 1 Jan; 31 Apr, month 13, month 0 | exact dates; impossible ones rejected (B-0462-2) |
 | rename-vs-tick | rename vs older/newer tick on the old date; rename onto an existing date; delete vs older tick+topic; impossible-date rename/delete; rename + tick in one push | as in the script; impossible dates rejected |
 | rename-baseline-and-back | real session renamed away and back | ticks and topic intact |
+| tombstone-prune | (0.46.2) delete stamped 90 days ago, then an older tick: accepted (tomb pruned); 30 days ago: ignored (kept). Uses fresh random dates each run | both pass |
 | resend-all | 311 ticks with own stamps / fresh stamps | all ignored / all applied with values unchanged |
 
 Column I `pupilStatus` can't drift out of line with its row. It's one `ARRAYFORMULA` that recalculates per row, and the bridge never writes it. A rename away and back leaves every tick row as it was.
@@ -93,7 +94,8 @@ Run one with `node tests/e2e/<probe> http://localhost:4179/sow/`. The sync probe
 | slow-3g | 2 s latency at 50 kbit/s: sync completes and the tick reaches the sheet | TEST |
 | clock-rollback | phone clock 3 h behind after a sync: the new tick still wins | TEST |
 
-## 7. Waiting on 0.46.2 on TEST (bridge-side)
+## 7. 0.46.2 on TEST (t32u, 10:02 PM IST)
+Verified: run 1 44/44 (replay and 30 Feb included), run 2 32/32, then `run-all.sh all` once (run 1 43/43 without the replay; run 2's tombstone test failed only because it reused dates, and passed after switching to fresh dates). Still open:
 - Re-run bridge run 1 (replay test **once**) and run 2: all expected to pass.
 - Duplicate pupil names: needs two pupils with the same name on the TEST Roster. Steve adds them; the bridge never invents pupils. Then check that ticks key on roll, not name.
 - Tombstone pruning on the real Script Properties: 0.46.2 prunes on the next rename/delete.
