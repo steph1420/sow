@@ -1,6 +1,16 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
+- **Break-it runs (t23u/t24u/t29u), fixed in bridge 0.46.2, waiting for Steve's TEST paste:**
+  - B-0462-1 A replayed or late push could be stamped up to 10 min in the future (clientNow offset plus the 10-min clamp slack), so real edits lost until then. Fix: `capShifted_` never lets a shifted stamp pass server time.
+  - B-0462-2 `dateFromIso_` rolled impossible dates over (2027-02-30 → 2 Mar; 31 Apr, month 13, month 0; rename/delete too). Fix: the date must read back with the same year, month and day.
+  - B-0462-3 Topics starting with `=` were written as formulas (`=1+1` → "2"; formula injection risk), and a leading `'` was eaten. Fix: `plainText_` prefixes an apostrophe.
+  - B-0462-4 Ticks for rolls not on the Roster (999), fractional (1.5) or huge (1e9) were stored. Fix: whole number and present on that class's Roster (same rule as roster ops). Note: ticks for a pupil deleted from the Roster sheet are now rejected and shown as a sync note.
+  - B-0462-5 An object topic was stored as "[object Object]"; status "Gone" was counted as applied (stored Active). Fix: rejected.
+  - B-0462-6 `SOW_TOMBS` grew without limit (Script Property limit 9 KB, about 150–200 renames/deletes before struct pushes would fail). Fix: drop entries older than 60 days, keep the newest 120. Trade-off: an op from a phone offline for more than 60 days could bring back a deleted date.
+  - Test-only tombstones (2026-12-25/26, 2027-02-30→03-02, 2027-03-31/04-01, 2026-12-31, 2027-01-01, 2027-04-31→05-01, …) are harmless (they only block ops stamped before the delete). 0.46.2 drops them after 60 days.
+- **B-B4-1 (open, found t29u, already in v0.45/beta.3, not a beta.4 regression): two tabs or windows of the app can undo each other's ticks.** Tab 1 ticks a cell. Tab 2 still holds the old grid in memory, and its next save (`persistWorkspace`) diffs the whole class grid against IndexedDB, then writes the old value back with a newer stamp. Repro: `ADV_GROUPS=two-tabs node tests/adv/browser-adv2.cjs`. Proposed fix (needs Steve's ok): save only the cells this tab changed (a dirty set), and/or have other tabs reload marks over a BroadcastChannel on each save. One phone with the PWA open once isn't affected.
+- beta.3 → beta.4 client: a bridge reply without state threw outside the error path (FIXED in beta.4, `src/sync/badReply.test.ts`).
 - v0.45.0: "Before update" snapshot was best-effort (fixed in v0.46.0-beta.1, see Fixed). Snapshots are device-local (not on the sheet). FIXED first bridge pull keeping a stale seed tick (left TEST at 217; reset to 216).
 - v0.44.5: FIXED date popover heavy green fill (t57u → option A), past-view header strip untinted, Connections showing the Beta URL (now masked when not editing), stale probes v040/sync-flow/offline-sync/sw-update/v042-shots. sync-flow/offline-sync now need SOW_TEST_BRIDGE_TOKEN and run on Beta against the TEST copy only.
 - v0.44.4: FIXED t56u 2-date view showing one column after the v0.44.3 heal (stored pair [x,x] collapsed). Healed pair is now filled with the nearest date and saved. The 0.43 rule "other column's date collapses to one" is replaced by a swap.

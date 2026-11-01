@@ -388,6 +388,10 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
 }
 
 /** v0.33.0 — push changed ticks/Left to the bridge, then apply the sheet state it returns. Falls back to a gviz read. */
+const isBridgeState = (x: unknown): x is BridgeState => {
+  const o = x as Record<string, unknown> | null
+  return !!o && typeof o === 'object' && ['subjects', 'roster', 'sessions', 'ticks'].every((k) => Array.isArray(o[k]))
+}
 export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
   const started = new Date().toISOString()
   const allMarks = await (await getDb()).getAll('marks')
@@ -408,6 +412,8 @@ export async function syncViaBridge(settings: Settings): Promise<SyncReport> {
     } else {
       state = await bridgeCall<BridgeState>(settings.syncUrl.trim(), { token: settings.bridgeToken, action: 'pull' })
     }
+    // v0.46.0-beta.4 (t29u break-it): a reply without a usable state is an error, so local changes stay dirty
+    if (!isBridgeState(state)) throw new BridgeError('Bridge reply had no sheet data · marks stay on this device')
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     const id = extractSheetId(settings.sheetUrl)

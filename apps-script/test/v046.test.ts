@@ -49,7 +49,7 @@ const PUSHES = [
 describe('v0.46.0 bridge', () => {
   it('reports version 0.46.0 and ping carries the sheet id', () => {
     const r = env(NEW).post({ action: 'ping' })
-    expect(r.version).toBe('0.46.1')
+    expect(r.version).toBe('0.46.2')
     expect(r.sheetId).toBe('1iIGXOzdW9NTqLxWnBwI6UkpwOKyihQxvrG8L1v6njYI')
   })
 

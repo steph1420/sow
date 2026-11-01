@@ -183,6 +183,10 @@ describe('bridge', () => {
 
   it('push grows the Ticks tab past its 1000 rows instead of failing', () => {
     const { call, ss } = ready()
+    // v0.46.2 (B-0462-4): rolls must be on the Roster, so give KGB 45 pupils for this test
+    const ro = ss.getSheetByName('Roster')!; const have = new Set(ro.rows().slice(1).filter((r) => r[0] === 'KGB').map((r) => Number(r[1])))
+    const add = []; for (let r = 1; r <= 45; r++) if (!have.has(r)) add.push(['KGB', r, `Demo KGB ${r}`, 'Active', '', '', '2026-10-01T00:00:00.000Z'])
+    ro.getRange(ro.getLastRow() + 1, 1, add.length, 7).setValues(add)
     const ticks = []
     for (let d = 1; d <= 25; d++) for (let roll = 1; roll <= 45; roll++) ticks.push({ subjectKey: 'KGB_Eng_CW', date: `2026-12-${String(d).padStart(2, '0')}`, topic: 'T', roll, set: true, updatedAt: '2026-12-31T00:00:00.000Z' })
     const out = call({ action: 'push', ticks })
@@ -270,7 +274,7 @@ describe('v0.44.0 bridge structs: renameSession + deleteSession', () => {
   }
   const AT = '2026-10-31T06:00:00.000Z'
   const sid = (d: string) => 'KGA_Eng_CW|' + d
-  it('reports version 0.44.0', () => { expect(ready().call({ action: 'ping' }).version).toBe('0.46.1') })
+  it('reports version 0.44.0', () => { expect(ready().call({ action: 'ping' }).version).toBe('0.46.2') })
   it('rename moves the Sessions row and its ticks; refuses when the target exists; repeat is a no-op', () => {
     const { call } = ready()
     const before = call({ action: 'pull' })

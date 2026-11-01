@@ -37,3 +37,19 @@ describe('swipe-confirm styles', () => {
     expect(washPercent(999, 100, 200)).toBe(100)
   })
 })
+
+// v0.46.0-beta.4 (Steve t23u): the trailing wash follows the swipe direction.
+import { washDir, washTrail } from './swipeConfirm'
+describe('wash follows swipe direction', () => {
+  it('direction flips only after a clear move (no jitter flips)', () => {
+    expect(washDir('ltr', 100, 90)).toBe('rtl')
+    expect(washDir('rtl', 100, 120)).toBe('ltr')
+    expect(washDir('rtl', 100, 101)).toBe('rtl')
+    expect(washDir('ltr', 100, 99)).toBe('ltr')
+  })
+  it('trail is measured from the edge the swipe came from', () => {
+    expect(washTrail(300, 0, 400, 'ltr')).toBe(75)
+    expect(washTrail(300, 0, 400, 'rtl')).toBe(25)
+    expect(washTrail(-50, 0, 400, 'rtl')).toBe(100)
+  })
+})

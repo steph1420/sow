@@ -48,3 +48,18 @@ export function washPercent(clientX: number, rowLeft: number, rowWidth: number):
   if (rowWidth <= 0) return 0
   return Math.round(Math.min(100, Math.max(0, ((clientX - rowLeft) / rowWidth) * 100)))
 }
+
+/** v0.46.0-beta.4 (t23u): the wash trails behind the finger in the direction it is moving. */
+export type WashDir = 'ltr' | 'rtl'
+/** Pixels of sideways travel before the wash flips direction (stops jitter flicker). */
+export const WASH_DIR_MIN_PX = 2
+export function washDir(prev: WashDir, prevX: number, x: number): WashDir {
+  if (x > prevX + WASH_DIR_MIN_PX) return 'ltr'
+  if (x < prevX - WASH_DIR_MIN_PX) return 'rtl'
+  return prev
+}
+/** Wash length in % measured from the edge the swipe came from. */
+export function washTrail(clientX: number, rowLeft: number, rowWidth: number, dir: WashDir): number {
+  const p = washPercent(clientX, rowLeft, rowWidth)
+  return dir === 'rtl' ? 100 - p : p
+}

@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState
 import { azKeyJump } from '../../lib/keyboard'
 import { usePrefs } from '../../prefs/PrefsContext'
 import { haptic } from '../../lib/haptics'
+import { GRIP_HIT_PX, snapLeft } from './azGrip'
 import {
   AZ_LETTERS,
   azSlotTopPercent,
@@ -28,7 +29,9 @@ type Props = {
 export type AzStripHandle = { focus: () => void }
 
 export const AzStrip = forwardRef<AzStripHandle, Props>(function AzStrip({ names, rows, onJump, onScrubEnd, modeSub, onEnterGrid, onLeave }, handle) {
-  const { prefs } = usePrefs()
+  const { prefs, setPref } = usePrefs()
+  const [dragX, setDragX] = useState<number | null>(null)
+  const grip0 = useRef(0)
   const ref = useRef<HTMLDivElement>(null)
   const present = useMemo(() => presentLetters(names), [names])
   const [hud, setHud] = useState<AzLetter | null>(null)
@@ -117,8 +120,29 @@ export const AzStrip = forwardRef<AzStripHandle, Props>(function AzStrip({ names
           {hud}
         </div>
       ) : null}
+      {/* v0.46.0-beta.4 (t19u, Q-AZ-1 = B): drag the grip sideways; on lift the strip snaps to the nearest edge (az.leftSide) */}
+      <button
+        type="button"
+        className={`sw-az-grip${left ? ' left' : ''}${dragX != null ? ' dragging' : ''}`}
+        style={{ ['--grip-hit' as string]: `${GRIP_HIT_PX}px`, transform: dragX != null ? `translateX(${dragX}px)` : undefined }}
+        aria-label={`Move the A to Z strip to the ${left ? 'right' : 'left'} side`}
+        data-az-grip
+        onClick={(e) => { if (e.detail === 0) { setPref('az.leftSide', !left); haptic('light') } }}
+        onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); grip0.current = e.clientX; setDragX(0) }}
+        onPointerMove={(e) => { if (dragX != null) setDragX(e.clientX - grip0.current) }}
+        onPointerUp={(e) => {
+          if (dragX == null) return
+          const area = (ref.current?.offsetParent as HTMLElement | null)?.getBoundingClientRect()
+          setDragX(null)
+          if (!area || Math.abs(e.clientX - grip0.current) < 8) return
+          const toLeft = snapLeft(e.clientX, area.left, area.width)
+          if (toLeft !== Boolean(left)) { setPref('az.leftSide', toLeft); haptic('light') }
+        }}
+        onPointerCancel={() => setDragX(null)}
+      ><i /></button>
       <div
-        className={`sw-az${left ? ' left' : ''}${modeSub ? ' mode-sub' : ''}`}
+        style={{ ['--grip-hit' as string]: `${GRIP_HIT_PX}px`, transform: dragX != null ? `translateX(${dragX}px)` : undefined }}
+        className={`sw-az has-grip${left ? ' left' : ''}${modeSub ? ' mode-sub' : ''}`}
         ref={ref}
         tabIndex={0}
         role="slider"

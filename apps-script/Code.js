@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.46.1'
+var BRIDGE_VERSION = '0.46.2'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -23,6 +23,13 @@ function nowIso_() { return new Date().toISOString() }
 /** v0.36.1 clock guard (t55u): a stamp more than 10 min ahead of the server clock is clamped to server now. */
 var CLOCK_SLACK_MS = 10 * 60 * 1000
 var clamped_ = 0
+/** v0.46.2 (t29u, B-0462-1): a stamp shifted by the phone-clock offset may never pass server time (replayed/late pushes). */
+function capShifted_(at, off, nowMs) {
+  var s = clampStamp_(shiftStamp_(at, off), nowMs)
+  if (!off) return s
+  var t = Date.parse(String(s)), now = nowMs == null ? Date.now() : nowMs
+  return !isNaN(t) && t > now ? new Date(now).toISOString() : s
+}
 function clampStamp_(at, nowMs) {
   var t = Date.parse(String(at)), now = nowMs == null ? Date.now() : nowMs
   if (!isNaN(t) && t > now + CLOCK_SLACK_MS) { clamped_++; return new Date(now).toISOString() }
@@ -30,7 +37,14 @@ function clampStamp_(at, nowMs) {
 }
 function pad2_(n) { return (n < 10 ? '0' : '') + n }
 function isoDate_(d) { return d.getFullYear() + '-' + pad2_(d.getMonth() + 1) + '-' + pad2_(d.getDate()) }
-function dateFromIso_(s) { var m = String(s).match(/^(\d{4})-(\d\d)-(\d\d)/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null }
+// v0.46.2 (t29u, B-0462-2): a date that does not exist (30 Feb, month 13) is rejected, never rolled over
+function dateFromIso_(s) {
+  var m = String(s).match(/^(\d{4})-(\d\d)-(\d\d)/); if (!m) return null
+  var d = new Date(+m[1], +m[2] - 1, +m[3])
+  return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d : null
+}
+/** v0.46.2 (t29u, B-0462-3): topics are plain text — a leading = or ' would be read as a formula / eaten by Sheets. */
+function plainText_(v) { var t = String(v == null ? '' : v); return /^[=']/.test(t) ? "'" + t : t }
 function toIsoStamp_(v) { return v instanceof Date ? v.toISOString() : String(v || '') }
 function academicYear_(nowIso, startMonth) {
   var y = +String(nowIso).slice(0, 4), mo = +String(nowIso).slice(5, 7)
@@ -256,14 +270,21 @@ function state_(ss) {
 // Tombstones (script property) stop older tick/topic ops from re-creating a renamed-away or deleted session.
 var TOMB_KEY = 'SOW_TOMBS'
 function tombs_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(TOMB_KEY) || '{}') } catch (e) { return {} } }
-function saveTombs_(t) { PropertiesService.getScriptProperties().setProperty(TOMB_KEY, JSON.stringify(t)) }
+// v0.46.2 (t29u, B-0462-6): tombstones older than TOMB_MAX_AGE_DAYS are dropped and only the newest TOMB_MAX kept (property limit 9 KB)
+var TOMB_MAX_AGE_DAYS = 60, TOMB_MAX = 120
+function saveTombs_(t) {
+  var cut = new Date(Date.now() - TOMB_MAX_AGE_DAYS * 864e5).toISOString()
+  var keys = Object.keys(t).filter(function (k) { return String(t[k]) >= cut }).sort(function (a, b) { return String(t[b]).localeCompare(String(t[a])) }).slice(0, TOMB_MAX)
+  var out = {}; keys.forEach(function (k) { out[k] = t[k] })
+  PropertiesService.getScriptProperties().setProperty(TOMB_KEY, JSON.stringify(out))
+}
 function applyStructs_(ss, structs, subjects, rejected, off) {
   var done = 0, tb = tombs_()
   var srows = read_(ss, T.sessions, 8), ticks = ticksRead_(ss), changed = false
   var find = function (sid) { for (var i = 0; i < srows.length; i++) if (srows[i][0] === sid) return i; return -1 }
   structs.forEach(function (o) {
     if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
-    var at = o.at ? clampStamp_(shiftStamp_(o.at, off)) : nowIso_()
+    var at = o.at ? capShifted_(o.at, off) : nowIso_()
     if (o.kind === 'rename') {
       var df = dateFromIso_(o.from), dt = dateFromIso_(o.to)
       if (!df || !dt) { rejected.push('bad rename ' + JSON.stringify(o)); return }
@@ -302,15 +323,17 @@ function applyPush_(ss, ops, by) {
   if (tickOps.length) {
     var sessions = read_(ss, T.sessions, 8), sIdx = {}
     sessions.forEach(function (r, i) { sIdx[r[0]] = i })
+    // v0.46.2 (t29u, B-0462-4): only whole-number rolls that exist in that class's Roster
+    var onRoster = {}; read_(ss, T.roster, 7).forEach(function (r) { onRoster[r[0] + '|' + Number(r[1])] = true })
     var ticks = ticksRead_(ss), tIdx = {}, dirty = {}, origLen = ticks.length, sesLen = sessions.length, compact = isCompact_(ss, T.ticks, 8)
     ticks.forEach(function (r, i) { tIdx[r[0]] = i })
     tickOps.forEach(function (t) {
       if (!subjects[t.subjectKey]) { rejected.push(t.subjectKey + ' is not in Subjects'); return }
-      var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? clampStamp_(shiftStamp_(t.updatedAt, off)) : ''
-      if (!d || !(roll > 0) || !at) { rejected.push('bad tick ' + JSON.stringify(t)); return }
+      var d = dateFromIso_(t.date), roll = Number(t.roll), at = t.updatedAt ? capShifted_(t.updatedAt, off) : ''
+      if (!d || !(roll > 0) || Math.floor(roll) !== roll || !at || !onRoster[sectionOf_(t.subjectKey) + '|' + roll]) { rejected.push('bad tick ' + JSON.stringify(t)); return }
       var cls = sectionOf_(t.subjectKey), sid = sessionId_(t.subjectKey, isoDate_(d)), id = tickId_(sid, roll)
       if (sIdx[sid] == null && buried(sid, at)) { ignored++; return }
-      if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, String(t.topic || ''), 'Open', at, at]) }
+      if (sIdx[sid] == null) { sIdx[sid] = sessions.length; sessions.push([sid, t.subjectKey, cls, d, plainText_(typeof t.topic === 'string' ? t.topic : ''), 'Open', at, at]) }
       var i = tIdx[id]
       if (t.subOnly && i != null) { if (ticks[i][8] === true) ignored++; else { ticks[i][8] = true; dirty[i] = true; applied++ } return }
       if (i != null && String(ticks[i][6]) >= at) { ignored++; return } // per-tick newer wins
@@ -332,9 +355,9 @@ function applyPush_(ss, ops, by) {
     srows.forEach(function (r, i) { sI[r[0]] = i })
     ops.sessions.forEach(function (o) {
       if (!subjects[o.subjectKey]) { rejected.push(o.subjectKey + ' is not in Subjects'); return }
-      var d = dateFromIso_(o.date), at = o.updatedAt ? clampStamp_(shiftStamp_(o.updatedAt, off)) : ''
-      if (!d || !at) { rejected.push('bad session ' + JSON.stringify(o)); return }
-      var sid = sessionId_(o.subjectKey, isoDate_(d)), i = sI[sid], topic = String(o.topic == null ? '' : o.topic).slice(0, 200)
+      var d = dateFromIso_(o.date), at = o.updatedAt ? capShifted_(o.updatedAt, off) : ''
+      if (!d || !at || (o.topic != null && typeof o.topic !== 'string')) { rejected.push('bad session ' + JSON.stringify(o)); return }
+      var sid = sessionId_(o.subjectKey, isoDate_(d)), i = sI[sid], topic = plainText_(String(o.topic == null ? '' : o.topic).slice(0, 200))
       if (i == null && buried(sid, at)) { ignored++; return }
       if (i == null) { sI[sid] = srows.length; srows.push([sid, o.subjectKey, sectionOf_(o.subjectKey), d, topic, 'Open', at, at]); sessionsApplied++; return }
       if (toIsoStamp_(srows[i][7]) >= at) { ignored++; return }
@@ -351,7 +374,8 @@ function applyPush_(ss, ops, by) {
     ops.roster.forEach(function (p) {
       var i = rIdx[p.classKey + '|' + Number(p.roll)]
       if (i == null) { rejected.push('no pupil ' + p.classKey + ' roll ' + p.roll + ' in Roster'); return } // never invent pupils
-      p.updatedAt = clampStamp_(shiftStamp_(p.updatedAt, off))
+      if (p.status !== 'Left' && p.status !== 'Active') { rejected.push('bad status ' + JSON.stringify(p.status) + ' for ' + p.classKey + ' roll ' + p.roll); return } // v0.46.2 B-0462-5
+      p.updatedAt = capShifted_(p.updatedAt, off)
       if (String(roster[i][6]) >= String(p.updatedAt)) { ignored++; return }
       var left = p.status === 'Left'
       roster[i][3] = left ? 'Left' : 'Active'

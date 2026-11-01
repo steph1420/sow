@@ -565,6 +565,18 @@
   touch-action: none;
   user-select: none;
 }
+/* v0.46.0-beta.4 (t19u, Q-AZ-1 = B): grip above A; the strip starts below it */
+.sw-az.has-grip { top: calc(var(--grip-hit) + 4px); }
+.sw-az-grip {
+  position: absolute; top: 2px; right: calc(2px + (var(--az-w) - var(--grip-hit)) / 2);
+  width: var(--grip-hit); height: var(--grip-hit); z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; padding: 0; touch-action: none; cursor: grab;
+}
+.sw-az-grip.left { right: auto; left: calc(2px + (var(--az-w) - var(--grip-hit)) / 2); }
+.sw-az-grip i { width: 14px; height: 10px; border-top: 2px solid var(--text-ter); border-bottom: 2px solid var(--text-ter); position: relative; }
+.sw-az-grip i::after { content: ''; position: absolute; left: 0; right: 0; top: 2px; border-top: 2px solid var(--text-ter); }
+.sw-az-grip.dragging i, .sw-az-grip:focus-visible i { border-color: var(--tint); }
 .sw-az-slot {
   position: absolute;
   left: 0;
@@ -736,6 +748,13 @@
 /* D · trailing wash: soft sweep behind the finger (--wash-x set on pointer move) */
 .sw-row.pc-wash {
   background: linear-gradient(90deg, transparent 0%,
+    color-mix(in srgb, var(--mode) 4%, transparent) calc(var(--wash-x, 0%) * 0.4),
+    color-mix(in srgb, var(--mode) 13%, transparent) var(--wash-x, 0%),
+    transparent calc(var(--wash-x, 0%) + 1%));
+}
+/* v0.46.0-beta.4 (t23u): swiping right-to-left, the wash trails from the right edge */
+.sw-row.pc-wash[data-wash='rtl'] {
+  background: linear-gradient(270deg, transparent 0%,
     color-mix(in srgb, var(--mode) 4%, transparent) calc(var(--wash-x, 0%) * 0.4),
     color-mix(in srgb, var(--mode) 13%, transparent) var(--wash-x, 0%),
     transparent calc(var(--wash-x, 0%) + 1%));

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.46.0-beta.4 — 2026-11-01 (Asia/Calcutta) · Beta (separate site) · bridge Code.js 0.46.2
+
+Steve t19u, t23u, t24u, t29u. Rollback: set `BETA_REF` in steph1420/sow-beta back to `v0.46.0-beta.3`, or use branch `backup/pre-0.46.2-1950` / `/workspace/sow-build/backup-pre-0.46.2-1950.tgz`. **Code.js change: YES** (`apps-script/Code.js` → 0.46.2, not deployed; Steve pastes it into TEST. The app works with 0.46.1 until then). Bridge rollback: paste back the 0.46.1 Code.js from tag `v0.46.0-beta.3`.
+- **A–Z grip (t19u, Q-AZ-1 = B):** a ≡ grip above "A" with a 44 px touch area. Drag it sideways and on lift the strip snaps to the nearest edge (saved in `az.leftSide`). A plain tap does nothing; Enter on the grip moves the strip. `src/checklist/az/azGrip.ts`.
+- **Wash follows the swipe direction (t23u):** going right, the wash trails from the left; going left, it trails from the right. It flips only after 2 px of travel (`WASH_DIR_MIN_PX`) so jitter can't make it flicker.
+- **Bad bridge reply (t29u):** a reply with no usable sheet data (`{ok:true}`, `state:null`, wrong types) is now an error, so local changes stay dirty and the error is shown. Before, it threw outside the error path.
+- **Bridge 0.46.2 (t29u, from the break-it runs):** see BUGS B-0462-1…6:
+  - shifted stamps capped at server time,
+  - impossible dates rejected in every op, including rename and delete,
+  - topics stored as plain text,
+  - only whole-number rolls on the class Roster,
+  - non-string topics and unknown statuses rejected,
+  - tombstones pruned after 60 days and capped at 120.
+- **Tests:** `docs/TEST_CATALOG.md`, `tests/adv/` (bridge runs 1–2, browser break-it 1–2, `run-all.sh`), `apps-script/test/v0462.test.ts`, `src/sync/badReply.test.ts`.
+- **Handover:** `07_STALL_RULES.md` now has the loop rule (t24u).
+
 ## 0.46.0-beta.3 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
 
 Steve t15u, t16u. Rollback: set `BETA_REF` in steph1420/sow-beta to `v0.46.0-beta.2`. **Code.js change: YES** (bridge 0.46.1; Steve deploys on TEST; the app works on bridge 0.44/0.46.0 until then, the off override just stays on the phone).

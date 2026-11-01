@@ -36,7 +36,7 @@ import {
   toggleRoll,
   type SelectModel,
 } from './gestures/selectPhysics'
-import { normalizeSwipeStyle, pendingRowClass, washPercent } from './gestures/swipeConfirm'
+import { normalizeSwipeStyle, pendingRowClass, washDir, washTrail } from './gestures/swipeConfirm'
 import { crossedColumns, nameArmed, normalizeNameSwipe } from './gestures/nameSwipe'
 import { cellKey, isCancelled, stepPath, type PathCell } from './gestures/swipePath'
 import { useChecklistModel } from './state/useChecklistModel'
@@ -100,6 +100,7 @@ export function ChecklistPage(_props: Props) {
     fromName?: boolean
     crossed?: Set<number>
     lastX?: number
+    washDir?: 'ltr' | 'rtl'
     cols?: { left: number; right: number }[]
     /** v0.46.0 (t5u): boxes passed, in order; visible column of the start box; engage direction */
     path?: PathCell[]
@@ -269,6 +270,7 @@ export function ChecklistPage(_props: Props) {
     // every box the finger passed since the last move, in travel order (a fast flick can skip over a box)
     const prevX = st.lastX ?? st.startX
     st.lastX = e.clientX
+    st.washDir = washDir(st.washDir ?? 'ltr', prevX, e.clientX) // t23u: wash trails in the swipe direction
     const crossed = crossedColumns(prevX, e.clientX, st.cols ?? [])
     if (e.clientX < prevX) crossed.reverse()
     const before = st.path ?? []
@@ -291,7 +293,8 @@ export function ChecklistPage(_props: Props) {
         const el = rowRefs.current.get(r)
         if (!el) continue
         const b = el.getBoundingClientRect()
-        el.style.setProperty('--wash-x', `${washPercent(e.clientX, b.left, b.width)}%`)
+        el.style.setProperty('--wash-x', `${washTrail(e.clientX, b.left, b.width, st.washDir ?? 'ltr')}%`)
+        el.dataset.wash = st.washDir ?? 'ltr'
       }
     }
   }
@@ -299,7 +302,7 @@ export function ChecklistPage(_props: Props) {
   const finishPaint = (e: ReactPointerEvent, didTap: boolean) => {
     const st = paintRef.current
     paintRef.current = null
-    if (st?.path) for (const roll of new Set(st.path.map((c) => c.roll))) rowRefs.current.get(roll)?.style.removeProperty('--wash-x')
+    if (st?.path) for (const roll of new Set(st.path.map((c) => c.roll))) { const el = rowRefs.current.get(roll); el?.style.removeProperty('--wash-x'); if (el) delete el.dataset.wash }
     if (!st || st.pointerId !== e.pointerId) return
 
     if (st.engaged) {
