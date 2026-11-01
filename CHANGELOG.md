@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.46.0-beta.2 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
+
+Steve t14u, t15u. Rollback: tag `v0.46.0-beta.1` (set `BETA_REF` in steph1420/sow-beta back to it). **Code.js change: NO.**
+- **Swipe cue migration (t15u Q2):** a saved "blue" swipe cue becomes trailing wash once per device (`src/prefs/swipeMigration.ts`). A blue synced from the Prefs sheet stamped before the lock is also turned into wash and pushed back. Choosing blue again afterwards sticks.
+- **Name-swipe start setting (t14u):** `gestures.nameSwipeFrom` (Off / 30% / 50% / 70%) behaves the same as in v0.45.0. The probe `name-swipe-setting-probe.cjs` passes 16/16 on both builds, so nothing was reverted. See the BUGS note.
+- **Docs:** `docs/FEATURE_REFERENCE.md`.
+
 ## 0.46.0-beta.1 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
 
 Steve t4u, t5u, t7u, t8u. Rollback tag/commit: `v0.45.0` / `2282bdc`, branch `backup/pre-v0.46.0`, or `/workspace/backup-sow-pre-v0.46.0.tgz`. **Code.js change: YES** (`apps-script/Code.js` → bridge 0.46.0; Steve deploys it on TEST himself; the app works on bridge 0.44.0 until then). Triangulation: `docs/CODE_TRIANGULATION_v0.46.md`.

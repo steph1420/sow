@@ -5,6 +5,7 @@
 
 import { normalizeContrast } from '../theme/contrast'
 import { flavorKey } from '../sync/channel'
+import { SWIPE_MIGRATION_KEY } from './swipeMigration'
 import { normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { normalizeSwipeStyle, type SwipeConfirmStyle } from '../checklist/gestures/swipeConfirm'
 import { migrateLegacyShare, SEED_TEMPLATES, type ShareTemplate } from '../share/shareTemplates'
@@ -113,6 +114,11 @@ export function loadPrefs(): AppPrefs {
     merged['gestures.nameSwipeFrom'] = normalizeNameSwipe(merged['gestures.nameSwipeFrom'])
     merged['gestures.swipeConfirmStyle'] = normalizeSwipeStyle(merged['gestures.swipeConfirmStyle'])
     if (parsed['haptics.level'] == null && parsed['haptics.enabled'] === false) merged['haptics.level'] = 'off'
+    // v0.46.0-beta.2 (t15u Q2): saved blue → trailing wash, once per device
+    if (!localStorage.getItem(SWIPE_MIGRATION_KEY)) {
+      localStorage.setItem(SWIPE_MIGRATION_KEY, new Date().toISOString())
+      if (merged['gestures.swipeConfirmStyle'] === 'blue') { merged['gestures.swipeConfirmStyle'] = 'wash'; if (raw) savePrefs(merged) }
+    }
     return withShareMigration(merged, hasShare)
   } catch {
     return freshDefaults()

@@ -6,6 +6,7 @@ import { getSettings, putSettings } from '../data/api'
 import { loadPrefs, savePrefs, type AppPrefs } from '../prefs/appPrefs'
 import { BridgeError, bridgeCall } from './bridge'
 import { flavorKey } from './channel'
+import { migrateRemoteSwipeStyle } from '../prefs/swipeMigration'
 import { applyRemote, defaultPrefSyncState, planPrefsSync, stampAll, SYNC_KEYS, type PrefRow, type PrefSyncState } from './prefsSync'
 
 const KEY = flavorKey('sow-app.prefsync.v1')
@@ -84,6 +85,8 @@ export async function runPrefsSync(mode: 'auto' | 'synced' | 'local' = 'auto'): 
     try { res = await call(planPrefsSync(values, st, now).push) } catch (e) { return { status: 'error', message: e instanceof Error ? e.message : String(e) } }
   }
   const r = applyRemote(Array.isArray(res.prefs) ? res.prefs : rows, st, mode === 'synced')
+  // v0.46.0-beta.2 (t15u Q2): an old blue default synced from the sheet becomes trailing wash (pushed back next sync)
+  if ('gestures.swipeConfirmStyle' in r.apply) r.apply['gestures.swipeConfirmStyle'] = migrateRemoteSwipeStyle(r.apply['gestures.swipeConfirmStyle'], r.state.stamps['gestures.swipeConfirmStyle'])
   await writeValues(r.apply)
   const after = { ...values, ...r.apply }
   st = { ...r.state, snapshot: snap(after), lastSyncAt: now, lastError: undefined, bridge: 'ok', chosen: true }
