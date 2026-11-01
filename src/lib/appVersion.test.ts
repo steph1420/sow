@@ -10,7 +10,7 @@ const SOURCES = import.meta.glob('../**/*.tsx', { query: '?raw', import: 'defaul
 describe('app version', () => {
   it('equals package.json version', () => {
     expect(APP_VERSION).toBe(pkg.version)
-    expect(versionLabel()).toBe(`v${pkg.version} Beta · Quiet Lucid`) // v0.42.0: Beta label (Rule 15)
+    expect(versionLabel()).toBe(`v${pkg.version} ${pkg.version.includes("-") ? "Beta" : "Stable"} · Quiet Lucid`) // v0.46.1 (t43u): label from the build
   })
   it('no hardcoded version literal in UI code (outside comments)', () => {
     const files = Object.keys(SOURCES).filter((f) => !/\.test\./.test(f))
@@ -22,4 +22,12 @@ describe('app version', () => {
     }
     expect(hits).toEqual([])
   })
+})
+
+// v0.46.1 (Steve t43u): /sow/ shows "Stable"; the Beta site or any prerelease shows "Beta".
+import { channelLabelFor } from './appVersion'
+describe('channel label from the build (t43u)', () => {
+  it('stable build of a release version → Stable', () => { expect(channelLabelFor('0.46.1', undefined)).toBe('Stable') })
+  it('Beta site build → Beta', () => { expect(channelLabelFor('0.46.1', 'beta')).toBe('Beta') })
+  it('prerelease version → Beta even on /sow/', () => { expect(channelLabelFor('0.46.0-beta.4', undefined)).toBe('Beta') })
 })

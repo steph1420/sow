@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.46.1 — 2026-11-01 (Asia/Calcutta) · Stable (/sow/)
+
+Steve t43u ("That's how I remember which version I'm using"). Rollback: re-deploy tag `v0.46.0` (bundle `index-za5Z-ipx.js`), branch `backup/pre-v0.46.1`, `/workspace/sow-build/backup-pre-v0.46.1.tgz`. **Code.js change: NO.**
+- **Channel label from the build:** /sow/ now shows "v0.46.1 Stable". The Beta site (`VITE_SOW_FLAVOR=beta`), or any prerelease version, shows "Beta". `channelLabelFor()` in `src/lib/appVersion.ts` replaces the hard-coded 'Beta' (in place since v0.42.0). The sow-beta repo is unchanged (it still builds v0.46.0-beta.4 → "Beta").
+
 ## 0.46.0 — 2026-11-01 (Asia/Calcutta) · Stable (/sow/)
 
 Steve t34u ("You handle going live part"), t37u. LIVE bridge Code.js 0.46.2, deployed by Steve at a NEW deployment URL. Everything from 0.46.0-beta.1…beta.4 is now on /sow/. Rollback: re-deploy tag `v0.45.0` (commit `2282bdc`, bundle `index-tFWxJPmk.js`). Backups: branch `backup/pre-v0.46.0-stable`, `/workspace/sow-build/backup-pre-v0.46.0-stable.tgz`. A v0.45.0 rollback needs the old LIVE deployment kept alive, because v0.45.0 has the old URL built in. **Code.js change: YES** (0.46.2, already live).

@@ -1,5 +1,5 @@
-# STATE (updated 2026-11-01 23:05 IST, v0.46.0 Stable)
-LIVE app /sow/: v0.46.0, tag v0.46.0 (see CHANGELOG). Rollback: tag v0.45.0 / 2282bdc / index-tFWxJPmk.js (needs the old LIVE deployment kept alive). Backups: branch backup/pre-v0.46.0-stable, /workspace/sow-build/backup-pre-v0.46.0-stable.tgz.
+# STATE (updated 2026-11-01 23:12 IST, v0.46.1 Stable — label from build, t43u)
+LIVE app /sow/: v0.46.1, tag v0.46.1 (v0.46.0 = previous) (see CHANGELOG). Rollback: tag v0.45.0 / 2282bdc / index-tFWxJPmk.js (needs the old LIVE deployment kept alive). Backups: branch backup/pre-v0.46.0-stable, /workspace/sow-build/backup-pre-v0.46.0-stable.tgz.
 LIVE bridge: Code.js 0.46.2 at a NEW deployment URL (built-in default in src/sync/defaultBridge.ts). The old URL is in RETIRED_SYNC_URLS, so phones that saved it follow the new default; Developer overrides are never rewritten.
 Beta site /sow-beta/: v0.46.0-beta.4 (BETA_REF), TEST bridge 0.46.2. TEST baseline 7/311/216/89/4, restore after every test (tests/adv/bridgeLib.mjs).
 Tests: docs/TEST_CATALOG.md, tests/adv/run-all.sh. Open bug: B-B4-1 (two tabs overwrite), fix waits for Steve's ok.
