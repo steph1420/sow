@@ -68,7 +68,7 @@ Run one with `node tests/e2e/<probe> http://localhost:4179/sow/`. The sync probe
 | swipe-confirm / swipe-path / swipe-single | every cue style, lit boxes, going back cancels | 68 / 10 / 7 |
 | name-swipe-setting | nameSwipeFrom Off/30/50/70 | 16/16 |
 | topic-sync | topic edits sync | 7/7 |
-| az-tween | A–Z strip motion | added in beta.4 runs |
+| az-tween | A–Z tap scroll tween (W down, A up, bottom stays in range, rapid scrub) + grip present. Asserts since beta.4 | 5/5 |
 
 ## 5. Browser break-it 1: `tests/adv/browser-adv.cjs` (beta.3 build + TEST)
 `ADV_GROUPS=a,b node tests/adv/browser-adv.cjs <url>` runs a subset. Restores after each group. Last full run: 26/26.
