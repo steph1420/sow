@@ -23,7 +23,7 @@ import { fetchSheetCsv } from './gviz'
 export type BridgeSubject = { subjectKey: string; classKey: string; subject: string; kind: string; active: boolean; order?: number }
 export type BridgePupil = { classKey: string; roll: number; name: string; status: 'Active' | 'Left'; updatedAt: string }
 export type BridgeSession = { sessionId: string; subjectKey: string; classKey: string; date: string; topic: string; status: string; updatedAt: string }
-export type BridgeTick = { tickId: string; sessionId: string; subjectKey: string; classKey: string; roll: number; set: boolean; updatedAt: string; /** v0.46.0 bridge: manual Submitted */ sub?: boolean }
+export type BridgeTick = { tickId: string; sessionId: string; subjectKey: string; classKey: string; roll: number; set: boolean; updatedAt: string; /** v0.46.0 bridge: manual Submitted */ sub?: boolean; /** beta.3 bridge: manual off */ subOff?: boolean }
 export type BridgeState = {
   ok: true
   schema: number
@@ -33,7 +33,7 @@ export type BridgeState = {
   ticks: BridgeTick[]
   version?: string
 }
-export type PushTick = { subjectKey: string; date: string; topic: string; roll: number; set: boolean; updatedAt: string; sub?: boolean }
+export type PushTick = { subjectKey: string; date: string; topic: string; roll: number; set: boolean; updatedAt: string; sub?: boolean; subOff?: boolean }
 export type PushPupil = { classKey: string; roll: number; status: 'Active' | 'Left'; updatedAt: string }
 export type PushPayload = { ticks: PushTick[]; roster: PushPupil[] }
 export type PushResult = { ok: true; version?: string; offsetMs?: number; applied: number; ignored: number; rejected: string[]; state: BridgeState; sessionsApplied?: number; structApplied?: number }
@@ -77,7 +77,7 @@ export async function bridgeCall<T>(url: string, body: Record<string, unknown>):
 export function buildPushPayload(marks: Mark[], meta: RosterMeta[], since: string | undefined): PushPayload {
   const ticks: PushTick[] = marks
     .filter((m) => (since ? m.updatedAt > since : m.sheetSet !== undefined && m.set !== m.sheetSet))
-    .map((m) => ({ subjectKey: m.classKey, date: m.date, topic: m.topic, roll: m.roll, set: m.set, updatedAt: m.updatedAt, sub: !!m.submitted }))
+    .map((m) => ({ subjectKey: m.classKey, date: m.date, topic: m.topic, roll: m.roll, set: m.set, updatedAt: m.updatedAt, sub: !!m.submitted, subOff: !!m.subOff && m.set }))
   const bySection = new Map<string, PushPupil>()
   for (const r of meta) {
     if (since ? r.updatedAt <= since : true) continue
@@ -128,6 +128,7 @@ export function stateToApp(s: BridgeState): AppState {
       topic: ses?.topic ?? '',
       set: t.set,
       submitted: t.sub === true,
+      ...(typeof t.subOff === 'boolean' ? { subOff: t.subOff } : {}), // bridge ≥ 0.46.1 only
       updatedAt: t.updatedAt,
       sheetSet: t.set,
       ...(typeof t.sub === 'boolean' ? { sheetSub: t.sub } : {}),

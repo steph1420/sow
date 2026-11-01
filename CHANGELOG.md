@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.46.0-beta.3 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
+
+Steve t15u, t16u. Rollback: set `BETA_REF` in steph1420/sow-beta to `v0.46.0-beta.2`. **Code.js change: YES** (bridge 0.46.1; Steve deploys on TEST; the app works on bridge 0.44/0.46.0 until then, the off override just stays on the phone).
+- **Submitted look (t15u Q1 → t16u option A):** derived (auto, from Set) Submitted is faded to 40%; manual is solid. Mocks: `/workspace/sow-build/mocks/`.
+- **Untick an auto Submitted (t16u):** tapping a derived Submitted unticks it and shows "Auto Submitted unticked · Set stays on" with Undo, which puts the auto tick back. No toast when Set auto-ticks Submitted.
+- **Storage:** a manual "off" override `subOff` on the mark, living only while Set stays on (any Set change clears it). Shown Submitted = manual OR (Set AND NOT subOff). Sheet: Ticks!J TRUE = manual on, FALSE = manual off, blank = derived. Push/state carry `subOff` next to `sub`; an old client's push keeps the stored J. Snapshots carry it (`off`).
+- Tap cycle in Submitted mode: manual → derived · derived → off (toast) · off/none → manual. Paint off on a Set row = off override; paint on clears it.
+- Probes `swipe-single`/`swipe-confirm` now mark the beta.2 blue→wash migration as done (they test a user who chose blue). New real-touch probe `submitted-derived-probe.cjs`.
+
 ## 0.46.0-beta.2 — 2026-11-01 (Asia/Calcutta) · Beta (separate site)
 
 Steve t14u, t15u. Rollback: tag `v0.46.0-beta.1` (set `BETA_REF` in steph1420/sow-beta back to it). **Code.js change: NO.**

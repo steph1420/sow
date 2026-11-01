@@ -22,7 +22,7 @@ describe('clock guard', () => {
   it('every reply carries serverNow and version 0.44.0', () => {
     const { post, token } = env()
     const r = post({ action: 'ping', token })
-    expect(r.version).toBe('0.46.0')
+    expect(r.version).toBe('0.46.1')
     expect(Math.abs(Date.parse(r.serverNow) - Date.now())).toBeLessThan(5000)
   })
   it('clampStamp_: future (> now+10 min) → server now; past and near-now untouched', () => {

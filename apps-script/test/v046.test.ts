@@ -49,7 +49,7 @@ const PUSHES = [
 describe('v0.46.0 bridge', () => {
   it('reports version 0.46.0 and ping carries the sheet id', () => {
     const r = env(NEW).post({ action: 'ping' })
-    expect(r.version).toBe('0.46.0')
+    expect(r.version).toBe('0.46.1')
     expect(r.sheetId).toBe('1iIGXOzdW9NTqLxWnBwI6UkpwOKyihQxvrG8L1v6njYI')
   })
 
@@ -62,7 +62,7 @@ describe('v0.46.0 bridge', () => {
       expect(cols(b.ss, 'Sessions', 8)).toEqual(cols(a.ss, 'Sessions', 8))
       expect(cols(b.ss, 'Roster', 7)).toEqual(cols(a.ss, 'Roster', 7))
       const sa = { ...ra.state, serverTime: 0 }, sb = { ...rb.state, serverTime: 0 }
-      expect(sb.ticks.map((t: any) => { const { sub, ...x } = t; return x })).toEqual(sa.ticks)
+      expect(sb.ticks.map((t: any) => { const { sub, subOff, ...x } = t; return x })).toEqual(sa.ticks)
       expect(sb.sessions).toEqual(sa.sessions); expect(sb.roster).toEqual(sa.roster)
     }
   })
@@ -103,6 +103,16 @@ describe('v0.46.0 bridge', () => {
     expect(r.state.ticks.filter((t: any) => t.sub).length).toBe(0)
   })
 
+  it('t16u: subOff (manual off while Set on) round-trips as Ticks!J FALSE; blank stays derived', () => {
+    const { ss, post } = env(NEW)
+    let r = post({ action: 'push', ticks: [tick('KGA_Eng_CW', '2026-10-20', 2, true, '2026-10-31T01:00:00.000Z', { sub: false, subOff: true })] })
+    const t = r.state.ticks.find((x: any) => x.tickId === 'KGA_Eng_CW|2026-10-20|2')
+    expect(t).toMatchObject({ set: true, sub: false, subOff: true })
+    r = post({ action: 'push', ticks: [tick('KGA_Eng_CW', '2026-10-20', 2, true, '2026-10-31T02:00:00.000Z')] }) // old client: keeps flag
+    expect(r.state.ticks.find((x: any) => x.tickId === 'KGA_Eng_CW|2026-10-20|2').subOff).toBe(true)
+    r = post({ action: 'push', ticks: [tick('KGA_Eng_CW', '2026-10-20', 2, true, '2026-10-31T03:00:00.000Z', { sub: false, subOff: false })] })
+    expect(r.state.ticks.find((x: any) => x.tickId === 'KGA_Eng_CW|2026-10-20|2').subOff).toBe(false)
+  })
   it('subs (migrating old manual Submitted) only turn J on — Set and stamp untouched; missing rows are created unset', () => {
     const { post } = env(NEW)
     const r = post({ action: 'push', subs: [{ subjectKey: 'KGA_Eng_CW', date: '2026-10-20', roll: 3, updatedAt: '2026-10-01T00:00:00.000Z' }, { subjectKey: 'KGB_Eng_CW', date: '2026-10-22', roll: 1, updatedAt: '2026-10-22T00:00:00.000Z' }] })

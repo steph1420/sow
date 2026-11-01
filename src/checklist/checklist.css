@@ -981,3 +981,6 @@
 @keyframes dp-snap { from { transform: translateY(var(--snap, 0)); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .dp-dial > div.dp-snap { animation: none; } }
 .dem-cancel { min-width: 44px; height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: transparent; color: var(--text-sec); font-size: 15px; font-weight: 600; }
+
+/* v0.46.0-beta.3 (Steve t16u, Q1 option A): derived (auto) Submitted is faded to 40%; manual is solid. */
+.sw-check.on.derived { opacity: 0.4; }

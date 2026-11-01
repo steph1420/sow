@@ -1,6 +1,6 @@
 import { uniqueCols } from '../pickDate'
 import { DATE_COLS_KEY, readDateCols } from '../../dates/sessionEdit'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { prettyClassLabel, type ClassKey } from '../../data/types'
 import { useWorkspace } from '../../demo/WorkspaceContext'
 import { dateSlotFromIso } from '../../demo/workspaceData'
@@ -15,13 +15,13 @@ import {
 } from '../../lib/undoStack'
 import type { ColPills, DateSlot, MarkMode, MarksMap, StudentRow } from '../types'
 import { markKey } from '../types'
-import { fieldValue, paintField, toggleField } from '../../data/submitted'
+import { fieldValue, isDerivedTap, paintField, submittedSource, toggleField } from '../../data/submitted'
 
 function getMark(marks: MarksMap, roll: number, date: string) {
   return marks[markKey(roll, date)] ?? { set: false, submitted: false }
 }
 
-function fieldOf(m: { set: boolean; submitted: boolean }, mode: MarkMode): boolean {
+function fieldOf(m: { set: boolean; submitted: boolean; subOff?: boolean }, mode: MarkMode): boolean {
   return fieldValue(m, mode) // v0.46.0: Submitted shows manual OR Set
 }
 
@@ -76,7 +76,7 @@ export function useChecklistModel() {
       setMarks((prev) => {
         const next = { ...prev }
         for (const s of snaps) {
-          next[markKey(s.roll, s.date)] = { set: s.set, submitted: s.submitted }
+          next[markKey(s.roll, s.date)] = { set: s.set, submitted: s.submitted, subOff: !!s.subOff }
         }
         return next
       })
@@ -85,19 +85,19 @@ export function useChecklistModel() {
   )
 
   const commitMarks = useCallback(
-    (changes: { roll: number; date: string; set: boolean; submitted: boolean }[]) => {
+    (changes: { roll: number; date: string; set: boolean; submitted: boolean; subOff?: boolean }[]) => {
       if (!changes.length) return
       const before: MarkSnap[] = []
       const after: MarkSnap[] = []
       for (const c of changes) {
         const cur = getMark(marks, c.roll, c.date)
-        before.push({ roll: c.roll, date: c.date, set: cur.set, submitted: cur.submitted })
-        after.push({ roll: c.roll, date: c.date, set: c.set, submitted: c.submitted })
+        before.push({ roll: c.roll, date: c.date, set: cur.set, submitted: cur.submitted, subOff: !!cur.subOff })
+        after.push({ roll: c.roll, date: c.date, set: c.set, submitted: c.submitted, subOff: !!c.subOff })
       }
       setMarks((prev) => {
         const next = { ...prev }
         for (const c of changes) {
-          next[markKey(c.roll, c.date)] = { set: c.set, submitted: c.submitted }
+          next[markKey(c.roll, c.date)] = { set: c.set, submitted: c.submitted, subOff: !!c.subOff }
         }
         return next
       })
@@ -111,9 +111,25 @@ export function useChecklistModel() {
     (roll: number, date: string) => {
       const cur = getMark(marks, roll, date)
       const next = toggleField(cur, mode)
-      commitMarks([{ roll, date, set: next.set, submitted: next.submitted }])
+      commitMarks([{ roll, date, ...next }])
+      return isDerivedTap(cur, mode) // t16u: caller shows the warning toast with Undo
     },
     [marks, mode, commitMarks],
+  )
+
+  /** t16u Undo: put the auto (derived) Submitted back — clears the off override, Set untouched. */
+  // The toast's Undo runs after later renders: read the newest marks/commit through refs, not the tap-time closure.
+  const latest = useRef({ marks, commitMarks })
+  latest.current = { marks, commitMarks }
+  const restoreDerived = useCallback((roll: number, date: string) => {
+    const { marks: mk, commitMarks: commit } = latest.current
+    const cur = getMark(mk, roll, date)
+    if (cur.set && cur.subOff) commit([{ roll, date, set: cur.set, submitted: cur.submitted, subOff: false }])
+  }, [])
+  /** v0.46.0-beta.3 (t16u Q1 option A): derived (auto) Submitted is drawn faded. */
+  const isDerived = useCallback(
+    (roll: number, date: string) => mode === 'submitted' && submittedSource(getMark(marks, roll, date)) === 'derived',
+    [marks, mode],
   )
 
   const setCellsValue = useCallback(
@@ -146,8 +162,9 @@ export function useChecklistModel() {
         return {
           roll: r.roll,
           date: toDate,
-          set: mode === 'set' ? src.set : dst.set,
-          submitted: mode === 'submitted' ? src.submitted : dst.submitted,
+          ...(mode === 'set'
+            ? paintField(dst, 'set', src.set)
+            : { set: dst.set, submitted: src.submitted, subOff: dst.set ? !!src.subOff : false }),
         }
       })
       commitMarks(changes)
@@ -245,6 +262,8 @@ export function useChecklistModel() {
     isOn,
     progressFor,
     toggleCell,
+    restoreDerived,
+    isDerived,
     setCellsValue,
     paintCells,
     copyField,

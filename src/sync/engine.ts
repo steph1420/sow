@@ -361,7 +361,8 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
     // v0.46.0: bridge ≥ 0.46 sends the manual-Submitted flag (sheetSub defined); older bridges don't → the phone keeps its own.
     const hasSub = typeof m.sheetSub === 'boolean'
     const migrating = hasSub && !!cur?.submitted && cur.sheetSub === undefined && !m.sheetSub
-    if (cur && cur.updatedAt > m.updatedAt && (cur.set !== m.set || (hasSub && !migrating && cur.submitted !== m.submitted))) {
+    const hasOff = typeof m.subOff === 'boolean' // beta.3: bridge ≥ 0.46.1 sends the manual-off override; older bridges don't → keep the phone's
+    if (cur && cur.updatedAt > m.updatedAt && (cur.set !== m.set || (hasSub && !migrating && cur.submitted !== m.submitted) || (hasOff && !!cur.subOff !== m.subOff))) {
       kept++
       continue
     }
@@ -369,7 +370,9 @@ async function applyBridgeState(state: BridgeState): Promise<{ students: number;
     const submitted = hasSub ? (migrating ? true : m.submitted) : (cur?.submitted ?? false)
     const sheetSub = hasSub ? (migrating ? undefined : m.sheetSub) : cur?.sheetSub
     if (cur && cur.submitted !== submitted) changed++
-    const row = { ...m, name: m.name || cur?.name || '', submitted }
+    const subOff = m.set && (hasOff ? !!m.subOff : !!cur?.subOff)
+    if (cur && !!cur.subOff !== subOff) changed++
+    const row = { ...m, name: m.name || cur?.name || '', submitted, subOff }
     delete (row as { sheetSub?: boolean }).sheetSub
     await putMark(sheetSub === undefined ? row : { ...row, sheetSub }, { fromSheet: true })
   }

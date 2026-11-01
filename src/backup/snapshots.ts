@@ -12,7 +12,7 @@ import { putMark } from '../data/api'
 import type { ClassKey, Mark } from '../data/types'
 
 export type SnapKind = 'auto' | 'manual' | 'before-restore'
-export type SnapTick = { c: ClassKey; r: number; d: string; n: string; t: string; s: boolean; sub: boolean }
+export type SnapTick = { c: ClassKey; r: number; d: string; n: string; t: string; s: boolean; sub: boolean; /** beta.3 (t16u): manual off while Set on */ off?: boolean }
 export type SnapMeta = { id: string; at: string; kind: SnapKind; reason: string; ticks: number; dates: number; classes: number; hash: string }
 export type SnapshotRow = SnapMeta & { marks: SnapTick[] }
 
@@ -42,7 +42,7 @@ function hashTicks(ticks: SnapTick[]): string {
   return `${ticks.length}:${(h >>> 0).toString(36)}`
 }
 
-const tickOf = (m: Mark): SnapTick => ({ c: m.classKey, r: m.roll, d: m.date, n: m.name, t: m.topic, s: m.set, sub: m.submitted })
+const tickOf = (m: Mark): SnapTick => ({ c: m.classKey, r: m.roll, d: m.date, n: m.name, t: m.topic, s: m.set, sub: m.submitted, ...(m.subOff ? { off: true } : {}) })
 const keyOf = (c: string, r: number, d: string) => `${c}|${r}|${d}`
 
 async function currentTicks(): Promise<{ all: Mark[]; ticks: SnapTick[] }> {
@@ -124,14 +124,15 @@ export async function restoreSnapshot(id: string): Promise<RestoreResult> {
     const w = want.get(k)
     const set = w?.s ?? false
     const submitted = w?.sub ?? false
-    if (m.set === set && m.submitted === submitted) continue
+    const subOff = set && !!w?.off
+    if (m.set === set && m.submitted === submitted && !!m.subOff === subOff) continue
     if (m.set !== set) undone++
-    await putMark({ ...m, set, submitted, updatedAt: ts })
+    await putMark({ ...m, set, submitted, subOff, updatedAt: ts })
   }
   for (const [k, w] of want) {
     if (seen.has(k)) continue
     if (w.s) undone++
-    await putMark({ classKey: w.c, roll: w.r, name: w.n, date: w.d, topic: w.t, set: w.s, submitted: w.sub, updatedAt: ts })
+    await putMark({ classKey: w.c, roll: w.r, name: w.n, date: w.d, topic: w.t, set: w.s, submitted: w.sub, subOff: w.s && !!w.off, updatedAt: ts })
   }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('sow:snapshots'))
   return { undone, ticks: snap.ticks, beforeId: before.id, at: snap.at }

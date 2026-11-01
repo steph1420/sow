@@ -18,6 +18,8 @@ export type StudentRow = {
 export type MarkState = {
   set: boolean
   submitted: boolean
+  /** v0.46.0-beta.3 (t16u): manual 'off' override for a derived Submitted while Set stays on */
+  subOff?: boolean
 }
 
 export type MarksMap = Record<string, MarkState> // key = `${roll}|${date}`

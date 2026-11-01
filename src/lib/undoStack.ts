@@ -5,6 +5,7 @@ export type MarkSnap = {
   date: string
   set: boolean
   submitted: boolean
+  subOff?: boolean
 }
 
 /** v0.44.2 (t52u): a whole-date step (delete / move) — ONE undo entry that restores date + topic + ticks together. */

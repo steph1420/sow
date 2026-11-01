@@ -1,3 +1,4 @@
+import { isSubmitted } from '../data/submitted'
 import type { ClassKey, Session, SubjectId } from '../data/types'
 import { CLASS_KEYS, prettyClassLabel, subjectOf } from '../data/types'
 import type { DateSlot, MarksMap, StudentRow } from '../checklist/types'
@@ -209,7 +210,7 @@ export function progressForSession(
   for (const r of active) {
     const m = marks[markKey(r.roll, date)] ?? { set: false, submitted: false }
     if (m.set) set++
-    if (m.submitted || m.set) submitted++ // v0.46.0: Set implies Submitted
+    if (isSubmitted(m)) submitted++ // v0.46.0: Set implies Submitted (beta.3: unless overridden off)
   }
   const total = active.length || 1
   const pct = Math.round((set / total) * 100)

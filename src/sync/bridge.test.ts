@@ -65,7 +65,7 @@ describe('buildPushPayload (pure)', () => {
       ],
       '2026-10-20T00:00:00.000Z',
     )
-    expect(p.ticks).toEqual([{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: true, updatedAt: '2026-10-29T10:00:00.000Z', sub: true }]) // v0.46.0: manual Submitted now syncs
+    expect(p.ticks).toEqual([{ subjectKey: 'KGA_Eng_CW', date: '2026-10-28', topic: 'Q', roll: 1, set: true, updatedAt: '2026-10-29T10:00:00.000Z', sub: true, subOff: false }]) // v0.46.0: manual Submitted now syncs
     expect(p.roster).toEqual([{ classKey: 'KGA', roll: 2, status: 'Left', updatedAt: '2026-10-29T09:30:00.000Z' }])
   })
 })
@@ -140,5 +140,19 @@ describe('syncNow via bridge', () => {
     const r = await syncNow(['Eng'])
     expect(r.pushed).toBe(false)
     expect((await getSettings()).syncDirty).toBe(true)
+  })
+})
+
+// v0.46.0-beta.3 (t16u): manual off override syncs as subOff; only while Set is on; old bridges omit it.
+describe('subOff round trip (t16u)', () => {
+  const mk = (set: boolean, subOff: boolean): any => ({ markId: 'm', classKey: 'KGA_Eng_CW', roll: 1, name: '', date: '2026-10-28', topic: 'Q', set, submitted: false, subOff, updatedAt: '2026-10-29T10:00:00.000Z' })
+  it('push carries subOff only while Set is on', () => {
+    expect(buildPushPayload([mk(true, true)], [], '2026-10-20T00:00:00.000Z').ticks[0].subOff).toBe(true)
+    expect(buildPushPayload([mk(false, true)], [], '2026-10-20T00:00:00.000Z').ticks[0].subOff).toBe(false)
+  })
+  it('state: subOff mapped when the bridge sends it (0.46.1), omitted for older bridges', () => {
+    const withOff = { ...STATE, ticks: STATE.ticks.map((t: any, i: number) => (i === 0 ? { ...t, sub: false, subOff: true } : t)) }
+    expect(stateToApp(withOff as any).marks.some((m: any) => m.subOff === true)).toBe(true)
+    expect(stateToApp(STATE).marks.every((m: any) => m.subOff === undefined)).toBe(true)
   })
 })

@@ -93,6 +93,8 @@ export interface Mark {
   topic: string
   set: boolean
   submitted: boolean
+  /** v0.46.0-beta.3 (t16u): manual 'off' override — Submitted shown off while Set stays on. Sheet: Ticks!J FALSE. */
+  subOff?: boolean
   updatedAt: string
   /** v0.29.2 (Q-FIX-2 A): Set value the sheet had at the last pull — per-tick baseline. Undefined = legacy (pre-v0.29.2). */
   sheetSet?: boolean

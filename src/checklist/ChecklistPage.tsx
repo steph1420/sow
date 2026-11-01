@@ -317,7 +317,7 @@ export function ChecklistPage(_props: Props) {
 
     if (didTap) {
       haptic('light')
-      m.toggleCell(st.startRoll, st.startDate)
+      tapCell(st.startRoll, st.startDate)
     }
   }
 
@@ -470,6 +470,10 @@ export function ChecklistPage(_props: Props) {
     if (!m.showTwoCol) m.setPills(next[0] === next[1] || iso === next[0] ? [true, false] : [false, true])
   }
   const todayIso = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+  // v0.46.0-beta.3 (t16u): tapping an auto (derived) Submitted unticks it → short warning + Undo that restores the auto tick.
+  const tapCell = (roll: number, date: string) => {
+    if (m.toggleCell(roll, date)) toast('Auto Submitted unticked · Set stays on', { action: { label: 'Undo', run: () => m.restoreDerived(roll, date) } })
+  }
   // v0.41.0 (t101u): Undo / Redo name what they did in a toast with the opposite action.
   const doUndo = (kind: 'undo' | 'redo') => {
     const e = kind === 'undo' ? m.undo() : m.redo()
@@ -533,7 +537,7 @@ export function ChecklistPage(_props: Props) {
         setLive(`${name}: ${value ? 'ticked' : 'unticked'} ${m.visibleDates.length === 2 ? 'both dates' : ''}`)
       } else {
         const was = m.isOn(roll, date)
-        m.toggleCell(roll, date)
+        tapCell(roll, date)
         setLive(`${name}: ${was ? 'unticked' : 'ticked'} ${m.visibleDates[ci]?.dayLabel ?? ''}`)
       }
       lastLeft.current = null
@@ -554,7 +558,7 @@ export function ChecklistPage(_props: Props) {
       const c = Number(e.key) - 1
       const d = m.visibleDates[c]!
       const was = m.isOn(roll, d.date)
-      m.toggleCell(roll, d.date)
+      tapCell(roll, d.date)
       setLive(`${name}: ${was ? 'unticked' : 'ticked'} ${d.dayLabel}`)
       lastLeft.current = null
       haptic('light')
@@ -894,7 +898,7 @@ export function ChecklistPage(_props: Props) {
                         onPointerCancel={(e) => finishPaint(e, false)}
                         onContextMenu={(e) => e.preventDefault()}
                       >
-                        <div className={`sw-check${on ? ' on' : ''}${tgt ? ' tgt' : ''}${tgt && swipeStyle === 'blue' ? ' pending' : ''}`}>
+                        <div className={`sw-check${on ? ' on' : ''}${on && m.isDerived(r.roll, d.date) ? ' derived' : ''}${tgt ? ' tgt' : ''}${tgt && swipeStyle === 'blue' ? ' pending' : ''}`}>
                           {on ? <CheckMark size={12} /> : null}
                         </div>
                       </div>

@@ -15,10 +15,10 @@ import {
 export type MarksByClass = Record<ClassKey, MarksMap>
 export type RostersByClass = Record<ClassKey, StudentRow[]>
 
-export function marksToMap(marks: { roll: number; date: string; set: boolean; submitted: boolean }[]): MarksMap {
+export function marksToMap(marks: { roll: number; date: string; set: boolean; submitted: boolean; subOff?: boolean }[]): MarksMap {
   const m: MarksMap = {}
   for (const row of marks) {
-    m[markKey(row.roll, row.date)] = { set: row.set, submitted: row.submitted }
+    m[markKey(row.roll, row.date)] = { set: row.set, submitted: row.submitted, ...(row.subOff ? { subOff: true } : {}) }
   }
   return m
 }
@@ -89,6 +89,7 @@ export async function seedDemoWorkspaceToIdb(): Promise<void> {
           topic: d.topic,
           set: cell.set,
           submitted: cell.submitted,
+          subOff: !!cell.subOff,
           updatedAt: ts,
         })
       }
@@ -126,7 +127,7 @@ export async function persistClassMarks(
       const cell = marks[markKey(roll, date)] ?? { set: false, submitted: false }
       const id = makeMarkId(classKey, roll, date)
       const prev = existing.get(id)
-      if (prev && prev.set === cell.set && prev.submitted === cell.submitted) continue
+      if (prev && prev.set === cell.set && prev.submitted === cell.submitted && !!prev.subOff === !!cell.subOff) continue
       if (!prev && !cell.set && !cell.submitted) continue // v0.44.1: no blank row per pupil for a new/moved date (TEST copy: 2 ticks → 45 rows)
       const topic = slots.find((x) => x.date === date)?.topic ?? prev?.topic ?? ''
       await putMark({
@@ -139,6 +140,7 @@ export async function persistClassMarks(
         topic,
         set: cell.set,
         submitted: cell.submitted,
+        subOff: !!cell.subOff,
         updatedAt: ts,
       })
       changed++

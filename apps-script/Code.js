@@ -7,7 +7,7 @@
  * Ids: sessionId = subjectKey|yyyy-mm-dd · tickId = sessionId|roll · classKey = section (KGA).
  */
 var SCHEMA = 1
-var BRIDGE_VERSION = '0.46.0'
+var BRIDGE_VERSION = '0.46.1'
 var T = { roster: 'Roster', subjects: 'Subjects', sessions: 'Sessions', ticks: 'Ticks', entry: 'Entry', dash: 'Dashboard', meta: '_Meta' }
 var H = {
   roster: ['classKey', 'roll', 'name', 'status', 'leftOn', 'note', 'updatedAt'],
@@ -70,16 +70,18 @@ function ticksRead_(ss) {
   var s = sheet_(ss, T.ticks), last = s.getLastRow()
   if (last < 2) return []
   return s.getRange(2, 1, last - 1, SUB_COL).getValues().filter(function (r) { return r[0] !== '' && r[0] != null })
-    .map(function (r) { var x = r.slice(0, 8); x.push(r[SUB_COL - 1] === true); return x })
+    .map(function (r) { var j = r[SUB_COL - 1]; var x = r.slice(0, 8); x.push(j === true ? true : j === false ? 'off' : false); return x })
 }
 function subHeader_(s) { if (s.getRange(1, SUB_COL).getValue() !== 'subManual') s.getRange(1, SUB_COL).setValue('subManual').setFontWeight('bold') }
-function subVals_(rows) { return rows.map(function (r) { return [r[8] === true ? true : ''] }) }
+function subVals_(rows) { return rows.map(function (r) { return [r[8] === true ? true : r[8] === 'off' ? false : ''] }) }
+/** t16u: J has something to write (TRUE manual on, FALSE manual off while Set on). */
+function subAny_(r) { return r[8] === true || r[8] === 'off' }
 /** Full rewrite (structure changes): A–H as write_, plus J kept aligned with its row. */
 function ticksWrite_(ss, rows) {
   var s = sheet_(ss, T.ticks), last = s.getLastRow()
   write_(ss, T.ticks, 8, rows.map(function (r) { return r.slice(0, 8) }))
   if (last >= 2) s.getRange(2, SUB_COL, last - 1, 1).clearContent()
-  if (rows.some(function (r) { return r[8] === true })) { subHeader_(s); s.getRange(2, SUB_COL, rows.length, 1).setValues(subVals_(rows)) }
+  if (rows.some(subAny_)) { subHeader_(s); s.getRange(2, SUB_COL, rows.length, 1).setValues(subVals_(rows)) }
 }
 /** v0.46.0 (t4u): write only the changed rows in place and append new ones. Same final sheet as ticksWrite_, unless the tab
  *  has blank gap rows (then the old compacting rewrite runs, so the result stays identical to the old bridge). */
@@ -88,7 +90,7 @@ function ticksWriteChanged_(ss, rows, dirty, origLen, compact) {
   var s = sheet_(ss, T.ticks), idx = Object.keys(dirty).map(Number).sort(function (a, b) { return a - b })
   if (!idx.length) return
   ensureRows_(s, rows.length + 1)
-  if (rows.some(function (r, i) { return dirty[i] && r[8] === true })) subHeader_(s)
+  if (rows.some(function (r, i) { return dirty[i] && subAny_(r) })) subHeader_(s)
   var hasSubHeader = s.getRange(1, SUB_COL).getValue() === 'subManual'
   for (var k = 0; k < idx.length;) {
     var j = k; while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j++
@@ -245,7 +247,7 @@ function state_(ss) {
     subjects: read_(ss, T.subjects, 7).map(function (r) { return { subjectKey: r[0], classKey: r[1], subject: r[2], kind: r[3], active: r[4] !== false, order: r[5] } }),
     roster: read_(ss, T.roster, 7).map(function (r) { return { classKey: r[0], roll: Number(r[1]), name: String(r[2]), status: r[3] === 'Left' ? 'Left' : 'Active', updatedAt: toIsoStamp_(r[6]) } }),
     sessions: read_(ss, T.sessions, 8).map(function (r) { return { sessionId: r[0], subjectKey: r[1], classKey: r[2], date: r[3] instanceof Date ? isoDate_(r[3]) : String(r[3]), topic: String(r[4] || ''), status: r[5] || 'Open', updatedAt: toIsoStamp_(r[7]) } }),
-    ticks: ticksRead_(ss).map(function (r) { return { tickId: r[0], sessionId: r[1], subjectKey: r[2], classKey: r[3], roll: Number(r[4]), set: r[5] === true, updatedAt: toIsoStamp_(r[6]), sub: r[8] === true } }),
+    ticks: ticksRead_(ss).map(function (r) { return { tickId: r[0], sessionId: r[1], subjectKey: r[2], classKey: r[3], roll: Number(r[4]), set: r[5] === true, updatedAt: toIsoStamp_(r[6]), sub: r[8] === true, subOff: r[8] === 'off' } }),
   }
 }
 
@@ -313,7 +315,8 @@ function applyPush_(ss, ops, by) {
       if (t.subOnly && i != null) { if (ticks[i][8] === true) ignored++; else { ticks[i][8] = true; dirty[i] = true; applied++ } return }
       if (i != null && String(ticks[i][6]) >= at) { ignored++; return } // per-tick newer wins
       // v0.46.0: sub (manual Submitted) — an op without it (older app, sheet Entry) keeps the stored flag
-      var sub = typeof t.sub === 'boolean' ? t.sub : (i != null && ticks[i][8] === true)
+      // t16u: subOff = manual off while Set on (J FALSE); kept only while Set is on
+      var sub = typeof t.sub === 'boolean' ? (t.sub ? true : (t.subOff === true && t.set === true ? 'off' : (typeof t.subOff === 'boolean' ? false : (i != null && ticks[i][8] === 'off' && t.set === true ? 'off' : false)))) : (i != null ? (ticks[i][8] === 'off' && t.set !== true ? false : ticks[i][8]) : false)
       var row = [id, sid, t.subjectKey, cls, roll, t.set === true, at, by, sub]
       if (i == null) { tIdx[id] = ticks.length; dirty[ticks.length] = true; ticks.push(row) } else { ticks[i] = row; dirty[i] = true }
       applied++
