@@ -1003,3 +1003,41 @@
 
 /* v0.46.0-beta.3 (Steve t16u, Q1 option A): derived (auto) Submitted is faded to 40%; manual is solid. */
 .sw-check.on.derived { opacity: 0.4; }
+
+/* —— v0.47.0 (t116u/t118u/t123u) ——————————————————————————————— */
+/* Pending grace: dim + strike + draining bar, then fade/collapse */
+.sw-row { position: relative; }
+.sw-row.grace .sw-name { opacity: var(--grace-dim); text-decoration: line-through; }
+.sw-grace-bar {
+  position: absolute; left: 8px; right: 8px; bottom: 1px; height: var(--grace-bar-h);
+  border-radius: 2px; background: var(--grace-bar); transform-origin: left center;
+  animation: sw-grace-drain var(--grace-ms, 3000ms) linear var(--grace-delay, 0ms) forwards;
+  pointer-events: none;
+}
+@keyframes sw-grace-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.sw-row.grace-leaving { animation: sw-grace-out var(--grace-collapse) ease-in forwards; overflow: hidden; pointer-events: none; }
+@keyframes sw-grace-out { from { opacity: 1; } to { opacity: 0; min-height: 0; height: 0; margin-bottom: calc(-1 * var(--gap-row)); border-width: 0; } }
+.sw-page.reduce-motion .sw-grace-bar { animation: none; }
+.sw-page.reduce-motion .sw-row.grace-leaving { animation: sw-grace-fade var(--grace-collapse) linear forwards; }
+@keyframes sw-grace-fade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sw-grace-bar { animation: none; } }
+
+/* Quick overview footer 2a: [Share | Close] */
+.qo-actions { display: flex; gap: 8px; margin-top: 6px; }
+.qo-actions .qo-close { margin-top: 0; flex: 1; }
+.qo-share { flex: 1; min-height: 44px; border-radius: 12px; border: 0; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 650; }
+
+/* Overlay top panel — decoupled from the table; showing/hiding never moves rows */
+.sw-page.sw-overlay > .sw-chrome { position: absolute; top: 0; left: 0; right: 0; transform: translateY(0); transition: transform var(--panel-slide) var(--panel-ease), box-shadow 0.2s ease; will-change: transform; }
+.sw-page.sw-overlay > .sw-chrome .sw-lean, .sw-page.sw-overlay > .sw-chrome.stuck .sw-lean { max-height: none; opacity: 1; padding: 12px 12px 8px; overflow: visible; transition: none; }
+.sw-page.sw-overlay > .sw-chrome.stuck { transform: translateY(calc(-1 * var(--lean-h, 0px))); }
+.sw-page.sw-overlay > .sw-chrome.stuck .sw-lean-wrap { opacity: 0; pointer-events: none; }
+.sw-page.sw-overlay > .sw-chrome .sw-lean-wrap { transition: opacity var(--panel-slide) ease; }
+.sw-page.sw-overlay .sw-list-wrap { padding-top: calc(var(--chrome-h, 0px) + var(--pad-list-y)); scroll-padding-top: var(--chrome-h, 0px); }
+/* A–Z: OFF (default) = panel overlays the strip's top; ON = strip pushed below the visible panel */
+.sw-page.sw-overlay.az-push .sw-az { top: calc(var(--chrome-h, 0px) + var(--grip-hit) + 4px); transition: top var(--panel-slide) var(--panel-ease); }
+.sw-page.sw-overlay.az-push .sw-az-grip { top: calc(var(--chrome-h, 0px) + 2px); transition: top var(--panel-slide) var(--panel-ease); }
+.sw-page.sw-overlay.az-push.lean-hidden .sw-az { top: calc(var(--chrome-h, 0px) - var(--lean-h, 0px) + var(--grip-hit) + 4px); }
+.sw-page.sw-overlay.az-push.lean-hidden .sw-az-grip { top: calc(var(--chrome-h, 0px) - var(--lean-h, 0px) + 2px); }
+.sw-page.reduce-motion.sw-overlay > .sw-chrome, .sw-page.reduce-motion.sw-overlay .sw-az, .sw-page.reduce-motion.sw-overlay .sw-az-grip { transition: none; }
+@media (prefers-reduced-motion: reduce) { .sw-page.sw-overlay > .sw-chrome { transition: none; } }

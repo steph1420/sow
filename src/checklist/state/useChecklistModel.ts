@@ -15,6 +15,9 @@ import {
 } from '../../lib/undoStack'
 import type { ColPills, DateSlot, MarkMode, MarksMap, StudentRow } from '../types'
 import { markKey } from '../types'
+import { usePrefs } from '../../prefs/PrefsContext'
+import { TIMINGS } from '../../config'
+import { cancelGrace, startGrace, type GraceMap } from '../pendingGrace'
 import { fieldValue, isDerivedTap, paintField, submittedSource, toggleField } from '../../data/submitted'
 
 function getMark(marks: MarksMap, roll: number, date: string) {
@@ -52,6 +55,7 @@ export function useChecklistModel() {
   const [pills, setPills] = useState<ColPills>(() => { try { return readDateCols(localStorage.getItem(DATE_COLS_KEY), false) === 1 ? [false, true] : [true, true] } catch { return [true, true] } })
   useEffect(() => { try { localStorage.setItem(DATE_COLS_KEY, pills[0] && pills[1] ? '2' : '1') } catch { /* private mode */ } }, [pills])
   const [pendingOnly, setPendingOnly] = useState(false)
+  const leftRef = useRef<Set<number>>(new Set())
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [undoTick, setUndoTick] = useState(0)
@@ -191,9 +195,19 @@ export function useChecklistModel() {
     return e
   }, [classKey, applySnaps])
 
+  // v0.47.0 (t116u/t118u): Pending only — a just-ticked row lingers for the grace, then collapses.
+  const { prefs } = usePrefs()
+  const graceMs = prefs['pending.graceMs']
+  const [grace, setGrace] = useState<GraceMap>(() => new Map())
+  const [leaving, setLeaving] = useState<ReadonlySet<number>>(() => new Set())
+  const [graceHeld, setGraceHeld] = useState(false)
+  const shownRef = useRef<{ key: string; rolls: Set<number> }>({ key: '', rolls: new Set() })
+  const viewKey = `${classKey}|${mode}|${pendingOnly}|${visibleDates.map((d) => d.date).join(',')}`
+
   const filteredRoster = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return roster.filter((r) => {
+    const prev = shownRef.current.key === viewKey ? shownRef.current.rolls : null
+    const out = roster.filter((r) => {
       if (r.left) return false
       if (q) {
         const hit = r.name.toLowerCase().includes(q) || String(r.roll).includes(q)
@@ -201,11 +215,45 @@ export function useChecklistModel() {
       }
       if (pendingOnly) {
         const allDone = visibleDates.every((d) => fieldOf(getMark(marks, r.roll, d.date), mode))
-        if (allDone) return false
+        if (allDone && !(graceMs > 0 && prev?.has(r.roll) && !leftRef.current.has(r.roll))) return false
       }
       return true
     })
-  }, [roster, query, pendingOnly, visibleDates, marks, mode])
+    for (const r of out) leftRef.current.delete(r.roll)
+    shownRef.current = { key: viewKey, rolls: new Set(out.map((r) => r.roll)) }
+    return out
+  }, [roster, query, pendingOnly, visibleDates, marks, mode, viewKey, grace, leaving, graceMs]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Rows shown in Pending only whose marks are all done (= lingering). */
+  const doneShown = useMemo(() => (pendingOnly ? filteredRoster.filter((r) => visibleDates.every((d) => fieldOf(getMark(marks, r.roll, d.date), mode))).map((r) => r.roll) : []), [filteredRoster, pendingOnly, visibleDates, marks, mode])
+  // Start grace for newly done rows; cancel grace when a row is unticked again.
+  useEffect(() => {
+    const done = new Set(doneShown)
+    setGrace((g) => {
+      let n = g
+      for (const r of g.keys()) if (!done.has(r)) n = cancelGrace(n, r)
+      const now = Date.now()
+      for (const r of done) if (!n.has(r) && !leaving.has(r)) n = startGrace(n, r, now, graceMs)
+      return n
+    })
+    setLeaving((l) => { const n = new Set([...l].filter((r) => done.has(r))); return n.size === l.size ? l : n })
+  }, [doneShown, graceMs]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { leftRef.current = new Set(); setGrace(new Map()); setLeaving(new Set()) }, [viewKey])
+  // Expire: grace over → fade/collapse (leaving) → gone. Paused while a finger is down.
+  useEffect(() => {
+    if (graceHeld || grace.size === 0) return
+    const now = Date.now()
+    const next = Math.min(...[...grace.values()].map((v) => v.end))
+    const id = window.setTimeout(() => {
+      const t = Date.now()
+      const exp = [...grace].filter(([, v]) => t >= v.end).map(([r]) => r)
+      if (!exp.length) return
+      setGrace((g) => { const n = new Map(g); for (const r of exp) n.delete(r); return n })
+      setLeaving((l) => new Set([...l, ...exp]))
+      window.setTimeout(() => { for (const r of exp) leftRef.current.add(r); setLeaving((l) => new Set([...l])) }, TIMINGS.pendingCollapseMs)
+    }, Math.max(0, next - now))
+    return () => window.clearTimeout(id)
+  }, [grace, graceHeld])
 
   const counts = useMemo(() => {
     const active = roster.filter((r) => !r.left)
@@ -248,6 +296,10 @@ export function useChecklistModel() {
     togglePill,
     pendingOnly,
     setPendingOnly,
+    grace,
+    leaving,
+    graceMs,
+    setGraceHeld,
     query,
     setQuery,
     searchOpen,

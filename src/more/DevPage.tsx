@@ -1,5 +1,6 @@
 import { NAME_SWIPE_OPTIONS, normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle } from '../checklist/gestures/swipeConfirm'
+import { GRACE_OPTIONS, SETTLE_OPTIONS, THRESHOLD_OPTIONS } from '../config'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
 import { BridgeOverrideRow } from './BridgeOverrideRow'
@@ -131,6 +132,57 @@ export function DevPage({ onBack }: Props) {
           Bridge URL override on Join
           <span className={`toggle${prefs['sync.joinUrlOverride'] ? ' on' : ''}`} aria-hidden />
         </button>
+      </div>
+
+      {/* v0.47.0 (t118u/t123u): pending grace + overlay top panel knobs. */}
+      <div className="more-sec">Top panel &amp; Pending</div>
+      <div className="more-card">
+        <button
+          type="button"
+          className="more-row dev-az-push"
+          role="switch"
+          aria-checked={Boolean(prefs['az.pushBelowPanel'])}
+          onClick={() => setPref('az.pushBelowPanel', !prefs['az.pushBelowPanel'])}
+        >
+          Push A–Z strip down
+          <span className={`toggle${prefs['az.pushBelowPanel'] ? ' on' : ''}`} aria-hidden />
+        </button>
+        <label className="more-row dev-grace" style={{ position: 'relative' }}>
+          Pending grace
+          <span className="meta">{(GRACE_OPTIONS.find((o) => o.value === prefs['pending.graceMs']) ?? { label: `${prefs['pending.graceMs']}` }).label}</span>
+          <select
+            aria-label="Pending grace"
+            value={String(prefs['pending.graceMs'])}
+            onChange={(e) => setPref('pending.graceMs', Number(e.target.value))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {GRACE_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+          </select>
+        </label>
+        <label className="more-row dev-panel-settle" style={{ position: 'relative' }}>
+          Panel settle wait
+          <span className="meta">{(SETTLE_OPTIONS.find((o) => o.value === prefs['panel.settleMs']) ?? { label: `${prefs['panel.settleMs']}` }).label}</span>
+          <select
+            aria-label="Panel settle wait"
+            value={String(prefs['panel.settleMs'])}
+            onChange={(e) => setPref('panel.settleMs', Number(e.target.value))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {SETTLE_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+          </select>
+        </label>
+        <label className="more-row dev-panel-threshold" style={{ position: 'relative' }}>
+          Panel move threshold
+          <span className="meta">{(THRESHOLD_OPTIONS.find((o) => o.value === prefs['panel.thresholdPx']) ?? { label: `${prefs['panel.thresholdPx']}` }).label}</span>
+          <select
+            aria-label="Panel move threshold"
+            value={String(prefs['panel.thresholdPx'])}
+            onChange={(e) => setPref('panel.thresholdPx', Number(e.target.value))}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
+          >
+            {THRESHOLD_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+          </select>
+        </label>
       </div>
 
       <div className="more-sec">Chrome</div>

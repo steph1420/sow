@@ -1,6 +1,6 @@
 import { useBackLayer } from '../nav/backStack'
 import { createScrollTween, type ScrollTween } from './scrollTween'
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { usePrefs } from '../prefs/PrefsContext'
 import { CheckMark } from '../components/CheckMark'
 import { AzStrip, type AzStripHandle } from './az/AzStrip'
@@ -8,6 +8,9 @@ import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
+import { createPanelSettle } from './panelSettle'
+import { graceFraction } from './pendingGrace'
+import { TIMINGS } from '../config'
 import { DatePopover, dm } from './chrome/DatePopover'
 import { DateEditModal } from './chrome/DateEditModal'
 import { countMarks } from '../dates/sessionEdit'
@@ -184,27 +187,48 @@ export function ChecklistPage(_props: Props) {
     window.setTimeout(() => {
       scrubbingRef.current = false
       if (listRef.current) lastScrollY.current = listRef.current.scrollTop
+      settleRef.current?.scroll()
     }, 220)
     window.setTimeout(() => setAzFocusRoll(null), 700)
   }, [])
 
+  // v0.47.0 (t116u/t118u): the panel overlays the table; it never moves while a finger is down,
+  // and decides only once the scroll has settled. The table never shifts.
+  const prefsRef = useRef(prefs)
+  prefsRef.current = prefs
+  const settleRef = useRef<ReturnType<typeof createPanelSettle> | null>(null)
+  if (!settleRef.current) {
+    settleRef.current = createPanelSettle({
+      getY: () => listRef.current?.scrollTop ?? 0,
+      onDecide: (d) => { if (d === 'hide') setLeanHidden(true); else if (d === 'show') setLeanHidden(false) },
+      settleMs: () => prefsRef.current['panel.settleMs'],
+      thresholdPx: () => prefsRef.current['panel.thresholdPx'],
+    })
+  }
+  useEffect(() => () => settleRef.current?.dispose(), [])
+  const wheelRef = useRef(false)
   const onListScroll = useCallback(() => {
     const wrap = listRef.current
     if (!wrap) return
-    const y = wrap.scrollTop
-    if (scrubbingRef.current) {
-      lastScrollY.current = y
-      return
+    lastScrollY.current = wrap.scrollTop
+    if (scrubbingRef.current) return
+    settleRef.current?.scroll(wheelRef.current ? TIMINGS.wheelIdleMs : undefined)
+  }, [])
+  const chromeRef = useRef<HTMLDivElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const c = chromeRef.current
+    const p = pageRef.current
+    if (!c || !p || typeof ResizeObserver === 'undefined') return
+    const set = () => {
+      const lean = c.querySelector<HTMLElement>('.sw-lean-wrap')
+      p.style.setProperty('--chrome-h', `${c.offsetHeight}px`)
+      p.style.setProperty('--lean-h', `${lean?.offsetHeight ?? 0}px`)
     }
-    const dy = y - lastScrollY.current
-    if (Math.abs(dy) < 10) {
-      lastScrollY.current = y
-      return
-    }
-    // Browser toolbar: hide on scroll-down (scrollTop↑), show on scroll-up
-    if (dy > 0 && y > 24) setLeanHidden(true)
-    else if (dy < 0) setLeanHidden(false)
-    lastScrollY.current = y
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(c)
+    return () => ro.disconnect()
   }, [])
 
   const onCheckPointerDown = (
@@ -667,7 +691,8 @@ export function ChecklistPage(_props: Props) {
 
   return (
     <div
-      className={`sw-page${m.mode === 'submitted' ? ' mode-sub' : ''}${reduceMotion ? ' reduce-motion' : ''}${m.past ? ' past' : ''}`}
+      ref={pageRef}
+      className={`sw-page sw-overlay${prefs['az.pushBelowPanel'] ? ' az-push' : ''}${leanHidden ? ' lean-hidden' : ''}${m.mode === 'submitted' ? ' mode-sub' : ''}${reduceMotion ? ' reduce-motion' : ''}${m.past ? ' past' : ''}`}
     >
       {m.past ? <div className="past-wm" aria-hidden>PAST</div> : null}
       {select.active ? (
@@ -679,7 +704,8 @@ export function ChecklistPage(_props: Props) {
         />
       ) : null}
 
-      <div className={`sw-chrome${leanHidden ? ' stuck' : ''}`} data-testid="sw-chrome">
+      <div ref={chromeRef} className={`sw-chrome${leanHidden ? ' stuck' : ''}`} data-testid="sw-chrome">
+      <div className="sw-lean-wrap">
       {m.past ? (
         <div className="past-bar" role="status" data-testid="past-bar">
           <span className="past-t"><span aria-hidden>🕘</span> PAST · {m.past.dayLabel.split(' ')[0]} {m.past.dayNum}</span>
@@ -741,6 +767,7 @@ export function ChecklistPage(_props: Props) {
         ) : null}
       </div>
 
+      </div>
         <div className={`sw-colhead-bar${azLeft ? ' az-left' : ''}`}>
             <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
               <span>#</span>
@@ -821,6 +848,7 @@ export function ChecklistPage(_props: Props) {
           rows={(m.dates[0].date === m.dates[1].date ? [m.dates[0]] : m.dates).map((d) => ({ date: d, ...m.progressFor(d.date) }))}
           left={rosterFor(activeClassKey).filter((r) => r.left).length}
           onClose={() => setQoOpen(false)}
+          onShare={() => { setQoOpen(false); openShare({ classKey: m.classKey, date: echoDate, dates: m.showTwoCol ? m.visibleDates : undefined }) }}
         />
       ) : null}
       {qsOpen ? (
@@ -847,6 +875,13 @@ export function ChecklistPage(_props: Props) {
           className={`sw-list-wrap${azLeft ? ' az-left' : ''}`}
           ref={listRef}
           onScroll={onListScroll}
+          onTouchStart={() => { wheelRef.current = false; settleRef.current?.touchStart(); m.setGraceHeld(true) }}
+          onTouchEnd={() => { settleRef.current?.touchEnd(); m.setGraceHeld(false) }}
+          onTouchCancel={() => { settleRef.current?.touchEnd(); m.setGraceHeld(false) }}
+          onPointerDown={(e) => { if (e.pointerType === 'mouse') wheelRef.current = false; m.setGraceHeld(true) }}
+          onPointerUp={() => m.setGraceHeld(false)}
+          onPointerCancel={() => m.setGraceHeld(false)}
+          onWheel={() => { wheelRef.current = true }}
         >
           <div className="sr-only" aria-live="polite">{live}</div>
           <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts" onFocus={() => setGridFocus(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGridFocus(false) }}>
@@ -856,7 +891,8 @@ export function ChecklistPage(_props: Props) {
               return (
                 <div
                   key={r.roll}
-                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, new Set([...glowKeys].map((k) => k.split('|')[0])).size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}${qsOpen && qsRoll === r.roll ? ` qs-hit${qsIdle ? ' qs-idle' : ''}` : ''}`}
+                  className={`sw-row ${m.showTwoCol ? 'two' : 'one'}${selected ? ' sel' : ''}${glow ? pendingRowClass(swipeStyle, new Set([...glowKeys].map((k) => k.split('|')[0])).size, glowValue) : ''}${azFocusRoll === r.roll ? ' az-focus' : ''}${qsOpen && qsRoll === r.roll ? ` qs-hit${qsIdle ? ' qs-idle' : ''}` : ''}${m.grace.has(r.roll) ? ' grace' : ''}${m.leaving.has(r.roll) ? ' grace-leaving' : ''}`}
+                  style={m.grace.has(r.roll) ? ({ '--grace-ms': `${m.graceMs}ms`, '--grace-delay': `${-Math.round((1 - graceFraction(m.grace, r.roll, Date.now())) * m.graceMs)}ms` } as CSSProperties) : undefined}
                   ref={(el) => {
                     if (el) rowRefs.current.set(r.roll, el)
                     else rowRefs.current.delete(r.roll)
@@ -881,6 +917,7 @@ export function ChecklistPage(_props: Props) {
                   >
                     {r.name}
                   </div>
+                  {m.grace.has(r.roll) ? <span className="sw-grace-bar" aria-hidden /> : null}
                   {m.visibleDates.map((d, colIndex) => {
                     const on = m.isOn(r.roll, d.date)
                     const tgt = glowKeys.has(`${r.roll}|${colIndex}`)

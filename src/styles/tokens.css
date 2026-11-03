@@ -231,3 +231,13 @@ html.wide #root {
 /* v0.44.0 Beta data-source badge */
 .ch-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .06em; vertical-align: middle; background: color-mix(in srgb, #8a7cff 26%, transparent); color: #b3a9ff; border: 1px solid #8a7cff; }
 [data-theme="day"] .ch-badge, .day .ch-badge { color: #4b3fcf; }
+
+/* v0.47.0 tokens (t118u): pending grace + overlay panel. Derived from existing tokens, no new hex. */
+:root {
+  --grace-bar: var(--mode, var(--accent));
+  --grace-dim: 0.45;
+  --grace-bar-h: 3px;
+  --panel-slide: 180ms;
+  --panel-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --grace-collapse: 220ms;
+}

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.47.0-beta.1 — 2026-11-03 (Asia/Calcutta) · Beta (separate site)
+
+Steve t116u, t118u (mocks locked, Share = 2a), t123u ("Proceed with 047… toggle option for push a-z"). Rollback: set `BETA_REF` in steph1420/sow-beta back to `v0.46.0-beta.4`; code backup branch `backup/pre-v0.47.0`, `/workspace/backup-sow-pre-v0.47.0.tgz`. **Code.js change: NO.** Stable /sow/ untouched (v0.46.1).
+- **Pending grace:** in Pending only, a ticked row stays 3 s (dimmed, struck through, draining bar), then collapses. Tap again to cancel. The tick saves at once. A finger on the list pauses the collapse. `src/checklist/pendingGrace.ts`.
+- **Quick overview Share (2a):** footer row [Share | Close], same Share sheet/templates as Overview › Share.
+- **Top panel overlay:** the panel floats over the table and never moves while a finger is down. After 120 ms of stillness it hides (≥24 px down) or shows (≥24 px up, or at the top). Rows never jump. Wheel uses 150 ms idle. `src/checklist/panelSettle.ts`.
+- **Developer options:** Push A–Z strip down (default OFF), Pending grace, Panel settle wait, Panel move threshold.
+- **Config module:** `src/config` holds the timings/thresholds; new colours are tokens in `tokens.css` (no new hex).
+- Mocks with codenames: `docs/mockups/v047/`. Tests: `src/config/config.test.ts`, `src/checklist/pendingGrace.test.ts`, `src/checklist/panelSettle.test.ts`, `src/checklist/chrome/QuickOverviewSheet.test.tsx`, `src/prefs/v047Prefs.test.ts`.
+
 ## 0.46.1 — 2026-11-01 (Asia/Calcutta) · Stable (/sow/)
 
 Steve t43u ("That's how I remember which version I'm using"). Rollback: re-deploy tag `v0.46.0` (bundle `index-za5Z-ipx.js`), branch `backup/pre-v0.46.1`, `/workspace/sow-build/backup-pre-v0.46.1.tgz`. **Code.js change: NO.**
