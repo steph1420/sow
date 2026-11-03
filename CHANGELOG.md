@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.47.0 — 2026-11-03 (Asia/Calcutta) · Stable (/sow/)
+
+Steve t126u ("Push it to stable if all the data management logic is safe"). Same app as 0.47.0-beta.1. Rollback: re-deploy tag `v0.46.1` (bundle `index-1aIqXr_S.js`); branch `backup/pre-v0.47.0`, `/workspace/backup-sow-pre-v0.47.0.tgz`. **Code.js change: NO.**
+- Safety review: no changes to `src/data`, `src/sync`, `src/backup`, `src/demo` (saves, IndexedDB, snapshots, sync queue) or the bridge contract. The grace only changes which rows the Pending list shows; ticks go through the same save path at once. New prefs are device-local (not in the prefs-sync `SYNC_KEYS`).
+- New probe `tests/e2e/v047-probe.cjs`: grace, tick survives a reload mid-grace, cancel, panel settle with 0 px row shift, Push A–Z OFF/ON (11/11 pass).
+
 ## 0.47.0-beta.1 — 2026-11-03 (Asia/Calcutta) · Beta (separate site)
 
 Steve t116u, t118u (mocks locked, Share = 2a), t123u ("Proceed with 047… toggle option for push a-z"). Rollback: set `BETA_REF` in steph1420/sow-beta back to `v0.46.0-beta.4`; code backup branch `backup/pre-v0.47.0`, `/workspace/backup-sow-pre-v0.47.0.tgz`. **Code.js change: NO.** Stable /sow/ untouched (v0.46.1).
