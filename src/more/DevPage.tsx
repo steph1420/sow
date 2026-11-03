@@ -1,6 +1,6 @@
 import { NAME_SWIPE_OPTIONS, normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { SWIPE_CONFIRM_STYLES, normalizeSwipeStyle } from '../checklist/gestures/swipeConfirm'
-import { GRACE_OPTIONS, SETTLE_OPTIONS, THRESHOLD_OPTIONS } from '../config'
+import { GRACE_OPTIONS } from '../config'
 import { usePrefs } from '../prefs/PrefsContext'
 import { MoreChrome } from './MoreChrome'
 import { BridgeOverrideRow } from './BridgeOverrideRow'
@@ -134,7 +134,7 @@ export function DevPage({ onBack }: Props) {
         </button>
       </div>
 
-      {/* v0.47.0 (t118u/t123u): pending grace + overlay top panel knobs. */}
+      {/* v0.47.0 (t118u/t123u): pending grace + A–Z push. v0.47.1 (t127u): panel settle/threshold retired (manual collapse). */}
       <div className="more-sec">Top panel &amp; Pending</div>
       <div className="more-card">
         <button
@@ -157,30 +157,6 @@ export function DevPage({ onBack }: Props) {
             style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
           >
             {GRACE_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
-          </select>
-        </label>
-        <label className="more-row dev-panel-settle" style={{ position: 'relative' }}>
-          Panel settle wait
-          <span className="meta">{(SETTLE_OPTIONS.find((o) => o.value === prefs['panel.settleMs']) ?? { label: `${prefs['panel.settleMs']}` }).label}</span>
-          <select
-            aria-label="Panel settle wait"
-            value={String(prefs['panel.settleMs'])}
-            onChange={(e) => setPref('panel.settleMs', Number(e.target.value))}
-            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
-          >
-            {SETTLE_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
-          </select>
-        </label>
-        <label className="more-row dev-panel-threshold" style={{ position: 'relative' }}>
-          Panel move threshold
-          <span className="meta">{(THRESHOLD_OPTIONS.find((o) => o.value === prefs['panel.thresholdPx']) ?? { label: `${prefs['panel.thresholdPx']}` }).label}</span>
-          <select
-            aria-label="Panel move threshold"
-            value={String(prefs['panel.thresholdPx'])}
-            onChange={(e) => setPref('panel.thresholdPx', Number(e.target.value))}
-            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
-          >
-            {THRESHOLD_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
           </select>
         </label>
       </div>

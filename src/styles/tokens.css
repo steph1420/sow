@@ -241,3 +241,5 @@ html.wide #root {
   --panel-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --grace-collapse: 220ms;
 }
+/* v0.47.1 (t127u): panel collapse chevron */
+:root { --panel-toggle-hit: 44px; --panel-toggle-ic: var(--text-sec); }

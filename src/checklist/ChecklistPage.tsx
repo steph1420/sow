@@ -8,9 +8,8 @@ import { gridMove, isMod, isTypingTarget } from '../lib/keyboard'
 import { SearchBar } from './chrome/SearchBar'
 import { QuickSearchHud } from './chrome/QuickSearchHud'
 import { QuickOverviewSheet } from './chrome/QuickOverviewSheet'
-import { createPanelSettle } from './panelSettle'
+import { panelReducer, readCollapsed, writeCollapsed } from './panelCollapse'
 import { graceFraction } from './pendingGrace'
-import { TIMINGS } from '../config'
 import { DatePopover, dm } from './chrome/DatePopover'
 import { DateEditModal } from './chrome/DateEditModal'
 import { countMarks } from '../dates/sessionEdit'
@@ -72,7 +71,9 @@ export function ChecklistPage(_props: Props) {
   const [toolsOpen, setToolsOpen] = useState(false)
   const [restoreOpen, setRestoreOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
-  const [leanHidden, setLeanHidden] = useState(false)
+  // v0.47.1 (t127u): collapsed only by the chevron; remembered on this device
+  const [leanHidden, setLeanHidden] = useState(readCollapsed)
+  const togglePanel = useCallback(() => setLeanHidden((c) => { const n = panelReducer(c, { type: 'toggle' }); writeCollapsed(n); return n }), [])
   const [azFocusRoll, setAzFocusRoll] = useState<number | null>(null)
   const lastScrollY = useRef(0)
   // Overlays are back-steps (t156u): hardware back closes them before leaving Checklist.
@@ -187,32 +188,17 @@ export function ChecklistPage(_props: Props) {
     window.setTimeout(() => {
       scrubbingRef.current = false
       if (listRef.current) lastScrollY.current = listRef.current.scrollTop
-      settleRef.current?.scroll()
     }, 220)
     window.setTimeout(() => setAzFocusRoll(null), 700)
   }, [])
 
   // v0.47.0 (t116u/t118u): the panel overlays the table; it never moves while a finger is down,
   // and decides only once the scroll has settled. The table never shifts.
-  const prefsRef = useRef(prefs)
-  prefsRef.current = prefs
-  const settleRef = useRef<ReturnType<typeof createPanelSettle> | null>(null)
-  if (!settleRef.current) {
-    settleRef.current = createPanelSettle({
-      getY: () => listRef.current?.scrollTop ?? 0,
-      onDecide: (d) => { if (d === 'hide') setLeanHidden(true); else if (d === 'show') setLeanHidden(false) },
-      settleMs: () => prefsRef.current['panel.settleMs'],
-      thresholdPx: () => prefsRef.current['panel.thresholdPx'],
-    })
-  }
-  useEffect(() => () => settleRef.current?.dispose(), [])
-  const wheelRef = useRef(false)
   const onListScroll = useCallback(() => {
     const wrap = listRef.current
     if (!wrap) return
     lastScrollY.current = wrap.scrollTop
     if (scrubbingRef.current) return
-    settleRef.current?.scroll(wheelRef.current ? TIMINGS.wheelIdleMs : undefined)
   }, [])
   const chromeRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
@@ -769,6 +755,15 @@ export function ChecklistPage(_props: Props) {
 
       </div>
         <div className={`sw-colhead-bar${azLeft ? ' az-left' : ''}`}>
+            <button
+              type="button"
+              className={`sw-panel-toggle${azLeft ? ' az-left' : ''}`}
+              aria-expanded={!leanHidden}
+              aria-label={leanHidden ? 'Show top panel' : 'Hide top panel'}
+              onClick={togglePanel}
+            >
+              <span className="chev" aria-hidden />
+            </button>
             <div className={`sw-colhead ${m.showTwoCol ? 'two' : 'one'}`}>
               <span>#</span>
               <span>Name</span>
@@ -875,13 +870,12 @@ export function ChecklistPage(_props: Props) {
           className={`sw-list-wrap${azLeft ? ' az-left' : ''}`}
           ref={listRef}
           onScroll={onListScroll}
-          onTouchStart={() => { wheelRef.current = false; settleRef.current?.touchStart(); m.setGraceHeld(true) }}
-          onTouchEnd={() => { settleRef.current?.touchEnd(); m.setGraceHeld(false) }}
-          onTouchCancel={() => { settleRef.current?.touchEnd(); m.setGraceHeld(false) }}
-          onPointerDown={(e) => { if (e.pointerType === 'mouse') wheelRef.current = false; m.setGraceHeld(true) }}
+          onTouchStart={() => m.setGraceHeld(true)}
+          onTouchEnd={() => m.setGraceHeld(false)}
+          onTouchCancel={() => m.setGraceHeld(false)}
+          onPointerDown={() => m.setGraceHeld(true)}
           onPointerUp={() => m.setGraceHeld(false)}
           onPointerCancel={() => m.setGraceHeld(false)}
-          onWheel={() => { wheelRef.current = true }}
         >
           <div className="sr-only" aria-live="polite">{live}</div>
           <div className={`sw-rows${select.active ? ' selecting' : ''}`} role="group" aria-label="Checklist — arrows move, Space ticks, ? for shortcuts" onFocus={() => setGridFocus(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setGridFocus(false) }}>

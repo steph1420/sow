@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.47.1 — 2026-11-03 (Asia/Calcutta) · Stable (/sow/) + Beta
+
+Steve t127u ("safe bet would be to have a collapse button instead of auto-hide show... push to stable"). Rollback: re-deploy tag `v0.47.0` (bundle `index-CMvs503c.js`); branch `backup/pre-v0.47.1`, `/workspace/backup-sow-pre-v0.47.1.tgz`. **Code.js change: NO.** No data, sync or contract changes.
+- **Manual top-panel collapse:** a chevron in the column header (44 px, keyboard, tokens only) hides or shows the top panel. Scrolling and A–Z jumps never change it. The state is remembered on this device (`sow.panelCollapsed`). Panel overlay and Push A–Z work in both states. `src/checklist/panelCollapse.ts`.
+- Retired: scroll-driven auto-hide (`panelSettle.ts` removed) and its Dev options "Panel settle wait" / "Panel move threshold".
+- Tests: `src/checklist/panelCollapse.test.ts` (A–Z jump upward keeps the state); e2e `tests/e2e/v047-probe.cjs` updated (19/19).
+
 ## 0.47.0 — 2026-11-03 (Asia/Calcutta) · Stable (/sow/)
 
 Steve t126u ("Push it to stable if all the data management logic is safe"). Same app as 0.47.0-beta.1. Rollback: re-deploy tag `v0.46.1` (bundle `index-1aIqXr_S.js`); branch `backup/pre-v0.47.0`, `/workspace/backup-sow-pre-v0.47.0.tgz`. **Code.js change: NO.**

@@ -1,6 +1,7 @@
 # SoW PWA — bugs & known edges (JB-7)
 
 ## Open
+- **B-0471-1 (FIXED in v0.47.1, found by Steve t127u):** in v0.47.0 an A–Z jump that scrolled upward brought the auto-hidden top panel back. Fix: no auto-hide; the panel collapses only by its chevron.
 - v0.46.0 Stable: the LIVE bridge moved to a new deployment. A phone with a **Developer bridge override** set to the old LIVE URL keeps using it on purpose (overrides are never rewritten). Clear the override in Settings › Developer. If the new deployment is a separate script with its own token, phones must pair again. Same script, new deployment = same token, nothing to do. Still open: B-B4-1 (two tabs).
 - **Break-it runs (t23u/t24u/t29u), fixed in bridge 0.46.2, waiting for Steve's TEST paste:**
   - B-0462-1 A replayed or late push could be stamped up to 10 min in the future (clientNow offset plus the 10-min clamp slack), so real edits lost until then. Fix: `capShifted_` never lets a shifted stamp pass server time.

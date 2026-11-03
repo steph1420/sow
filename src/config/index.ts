@@ -4,6 +4,7 @@ export const TIMINGS = {
   pendingGraceMs: 3000,
   /** Row fade + collapse after grace. */
   pendingCollapseMs: 220,
+  /** v0.47.1: RETIRED (manual collapse, t127u) — kept so saved prefs still parse. */
   /** Top panel: scroll must be still this long after the finger lifts. */
   panelSettleMs: 120,
   /** Top panel: net movement needed to hide (down) or show (up). */
