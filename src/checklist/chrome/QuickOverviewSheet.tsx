@@ -1,10 +1,10 @@
 import type { DateSlot } from '../types'
 
 type Row = { date: DateSlot; n: number; total: number }
-type Props = { classLabel: string; mode: 'set' | 'submitted'; rows: Row[]; left: number; onClose: () => void }
+type Props = { classLabel: string; mode: 'set' | 'submitted'; rows: Row[]; left: number; onClose: () => void; onShare?: () => void }
 
 /** v0.39.0 (t79u/t80u) Quick overview — both dates at a glance. Tools › Quick overview · swipe up on the Checklist tab · O. */
-export function QuickOverviewSheet({ classLabel, mode, rows, left, onClose }: Props) {
+export function QuickOverviewSheet({ classLabel, mode, rows, left, onClose, onShare }: Props) {
   return (
     <>
       <button type="button" className="qo-scrim" aria-label="Dismiss quick overview" onClick={onClose} />
@@ -36,7 +36,11 @@ export function QuickOverviewSheet({ classLabel, mode, rows, left, onClose }: Pr
           )
         })}
         <div className="qo-foot">{left ? `${left} left the class (not counted)` : 'No pupils marked Left'}</div>
-        <button type="button" className="qo-close" data-dialog-close onClick={onClose}>Close</button>
+        {/* v0.47.0 (t118u, 2a): footer row [Share | Close] */}
+        <div className="qo-actions">
+          {onShare ? <button type="button" className="qo-share" onClick={onShare}><span aria-hidden>⤴</span> Share</button> : null}
+          <button type="button" className="qo-close" data-dialog-close onClick={onClose}>Close</button>
+        </div>
       </div>
     </>
   )

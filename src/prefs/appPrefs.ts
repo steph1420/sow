@@ -8,6 +8,7 @@ import { flavorKey } from '../sync/channel'
 import { SWIPE_MIGRATION_KEY } from './swipeMigration'
 import { normalizeNameSwipe } from '../checklist/gestures/nameSwipe'
 import { normalizeSwipeStyle, type SwipeConfirmStyle } from '../checklist/gestures/swipeConfirm'
+import { clampGraceMs, clampSettleMs, clampThresholdPx, TIMINGS } from '../config'
 import { migrateLegacyShare, SEED_TEMPLATES, type ShareTemplate } from '../share/shareTemplates'
 
 export type ThemeId = 'night' | 'day'
@@ -50,6 +51,13 @@ export type AppPrefs = {
   'sync.yearStartMonth': number
   /** v0.34.1 (t48u): show a Bridge URL override on Join with a code. Dev option. */
   'sync.joinUrlOverride': boolean
+  /** v0.47.0 (t123u): Dev — push the A–Z strip below the top panel. OFF = panel overlays the strip's top. */
+  'az.pushBelowPanel': boolean
+  /** v0.47.0 (t118u): Dev — Pending-only grace before a ticked row leaves (ms, 0 = off). */
+  'pending.graceMs': number
+  /** v0.47.0 (t118u): Dev — top panel settle wait (ms) and move threshold (px). */
+  'panel.settleMs': number
+  'panel.thresholdPx': number
 }
 
 export const PREFS_DEFAULTS: AppPrefs = {
@@ -73,6 +81,10 @@ export const PREFS_DEFAULTS: AppPrefs = {
   'share.includeClassPrefix': false,
   'sync.yearStartMonth': 4,
   'sync.joinUrlOverride': false,
+  'az.pushBelowPanel': false,
+  'pending.graceMs': TIMINGS.pendingGraceMs,
+  'panel.settleMs': TIMINGS.panelSettleMs,
+  'panel.thresholdPx': TIMINGS.panelThresholdPx,
 }
 
 const STORE_KEY = flavorKey('sow-app.prefs.v1') // v0.46.0: Beta site keeps its own prefs
@@ -113,6 +125,9 @@ export function loadPrefs(): AppPrefs {
     merged['appearance.contrast'] = normalizeContrast(merged['appearance.contrast'])
     merged['gestures.nameSwipeFrom'] = normalizeNameSwipe(merged['gestures.nameSwipeFrom'])
     merged['gestures.swipeConfirmStyle'] = normalizeSwipeStyle(merged['gestures.swipeConfirmStyle'])
+    merged['pending.graceMs'] = clampGraceMs(merged['pending.graceMs'])
+    merged['panel.settleMs'] = clampSettleMs(merged['panel.settleMs'])
+    merged['panel.thresholdPx'] = clampThresholdPx(merged['panel.thresholdPx'])
     if (parsed['haptics.level'] == null && parsed['haptics.enabled'] === false) merged['haptics.level'] = 'off'
     // v0.46.0-beta.2 (t15u Q2): saved blue → trailing wash, once per device
     if (!localStorage.getItem(SWIPE_MIGRATION_KEY)) {
